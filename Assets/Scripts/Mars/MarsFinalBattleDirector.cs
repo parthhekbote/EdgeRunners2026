@@ -84,10 +84,6 @@ namespace Cyberpunk.Mars
             {
                 combatMusic = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Music/Cyberpunk_Combat_Metal_Heart.mp3");
             }
-            if (dustStormAmbient == null)
-            {
-                dustStormAmbient = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Resources/Audio/Drones/sci-fi-drone-sound-effect.mp3");
-            }
 #endif
             if (sfxAlarmWarning == null)
             {
@@ -108,7 +104,9 @@ namespace Cyberpunk.Mars
 
         public void StartCombatEncounter()
         {
-            if (combatMusic != null && !musicSource.isPlaying)
+            // The arrival/invasion director owns the music (crossfaded); this track is only for scenes without it
+            bool cutsceneOwnsMusic = MarsArrivalCutsceneDirector.Instance != null;
+            if (!cutsceneOwnsMusic && combatMusic != null && !musicSource.isPlaying)
             {
                 musicSource.clip = combatMusic;
                 musicSource.Play();

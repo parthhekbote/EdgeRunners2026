@@ -404,8 +404,9 @@ namespace Cyberpunk.Mars
 
             if (enableProceduralWindAudio)
             {
-                _proceduralWindLoop = GenerateWindLoop(4.0f, 44100);
-                _proceduralGustClip = GenerateGustLoop(5.5f, 44100);
+                // Authored seamless beds (Tools/SfxGen/make_mars_ambience.py); the in-engine synth is only a fallback
+                _proceduralWindLoop = Resources.Load<AudioClip>("MarsSfx/Mars_Wind_Loop") ?? GenerateWindLoop(4.0f, 44100);
+                _proceduralGustClip = Resources.Load<AudioClip>("MarsSfx/Mars_Gust_Loop") ?? GenerateGustLoop(5.5f, 44100);
 
                 if (_proceduralWindLoop != null)
                 {
@@ -427,7 +428,7 @@ namespace Cyberpunk.Mars
             if (_windAudioSource != null)
             {
                 _windAudioSource.volume = Mathf.Lerp(_windAudioSource.volume, targetVol, Time.deltaTime * 3.5f);
-                _windAudioSource.pitch = Mathf.Lerp(0.85f, 1.15f, stormIntensity);
+                _windAudioSource.pitch = Mathf.Lerp(0.96f, 1.04f, stormIntensity);
             }
 
             if (_gustAudioSource != null)

@@ -42,12 +42,16 @@ namespace Cyberpunk.Mars
         private Coroutine _descentCoroutine;
 
         // Waypoints (Descent from cloud shelf to low-altitude siege position)
-        private readonly Vector3 StartPosAlpha = new Vector3(-85f, 130f, 190f);
-        private readonly Vector3 EndPosAlpha   = new Vector3(-48f, 52f, 125f);
+        // The ships are huge: they hang far behind the arena so they frame the sky instead of covering it
+        private const float AlphaScale = 0.5f;
+        private const float BetaScale = 0.65f;
+
+        private readonly Vector3 StartPosAlpha = new Vector3(-150f, 260f, 640f);
+        private readonly Vector3 EndPosAlpha   = new Vector3(-130f, 140f, 440f);
         private readonly Quaternion RotAlpha   = Quaternion.Euler(14f, 18f, -4f);
 
-        private readonly Vector3 StartPosBeta  = new Vector3(95f, 140f, 210f);
-        private readonly Vector3 EndPosBeta    = new Vector3(58f, 58f, 140f);
+        private readonly Vector3 StartPosBeta  = new Vector3(170f, 280f, 660f);
+        private readonly Vector3 EndPosBeta    = new Vector3(150f, 150f, 460f);
         private readonly Quaternion RotBeta    = Quaternion.Euler(12f, -16f, 3f);
 
         private void Awake()
@@ -72,6 +76,21 @@ namespace Cyberpunk.Mars
 
             LoadDefaultAssets();
             EnsureFleetInstantiated();
+            SetFleetVisible(false); // the dreadnoughts only exist once the invasion starts
+        }
+
+        private void SetFleetVisible(bool visible)
+        {
+            if (dreadnoughtAlpha != null)
+            {
+                dreadnoughtAlpha.transform.localScale = Vector3.one * AlphaScale;
+                dreadnoughtAlpha.SetActive(visible);
+            }
+            if (dreadnoughtBeta != null)
+            {
+                dreadnoughtBeta.transform.localScale = Vector3.one * BetaScale;
+                dreadnoughtBeta.SetActive(visible);
+            }
         }
 
         public void LoadDefaultAssets()
@@ -102,7 +121,7 @@ namespace Cyberpunk.Mars
             {
                 dreadnoughtAlpha = Instantiate(colossalShipPrefab, StartPosAlpha, RotAlpha, transform);
                 dreadnoughtAlpha.name = "Dreadnought_Alpha_Colossal";
-                dreadnoughtAlpha.transform.localScale = Vector3.one * 7.5f;
+                dreadnoughtAlpha.transform.localScale = Vector3.one * AlphaScale;
 
                 // Strip internal colliders for pure cinematic performance
                 foreach (var c in dreadnoughtAlpha.GetComponentsInChildren<Collider>()) c.enabled = false;
@@ -141,7 +160,7 @@ namespace Cyberpunk.Mars
             {
                 dreadnoughtBeta = Instantiate(carrierShipPrefab, StartPosBeta, RotBeta, transform);
                 dreadnoughtBeta.name = "Dreadnought_Beta_Carrier";
-                dreadnoughtBeta.transform.localScale = Vector3.one * 7.0f;
+                dreadnoughtBeta.transform.localScale = Vector3.one * BetaScale;
 
                 foreach (var c in dreadnoughtBeta.GetComponentsInChildren<Collider>()) c.enabled = false;
 
@@ -177,6 +196,9 @@ namespace Cyberpunk.Mars
         public void StartFleetDescentSequence(float duration = 6.0f)
         {
             EnsureFleetInstantiated();
+            if (dreadnoughtAlpha != null) dreadnoughtAlpha.transform.position = StartPosAlpha;
+            if (dreadnoughtBeta != null) dreadnoughtBeta.transform.position = StartPosBeta;
+            SetFleetVisible(true);
 
             if (_hornSource != null && ominousWarshipAudio != null)
             {
@@ -237,6 +259,7 @@ namespace Cyberpunk.Mars
         public void FastForwardFleet()
         {
             EnsureFleetInstantiated();
+            SetFleetVisible(true);
             if (dreadnoughtAlpha != null) dreadnoughtAlpha.transform.position = EndPosAlpha;
             if (dreadnoughtBeta != null) dreadnoughtBeta.transform.position = EndPosBeta;
         }

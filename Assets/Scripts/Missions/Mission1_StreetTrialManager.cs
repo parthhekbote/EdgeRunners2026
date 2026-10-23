@@ -1410,6 +1410,14 @@ namespace Cyberpunk.Missions
             StartCoroutine(WalkAmbushBotsToStandoffRoutine());
         }
 
+        private static bool IsOnScreen(Vector3 worldPos)
+        {
+            var cam = Camera.main;
+            if (cam == null) return false;
+            Vector3 v = cam.WorldToViewportPoint(worldPos);
+            return v.z > 0f && v.x > -0.1f && v.x < 1.1f && v.y > -0.1f && v.y < 1.1f;
+        }
+
         public IEnumerator WalkAmbushBotsToStandoffRoutine()
         {
             var prologue = Alita.AlitaCityPrologueDirector.Instance;
@@ -1461,6 +1469,7 @@ namespace Cyberpunk.Missions
             };
 
             var walkCoroutines = new List<Coroutine>();
+            float maxWalkTime = 4.2f;
 
             for (int i = 0; i < enemyTrackers.Count && i < standoffOffsets.Length; i++)
             {
@@ -1469,7 +1478,9 @@ namespace Cyberpunk.Missions
 
                 // Ensure bot starts at a clean position ahead on the bridge if out of bounds or too close
                 float currentDistToTarget = Vector3.Distance(tr.transform.position, targetCenter);
-                if (currentDistToTarget < 6.0f || currentDistToTarget > 18.0f)
+                // A bot the camera can see is never moved: it walks in from where it stands. Only off-screen bots are re-staged.
+                bool botVisible = IsOnScreen(tr.transform.position + Vector3.up * 1.0f);
+                if ((currentDistToTarget < 6.0f || currentDistToTarget > 18.0f) && !botVisible)
                 {
                     Vector3 startPos = targetCenter + advanceStartOffsets[i];
                     if (NavMesh.SamplePosition(startPos, out NavMeshHit sHit, 4f, NavMesh.AllAreas)) startPos = sHit.position;
@@ -1498,7 +1509,12 @@ namespace Cyberpunk.Missions
                 Quaternion finalRot = faceIdo.sqrMagnitude > 0.01f ? Quaternion.LookRotation(faceIdo.normalized) : Quaternion.LookRotation(-bridgeDir);
 
                 // Start physical on-foot walk towards Ido/Alita
-                var co = tr.StartWalkToStandoff(finalDest, finalRot, walkSpeed: 2.3f);
+                // Close the real distance on foot: faster (jog) when the bot starts far away, with a timeout that fits
+                float walkDist = Vector3.Distance(tr.transform.position, finalDest);
+                float speed = Mathf.Clamp(walkDist / 5.0f, 2.3f, 4.2f);
+                float walkTimeout = walkDist / speed + 1.5f;
+                maxWalkTime = Mathf.Max(maxWalkTime, walkTimeout);
+                var co = tr.StartWalkToStandoff(finalDest, finalRot, walkSpeed: speed, timeout: walkTimeout);
                 if (co != null) walkCoroutines.Add(co);
             }
 
@@ -1506,7 +1522,7 @@ namespace Cyberpunk.Missions
 
             // Wait for all bots to finish walking into formation (max 4.2 seconds safety)
             float timer = 0f;
-            while (timer < 4.2f)
+            while (timer < maxWalkTime)
             {
                 timer += Time.deltaTime;
                 bool allArrived = true;

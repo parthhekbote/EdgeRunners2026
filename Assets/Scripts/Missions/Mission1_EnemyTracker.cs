@@ -208,14 +208,14 @@ namespace Cyberpunk.Missions
         /// Starts the cinematic standoff advance on foot towards targetPos.
         /// Draws weapon and physically walks with CharacterController and MoveSpeed = 1.0f animation.
         /// </summary>
-        public Coroutine StartWalkToStandoff(Vector3 targetPos, Quaternion finalRot, float walkSpeed = 2.3f)
+        public Coroutine StartWalkToStandoff(Vector3 targetPos, Quaternion finalRot, float walkSpeed = 2.3f, float timeout = 4.5f)
         {
             if (_walkToStandoffCoroutine != null) StopCoroutine(_walkToStandoffCoroutine);
-            _walkToStandoffCoroutine = StartCoroutine(WalkToStandoffRoutine(targetPos, finalRot, walkSpeed));
+            _walkToStandoffCoroutine = StartCoroutine(WalkToStandoffRoutine(targetPos, finalRot, walkSpeed, timeout));
             return _walkToStandoffCoroutine;
         }
 
-        public IEnumerator WalkToStandoffRoutine(Vector3 targetPos, Quaternion finalRot, float walkSpeed = 2.3f)
+        public IEnumerator WalkToStandoffRoutine(Vector3 targetPos, Quaternion finalRot, float walkSpeed = 2.3f, float timeout = 4.5f)
         {
             if (combatController != null)
             {
@@ -226,7 +226,6 @@ namespace Cyberpunk.Missions
             if (_animator == null) _animator = GetComponent<Animator>() ?? GetComponentInChildren<Animator>();
             var cc = _characterController != null ? _characterController : GetComponent<CharacterController>();
 
-            float timeout = 4.5f;
             float elapsed = 0f;
 
             while (elapsed < timeout)
