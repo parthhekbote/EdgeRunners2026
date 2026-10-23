@@ -501,17 +501,22 @@ namespace InsaneGun.Combat
 
         private void StartHitStop(float durationSeconds, float slowScale)
         {
-            if (_hitStopCoroutine != null) StopCoroutine(_hitStopCoroutine);
+            // Never stop a running hit-stop: it would skip its restore and leave the game slowed.
+            // Overlapping ones are tracked together by HitStopTimeScale.
             _hitStopCoroutine = StartCoroutine(HitStopRoutine(durationSeconds, slowScale));
         }
 
         private IEnumerator HitStopRoutine(float duration, float slowScale)
         {
-            float prevScale = Time.timeScale;
-            Time.timeScale = slowScale;
-            yield return new WaitForSecondsRealtime(duration);
-            Time.timeScale = prevScale;
-            _hitStopCoroutine = null;
+            Cyberpunk.Core.HitStopTimeScale.Begin(slowScale);
+            try
+            {
+                yield return new WaitForSecondsRealtime(duration);
+            }
+            finally
+            {
+                Cyberpunk.Core.HitStopTimeScale.End();
+            }
         }
 
         /// <summary>

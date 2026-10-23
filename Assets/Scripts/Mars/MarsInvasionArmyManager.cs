@@ -962,10 +962,16 @@ namespace Cyberpunk.Mars
 
         private IEnumerator ObliterationHitStopRoutine(float freezeDuration, float targetScale)
         {
-            float prevScale = Time.timeScale;
-            Time.timeScale = targetScale;
-            yield return new WaitForSecondsRealtime(freezeDuration);
-            Time.timeScale = prevScale;
+            // Overlapping kill freezes share one remembered time scale (see HitStopTimeScale)
+            Cyberpunk.Core.HitStopTimeScale.Begin(targetScale);
+            try
+            {
+                yield return new WaitForSecondsRealtime(freezeDuration);
+            }
+            finally
+            {
+                Cyberpunk.Core.HitStopTimeScale.End();
+            }
         }
 
         public void CleanupArmy()
