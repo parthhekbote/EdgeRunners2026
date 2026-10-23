@@ -71,7 +71,7 @@ namespace Alita
 
         [Header("Debug & Diagnostics")]
         [Tooltip("Displays live film timecode, elapsed seconds, frame count, and phase name")]
-        public bool showTimestampHUD = true;
+        public bool showTimestampHUD = false;
 
         [Header("Actors & Props")]
         public GameObject alitaActor;
@@ -548,6 +548,7 @@ namespace Alita
         private void Update()
         {
             // 1. Always process input and scene transitions even if cutscene playback reached the end
+            if (Input.GetKeyDown(KeyCode.F1)) showTimestampHUD = !showTimestampHUD;
             HandleGameplayTransitionInput();
 
             if (_isEnding && !_isLoadingGameplay && _endFadeAlpha >= 0.95f)
