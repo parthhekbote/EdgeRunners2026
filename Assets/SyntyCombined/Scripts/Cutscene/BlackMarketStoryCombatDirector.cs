@@ -15,8 +15,9 @@ namespace SyntyCombined.BlackMarket
     public enum BlackMarketStoryState
     {
         InvestigateMarket,       // Inquire with merchants to track down Voss
-        InfiltrateRefineryTask,  // Navigate to Refinery Terminal & hack Data Core
-        ReturnToVoss,            // Deliver Data Core back to Voss
+        InfiltrateRefineryTask,  // (unused) older refinery data-core hack; Voss now asks for the asteroid cores
+        CollectCores,            // Fly the Nightshade out, tractor in the 4 core matrices, land on the Pod Pad
+        ReturnToVoss,            // Deliver the cores back to Voss
         BetrayalAmbush,          // Voss reveals 10M credit bounty & calls bounty hunters
         FleeAcrossCatwalk,       // Alita runs across elevated gantry catwalk
         CatwalkCollapse_Fall,    // Explosion detonates, catwalk shatters, Alita plummets to lower trench
@@ -157,7 +158,10 @@ namespace SyntyCombined.BlackMarket
             }
             if (starshipTransform == null)
             {
-                var ship = GameObject.Find("Nightshade_Striker") ?? GameObject.Find("SS04_Nightshade_Striker") ?? GameObject.FindGameObjectWithTag("Vehicle");
+                // Note: the "Vehicle" tag is not defined in this project (FindGameObjectWithTag would throw
+                // and abort Start), so the ship is found by name only.
+                var ship = GameObject.Find("SS-04_Nightshade_Striker") ?? GameObject.Find("Nightshade_Striker") ??
+                           GameObject.Find("SS04_Nightshade_Striker") ?? GameObject.Find("Alita_Lost_Martian_Starship");
                 if (ship != null) starshipTransform = ship.transform;
             }
             if (siegeTankAI == null)
@@ -200,7 +204,61 @@ namespace SyntyCombined.BlackMarket
             return null;
         }
 
+        // ==================== Landing pad ====================
+
+        /// <summary>
+        /// Where Alita has to stand to board for the escape: next to the Nightshade, which is parked on whichever
+        /// pad it last landed on (the arrival pad at first, the Pod Pad after the core run). Falls back to the
+        /// pad object's own centre. The pad prefab's pivot sits below the deck, so heights come from the floor.
+        /// </summary>
+        public Vector3 GetEscapePadPosition()
+        {
+            Vector3 fallback = new Vector3(22.8f, 1.88f, 33.5f);
+
+            Vector3 centre;
+            float topY;
+            if (starshipTransform != null)
+            {
+                centre = starshipTransform.position;
+                topY = centre.y + 1f;
+            }
+            else if (landingPadCenter != null)
+            {
+                var rends = landingPadCenter.GetComponentsInChildren<Renderer>();
+                if (rends.Length == 0) return landingPadCenter.position;
+                Bounds b = rends[0].bounds;
+                foreach (var rd in rends) b.Encapsulate(rd.bounds);
+                centre = b.center;
+                topY = b.max.y;
+            }
+            else return fallback;
+
+            float y = fallback.y;
+            var hits = Physics.RaycastAll(new Vector3(centre.x, topY + 4f, centre.z), Vector3.down, 30f, ~0, QueryTriggerInteraction.Ignore);
+            float best = float.NegativeInfinity;
+            foreach (var h in hits)
+            {
+                if (h.collider.GetComponentInParent<CharacterController>() != null) continue;
+                if (starshipTransform != null && h.collider.transform.IsChildOf(starshipTransform)) continue;
+                if (h.point.y > best && h.point.y < topY + 0.5f) best = h.point.y;
+            }
+            if (!float.IsNegativeInfinity(best)) y = best;
+
+            return new Vector3(centre.x, y, centre.z);
+        }
+
+        private bool IsPlayerOnEscapePad()
+        {
+            if (_playerTransform == null) return false;
+            Vector3 pad = GetEscapePadPosition();
+            Vector3 p = _playerTransform.position;
+            float horiz = Vector2.Distance(new Vector2(p.x, p.z), new Vector2(pad.x, pad.z));
+            return horiz <= 8.0f && Mathf.Abs(p.y - pad.y) <= 4.5f;
+        }
+
         // ==================== Investigation Leads ====================
+
+        public bool IsLeadFound(string leadId) => !string.IsNullOrEmpty(leadId) && _leadsFound.Contains(leadId);
 
         public int LeadsFound => _leadsFound.Count;
         public int RequiredLeads => Mathf.Max(1, requiredLeads);
@@ -355,6 +413,23 @@ namespace SyntyCombined.BlackMarket
             }
         }
 
+        // Voss's job is the flight mission: hand over to the core-retrieval mission (kept inactive until now).
+        private void StartCoreRetrievalMission()
+        {
+            var mission = FindCoreMission();
+            if (mission == null)
+            {
+                Debug.LogWarning("[Story Director] No core-retrieval mission in the scene; skipping straight to Voss.");
+                SetStoryState(BlackMarketStoryState.ReturnToVoss);
+                return;
+            }
+
+            // Voss already briefed her, so the mission starts at the collecting stage
+            mission.currentStage = SyntyCombined.World.CoreRetrievalStage.CollectingMatrices;
+            mission.enabled = true;
+            mission.gameObject.SetActive(true);
+        }
+
         public void SetStoryState(BlackMarketStoryState newState)
         {
             currentState = newState;
@@ -384,13 +459,25 @@ namespace SyntyCombined.BlackMarket
                     }
                     break;
 
-                case BlackMarketStoryState.ReturnToVoss:
-                    hud.ShowMissionBanner("OBJECTIVE: Return to Kaelen Voss in Sector 4 Alley with the Data Core");
+                case BlackMarketStoryState.CollectCores:
+                    hud.ShowMissionBanner("OBJECTIVE: Board the Nightshade Striker and collect the 4 asteroid core matrices");
                     if (CyberpunkHUDController.Instance != null)
                     {
                         CyberpunkHUDController.Instance.SetQuestObjective(
                             "THE SALVAGE MAN",
-                            "► Deliver the Data Core to Kaelen Voss [E]"
+                            "► Board the Nightshade Striker, fly out through the broken dome and tractor in the 4 core matrices [T]"
+                        );
+                    }
+                    StartCoreRetrievalMission();
+                    break;
+
+                case BlackMarketStoryState.ReturnToVoss:
+                    hud.ShowMissionBanner("OBJECTIVE: Bring the 4 core matrices to Kaelen Voss in his Sanctuary Pod");
+                    if (CyberpunkHUDController.Instance != null)
+                    {
+                        CyberpunkHUDController.Instance.SetQuestObjective(
+                            "THE SALVAGE MAN",
+                            "► Deliver the core matrices to Kaelen Voss [E]"
                         );
                     }
                     break;
@@ -450,7 +537,27 @@ namespace SyntyCombined.BlackMarket
         /// </summary>
         public void OnVossTaskAssigned()
         {
-            SetStoryState(BlackMarketStoryState.InfiltrateRefineryTask);
+            SetStoryState(BlackMarketStoryState.CollectCores);
+        }
+
+        /// <summary>
+        /// Called by the core-retrieval mission once all four core matrices are secured and the ship has landed.
+        /// </summary>
+        public void OnCoresSecured()
+        {
+            if (currentState != BlackMarketStoryState.CollectCores) return;
+
+            var mission = FindCoreMission();
+            if (mission != null) mission.enabled = false; // its job is done; the story director takes over
+
+            SetStoryState(BlackMarketStoryState.ReturnToVoss);
+        }
+
+        private static SyntyCombined.World.BlackMarketCoreRetrievalMission FindCoreMission()
+        {
+            foreach (var m in Resources.FindObjectsOfTypeAll<SyntyCombined.World.BlackMarketCoreRetrievalMission>())
+                if (m != null && m.gameObject.scene.IsValid()) return m;
+            return null;
         }
 
         /// <summary>
@@ -629,9 +736,11 @@ namespace SyntyCombined.BlackMarket
 
             UpdateCombatHUD();
 
-            // All enemies eliminated
-            if (_activeEnemies.Count == 0 && _totalEnemiesSpawned > 0)
+            // All enemies eliminated (or none could be spawned, so the story never soft-locks)
+            if (_activeEnemies.Count == 0)
             {
+                if (_totalEnemiesSpawned <= 0)
+                    Debug.LogWarning("[Story Director] No trench hunters were spawned (prefab missing?); advancing to escape.");
                 SetStoryState(BlackMarketStoryState.EscapeToStarship);
             }
         }
@@ -660,19 +769,9 @@ namespace SyntyCombined.BlackMarket
 
         private void MonitorStarshipEscape()
         {
-            Vector3 padPos = landingPadCenter != null ? landingPadCenter.position : new Vector3(22.8f, 1.88f, 33.5f);
-
-            if (_playerTransform != null)
+            if (IsPlayerOnEscapePad() && Input.GetKeyDown(KeyCode.R))
             {
-                float distToPad = Vector3.Distance(_playerTransform.position, padPos);
-
-                if (distToPad <= 7.0f)
-                {
-                    if (Input.GetKeyDown(KeyCode.R))
-                    {
-                        SetStoryState(BlackMarketStoryState.HyperspaceWarp);
-                    }
-                }
+                SetStoryState(BlackMarketStoryState.HyperspaceWarp);
             }
         }
 
@@ -743,11 +842,9 @@ namespace SyntyCombined.BlackMarket
             if (SyntyCombined.Cutscene.GlobalCutsceneState.IsCutsceneActive) return;
             if (currentState == BlackMarketStoryState.EscapeToStarship)
             {
-                Vector3 padPos = landingPadCenter != null ? landingPadCenter.position : new Vector3(22.8f, 1.88f, 33.5f);
                 if (_playerTransform != null)
                 {
-                    float dist = Vector3.Distance(_playerTransform.position, padPos);
-                    if (dist <= 7.0f)
+                    if (IsPlayerOnEscapePad())
                     {
                         float width = 380f;
                         float height = 52f;

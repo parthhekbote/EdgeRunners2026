@@ -577,6 +577,8 @@ namespace Cyberpunk.Missions
                 voiceSource.priority = 0;
                 voiceSource.volume = 1.0f;
                 voiceSource.Play();
+                // This recording already voices the monologue lines shown below
+                Cyberpunk.Audio.DialogueVoice.SuppressFor(voiceIntro.length + 0.5f);
             }
             yield return PlayCutsceneConversation(new List<Alita.UI.CyberpunkDialogueHUD.DialogueLineData>
             {

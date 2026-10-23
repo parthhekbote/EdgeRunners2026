@@ -121,7 +121,7 @@ namespace SyntyCombined.Cutscene
 
         private void MuteAllOtherAudio()
         {
-            foreach (var src in FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var src in FindObjectsByType<AudioSource>(FindObjectsInactive.Include))
             {
                 if (src == null || src == _musicSource || src == _sfxSource || src.mute) continue;
                 src.mute = true;
@@ -411,9 +411,13 @@ namespace SyntyCombined.Cutscene
                 var rb = starship.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
+                    // Velocity can only be written while the body is dynamic, so clear it before going kinematic
+                    if (!rb.isKinematic)
+                    {
+                        rb.linearVelocity = Vector3.zero;
+                        rb.angularVelocity = Vector3.zero;
+                    }
                     rb.isKinematic = true;
-                    rb.linearVelocity = Vector3.zero;
-                    rb.angularVelocity = Vector3.zero;
                 }
 
                 // Temporarily disable starship colliders during the cutscene flight
@@ -615,9 +619,13 @@ namespace SyntyCombined.Cutscene
                 var rb = starship.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
+                    // Velocity can only be written while the body is dynamic, so clear it before going kinematic
+                    if (!rb.isKinematic)
+                    {
+                        rb.linearVelocity = Vector3.zero;
+                        rb.angularVelocity = Vector3.zero;
+                    }
                     rb.isKinematic = true;
-                    rb.linearVelocity = Vector3.zero;
-                    rb.angularVelocity = Vector3.zero;
                 }
 
                 // Re-enable starship colliders once firmly settled on the pad

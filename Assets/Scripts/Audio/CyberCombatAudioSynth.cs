@@ -539,9 +539,10 @@ namespace CyberCombat.Audio
         private static void GenerateJumpTakeoffs()
         {
             _jumpTakeoffs = new AudioClip[3];
-            _jumpTakeoffs[0] = TryLoadClip("Assets/Audio/Combat/Jump_Takeoff_Cyber_01.wav");
-            _jumpTakeoffs[1] = TryLoadClip("Assets/Audio/Combat/Jump_Takeoff_Cyber_02.wav");
-            _jumpTakeoffs[2] = TryLoadClip("Assets/Audio/Combat/Jump_Takeoff_Cyber_03.wav");
+            // Servo "hop" (Tools/SfxGen/make_jump_sfx.py): thump, rising servo chirp, no whoosh
+            _jumpTakeoffs[0] = TryLoadClip("Assets/Audio/Combat/Jump_Hop_Servo_01.wav");
+            _jumpTakeoffs[1] = TryLoadClip("Assets/Audio/Combat/Jump_Hop_Servo_02.wav");
+            _jumpTakeoffs[2] = TryLoadClip("Assets/Audio/Combat/Jump_Hop_Servo_03.wav");
 
             for (int k = 0; k < 3; k++)
             {
@@ -580,11 +581,13 @@ namespace CyberCombat.Audio
         // ── 10. Jump Landings (Physical boot impacts) ─────────────────────────
         private static void GenerateJumpLandings()
         {
-            _jumpLandings = new AudioClip[2];
-            _jumpLandings[0] = TryLoadClip("Assets/Audio/Combat/Jump_Landing_Boots_01.wav");
-            _jumpLandings[1] = TryLoadClip("Assets/Audio/Combat/Jump_Landing_Boots_02.wav");
+            _jumpLandings = new AudioClip[3];
+            // Armoured boot landings (Tools/SfxGen/make_jump_sfx.py)
+            _jumpLandings[0] = TryLoadClip("Assets/Audio/Combat/Jump_Land_Armor_01.wav");
+            _jumpLandings[1] = TryLoadClip("Assets/Audio/Combat/Jump_Land_Armor_02.wav");
+            _jumpLandings[2] = TryLoadClip("Assets/Audio/Combat/Jump_Land_Armor_03.wav");
 
-            for (int k = 0; k < 2; k++)
+            for (int k = 0; k < 3; k++)
             {
                 if (_jumpLandings[k] != null) continue;
                 float duration = 0.22f;

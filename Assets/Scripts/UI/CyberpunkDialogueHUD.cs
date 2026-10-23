@@ -556,11 +556,21 @@ namespace Alita.UI
             DialogueTheme theme = DetermineTheme(line.speakerName);
             ApplyTheme(theme, line.speakerName, line.customPortrait, line.speakerTitle);
 
-            // Play voice clip if available
+            // Play voice clip if available: a clip set on the line wins, otherwise the generated voice for this text
             if (line.voiceClip != null && audioSource != null)
             {
+                Cyberpunk.Audio.DialogueVoice.Stop();
                 audioSource.clip = line.voiceClip;
                 audioSource.Play();
+            }
+            else
+            {
+                var spoken = Cyberpunk.Audio.DialogueVoice.Play(line.speakerName, line.dialogueText);
+                if (spoken != null && line.autoAdvanceTime > 0f)
+                {
+                    // Never cut a spoken line off: auto-advance waits for the voice to finish
+                    line.autoAdvanceTime = Mathf.Max(line.autoAdvanceTime, spoken.length + 0.45f);
+                }
             }
 
             // Hide advance indicators until typewriter finishes
@@ -793,6 +803,7 @@ namespace Alita.UI
         public void AdvanceNext()
         {
             if (_autoAdvanceCoroutine != null) StopCoroutine(_autoAdvanceCoroutine);
+            Cyberpunk.Audio.DialogueVoice.Stop();
 
             PlayConfirmClickSFX();
 
@@ -835,6 +846,7 @@ namespace Alita.UI
 
         public void CloseDialogue(float fadeDuration = 0.25f)
         {
+            Cyberpunk.Audio.DialogueVoice.Stop();
             if (_typewriterCoroutine != null) StopCoroutine(_typewriterCoroutine);
             if (_autoAdvanceCoroutine != null) StopCoroutine(_autoAdvanceCoroutine);
             _isTyping = false;
@@ -850,6 +862,7 @@ namespace Alita.UI
 
         public void HideImmediate()
         {
+            Cyberpunk.Audio.DialogueVoice.Stop();
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = 0f;

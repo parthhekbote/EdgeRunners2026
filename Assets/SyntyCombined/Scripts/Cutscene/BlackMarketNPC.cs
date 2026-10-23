@@ -65,7 +65,7 @@ namespace SyntyCombined.BlackMarket
 
         [Header("Waiting Dialogue (While Task In Progress)")]
         [TextArea(2, 4)]
-        public string waitingDialogueText = "Refinery terminal is on the upper catwalk. Bring me that Data Core.";
+        public string waitingDialogueText = "Four core matrices are drifting outside the broken dome. Bring them back and the coordinates are yours.";
 
         [Header("Post-Conversation Follow-up")]
         [Tooltip("Line spoken after initial dialogue/lead is completed, avoiding repetitive loops.")]
@@ -405,18 +405,22 @@ namespace SyntyCombined.BlackMarket
                     }
                     else
                     {
-                        // Alita has enough leads -> Voss offers the Refinery Data Core task (concise 2-line briefing)
-                        _activeDialogueList = (dialogueEntries != null && dialogueEntries.Count > 0 && !dialogueEntries[0].dialogueText.Contains("Antimatter Cores") && dialogueEntries.Count <= 2)
+                        // Alita has enough leads -> Voss sends her after the four asteroid cores.
+                        // Scene-saved lines from the old data-core job are ignored.
+                        _activeDialogueList = (dialogueEntries != null && dialogueEntries.Count > 0 && dialogueEntries.Count <= 2 &&
+                                               !dialogueEntries[0].dialogueText.Contains("Antimatter Cores") &&
+                                               !dialogueEntries[dialogueEntries.Count - 1].dialogueText.Contains("Data Core"))
                             ? dialogueEntries
                             : GetDefaultVossBriefingDialogue();
                     }
                 }
-                else if (state == BlackMarketStoryState.InfiltrateRefineryTask)
+                else if (state == BlackMarketStoryState.CollectCores || state == BlackMarketStoryState.InfiltrateRefineryTask)
                 {
                     // Single waiting reminder
-                    string waitText = !string.IsNullOrEmpty(waitingDialogueText) && !waitingDialogueText.Contains("Antimatter Cores")
+                    string waitText = !string.IsNullOrEmpty(waitingDialogueText) && !waitingDialogueText.Contains("Antimatter Cores") &&
+                                      !waitingDialogueText.Contains("Data Core")
                         ? waitingDialogueText
-                        : "Voss: \"Refinery terminal is on the upper catwalk. Bring me that Data Core.\"";
+                        : "Voss: \"The Nightshade is waiting on the pad. Four cores are drifting outside the dome. Bring them back.\"";
 
                     _activeDialogueList = new List<DialogueEntry>
                     {
@@ -426,7 +430,7 @@ namespace SyntyCombined.BlackMarket
                 else if (state == BlackMarketStoryState.ReturnToVoss)
                 {
                     // Betrayal conversation
-                    _activeDialogueList = (returnDialogueEntries != null && returnDialogueEntries.Count > 0 && !returnDialogueEntries[0].dialogueText.Contains("Antimatter Cores") && !returnDialogueEntries[0].dialogueText.Contains("refinery mainframe"))
+                    _activeDialogueList = (returnDialogueEntries != null && returnDialogueEntries.Count > 0 && !returnDialogueEntries[0].dialogueText.Contains("Antimatter Cores") && !returnDialogueEntries[0].dialogueText.Contains("refinery mainframe") && !returnDialogueEntries[0].dialogueText.Contains("your core, Voss"))
                         ? returnDialogueEntries
                         : GetDefaultVossBetrayalDialogue();
                 }
@@ -462,7 +466,7 @@ namespace SyntyCombined.BlackMarket
             return new List<DialogueEntry>
             {
                 new DialogueEntry { dialogueText = "Alita: \"Voss. I need the Mars coordinates.\"", speakerMood = "Determined" },
-                new DialogueEntry { dialogueText = "Voss: \"Steal the encrypted Data Core from the upper refinery, and they're yours.\"", speakerMood = "Neutral" }
+                new DialogueEntry { dialogueText = "Voss: \"Four core matrices are drifting outside the broken dome. Take the Nightshade up, tractor them in, and the coordinates are yours.\"", speakerMood = "Neutral" }
             };
         }
 
@@ -470,8 +474,8 @@ namespace SyntyCombined.BlackMarket
         {
             return new List<DialogueEntry>
             {
-                new DialogueEntry { dialogueText = "Alita: \"I've got your core, Voss. Now give me the jump coordinates.\"", speakerMood = "Determined" },
-                new DialogueEntry { dialogueText = "Voss: \"You actually pulled it off. Telemetry, vault keys... all of it. Impressive, kid.\"", speakerMood = "Sinister" },
+                new DialogueEntry { dialogueText = "Alita: \"All four cores are in the hold, Voss. Now give me the jump coordinates.\"", speakerMood = "Determined" },
+                new DialogueEntry { dialogueText = "Voss: \"You actually pulled it off. Four matrices out of that debris field. Impressive, kid.\"", speakerMood = "Sinister" },
                 new DialogueEntry { dialogueText = "Voss: \"Which makes this almost hurt. Omni-Corp put ten million on your head, Alita. And that kind of money buys a lot of silence.\"", speakerMood = "Sinister" },
                 new DialogueEntry { dialogueText = "Voss: \"Lock down the alley! Don't let her leave this sector breathing!\"", speakerMood = "Aggressive" },
                 new DialogueEntry { dialogueText = "Alita: \"You son of a bitch. You just made the biggest mistake of your life.\"", speakerMood = "Defiant" }
@@ -614,9 +618,9 @@ namespace SyntyCombined.BlackMarket
                 var state = BlackMarketStoryCombatDirector.Instance.currentState;
                 if (state == BlackMarketStoryState.ReturnToVoss)
                 {
-                    action = "Deliver Encrypted Data Core to Voss";
+                    action = "Deliver the Core Matrices to Voss";
                 }
-                else if (state == BlackMarketStoryState.InfiltrateRefineryTask)
+                else if (state == BlackMarketStoryState.CollectCores || state == BlackMarketStoryState.InfiltrateRefineryTask)
                 {
                     action = "Speak with Kaelen Voss";
                 }

@@ -293,22 +293,22 @@ namespace SyntyCombined.BlackMarket
                 root.transform, "The Collector (Kaelen Voss)", NPCRoleType.StoryFixer, "THE COLLECTOR // FIXER",
                 new Color(0.95f, 0.75f, 0.15f), new Vector3(4.8f, 0.28f, -7.8f), Quaternion.Euler(0f, -125f, 0f),
                 SCI_FI_CHR_PATH + "SM_Chr_ScifiWorlds_AlienArmor_01.prefab", animLeanM, phoneChatter,
-                isStoryObjective: true, unlockObjectiveText: "OBJECTIVE: Infiltrate Refinery Depot & Hack Secure Terminal",
+                isStoryObjective: true, unlockObjectiveText: "OBJECTIVE: Collect the 4 asteroid core matrices for Voss",
                 dialogue: new string[]
                 {
                     "Alita: \"Voss. I need the Mars coordinates.\"",
-                    "Voss: \"Steal the encrypted Data Core from the upper refinery, and they're yours.\""
+                    "Voss: \"Four core matrices are drifting outside the broken dome. Take the Nightshade up, tractor them in, and the coordinates are yours.\""
                 }
             );
 
             if (vossGo != null)
             {
                 var vossNpc = vossGo.GetComponent<BlackMarketNPC>();
-                vossNpc.waitingDialogueText = "Refinery terminal is on the upper catwalk. Bring me that Data Core.";
+                vossNpc.waitingDialogueText = "Four core matrices are drifting outside the broken dome. Bring them back and the coordinates are yours.";
                 vossNpc.returnDialogueEntries = new List<DialogueEntry>
                 {
-                    new DialogueEntry { dialogueText = "Alita: \"I've got your core, Voss. Now give me the jump coordinates.\"", speakerMood = "Determined" },
-                    new DialogueEntry { dialogueText = "Voss: \"You actually pulled it off. Telemetry, vault keys... all of it. Impressive, kid.\"", speakerMood = "Sinister" },
+                    new DialogueEntry { dialogueText = "Alita: \"All four cores are in the hold, Voss. Now give me the jump coordinates.\"", speakerMood = "Determined" },
+                    new DialogueEntry { dialogueText = "Voss: \"You actually pulled it off. Four matrices out of that debris field. Impressive, kid.\"", speakerMood = "Sinister" },
                     new DialogueEntry { dialogueText = "Voss: \"Which makes this almost hurt. Omni-Corp put ten million on your head, Alita. And that kind of money buys a lot of silence.\"", speakerMood = "Sinister" },
                     new DialogueEntry { dialogueText = "Voss: \"Lock down the alley! Don't let her leave this sector breathing!\"", speakerMood = "Aggressive" },
                     new DialogueEntry { dialogueText = "Alita: \"You son of a bitch. You just made the biggest mistake of your life.\"", speakerMood = "Defiant" }
@@ -330,7 +330,7 @@ namespace SyntyCombined.BlackMarket
                 {
                     "Buy something or back off. ... Huh. Damascus plate, URM joints. You're not a customer. You're a war somebody dug up.",
                     "Voss? He came through two nights ago and paid me for a dead-man's switch — cheap transmitter wired to his own heartbeat. Man planning to die on his own terms.",
-                    "He was shipping something out of the refinery, not the other way around. Whatever's in that terminal, he's already sold it once."
+                    "He was shipping something out of the refinery, not the other way around. Whatever he's after, he's already sold it once."
                 },
                 leadId: "vex",
                 leadTitle: "VOSS PAID FOR A DEAD-MAN'S SWITCH",
@@ -1178,19 +1178,19 @@ namespace SyntyCombined.BlackMarket
                 voss.badgeColor = new Color(0.95f, 0.75f, 0.15f);
                 voss.isStoryObjectiveNPC = true;
                 voss.canTalk = true;
-                voss.waitingDialogueText = "Refinery terminal is on the upper catwalk. Bring me that Data Core.";
+                voss.waitingDialogueText = "Four core matrices are drifting outside the broken dome. Bring them back and the coordinates are yours.";
                 voss.completedDialogueText = "";
 
                 voss.dialogueEntries = new List<DialogueEntry>
                 {
                     new DialogueEntry { dialogueText = "Alita: \"Voss. I need the Mars coordinates.\"", speakerMood = "Determined" },
-                    new DialogueEntry { dialogueText = "Voss: \"Steal the encrypted Data Core from the upper refinery, and they're yours.\"", speakerMood = "Neutral" }
+                    new DialogueEntry { dialogueText = "Voss: \"Four core matrices are drifting outside the broken dome. Take the Nightshade up, tractor them in, and the coordinates are yours.\"", speakerMood = "Neutral" }
                 };
 
                 voss.returnDialogueEntries = new List<DialogueEntry>
                 {
-                    new DialogueEntry { dialogueText = "Alita: \"I've got your core, Voss. Now give me the jump coordinates.\"", speakerMood = "Determined" },
-                    new DialogueEntry { dialogueText = "Voss: \"You actually pulled it off. Telemetry, vault keys... all of it. Impressive, kid.\"", speakerMood = "Sinister" },
+                    new DialogueEntry { dialogueText = "Alita: \"All four cores are in the hold, Voss. Now give me the jump coordinates.\"", speakerMood = "Determined" },
+                    new DialogueEntry { dialogueText = "Voss: \"You actually pulled it off. Four matrices out of that debris field. Impressive, kid.\"", speakerMood = "Sinister" },
                     new DialogueEntry { dialogueText = "Voss: \"Which makes this almost hurt. Omni-Corp put ten million on your head, Alita. And that kind of money buys a lot of silence.\"", speakerMood = "Sinister" },
                     new DialogueEntry { dialogueText = "Voss: \"Lock down the alley! Don't let her leave this sector breathing!\"", speakerMood = "Aggressive" },
                     new DialogueEntry { dialogueText = "Alita: \"You son of a bitch. You just made the biggest mistake of your life.\"", speakerMood = "Defiant" }
@@ -1244,7 +1244,7 @@ namespace SyntyCombined.BlackMarket
                 {
                     new DialogueEntry { dialogueText = "Vex: \"Buy something or back off. ... Huh. Damascus plate, URM joints. You're not a customer. You're a war somebody dug up.\"", speakerMood = "Neutral" },
                     new DialogueEntry { dialogueText = "Vex: \"Voss? He came through two nights ago and paid me for a dead-man's switch — cheap transmitter wired to his own heartbeat. Man planning to die on his own terms.\"", speakerMood = "Neutral" },
-                    new DialogueEntry { dialogueText = "Vex: \"He was shipping something out of the refinery, not the other way around. Whatever's in that terminal, he's already sold it once.\"", speakerMood = "Neutral" }
+                    new DialogueEntry { dialogueText = "Vex: \"He was shipping something out of the refinery, not the other way around. Whatever he's after, he's already sold it once.\"", speakerMood = "Neutral" }
                 };
             }
 

@@ -874,6 +874,9 @@ namespace SyntyCombined
             bool isAlitaLine = (beatIndex == 1);
             PlayVoiceLine(voiceClip, isAlitaLine);
 
+            // A hand-recorded clip covers this beat: keep the generated dialogue voice quiet underneath it
+            if (voiceClip != null) Cyberpunk.Audio.DialogueVoice.SuppressFor(voiceClip.length + 0.6f);
+
             // Start typewriter
             StartTypewriter(text);
 

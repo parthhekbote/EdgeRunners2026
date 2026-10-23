@@ -83,7 +83,7 @@ namespace Cyberpunk.World
         {
             HasPlayed = false;
             Mission4_VulcanShowdownManager.IsVulcanDefeated = true;
-            var existing = Object.FindObjectsByType<IdoBridgeAmbushDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var existing = Object.FindObjectsByType<IdoBridgeAmbushDirector>(FindObjectsInactive.Include);
             foreach (var e in existing) Destroy(e.gameObject);
 
             var go = new GameObject("[Ido_Bridge_Ambush]");

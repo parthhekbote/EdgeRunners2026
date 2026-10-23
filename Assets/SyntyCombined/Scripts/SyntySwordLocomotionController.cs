@@ -1550,7 +1550,13 @@ namespace SyntyCombined
                 animator.SetBool(_hIsJumping, true);
                 animator.speed = 1f;
             }
-            // Silent jump takeoff (punchy landing audio plays on ground contact, Cyberpunk 2077 / Elden Ring style)
+            // Servo hop on takeoff; the armoured landing thud plays on ground contact
+            CyberCombat.Audio.CyberCombatAudioSynth.PlayAtPoint(
+                CyberCombat.Audio.CyberCombatAudioSynth.GetJumpTakeoff(),
+                transform.position,
+                0.6f,
+                Random.Range(0.96f, 1.05f)
+            );
         }
 
         private bool CheckGroundBelow()

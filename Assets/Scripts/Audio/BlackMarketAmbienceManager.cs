@@ -176,7 +176,7 @@ namespace Cyberpunk.Audio
             var wait = new WaitForSeconds(0.15f);
             while (true)
             {
-                foreach (var src in FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                foreach (var src in FindObjectsByType<AudioSource>(FindObjectsInactive.Include))
                 {
                     if (src == null || src.transform.IsChildOf(transform)) continue;
                     if (src.GetComponent<SyntyCombined.Cutscene.BlackMarketArrivalCutsceneDirector>() != null) continue; // cutscene music and ship pass-by stay

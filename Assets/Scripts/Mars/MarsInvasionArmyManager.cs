@@ -33,6 +33,16 @@ namespace Cyberpunk.Mars
         public GameObject arcRiflePrefab;
         public GameObject powerRiflePrefab;
 
+        [Header("StarCraft Drop Pod Armada (Cinematic Reference 1:34-1:45)")]
+        public GameObject dropPodPrefab;
+        public GameObject whiteSmokeFX;
+        public GameObject thrusterFlameFX;
+        public GameObject landingDustFX;
+        [Range(2, 6)] public int podCount = 4;
+        public float podDescentAltitude = 95f;
+        public float podDescentDuration = 5.2f;
+        public bool arePodsLanded = false;
+
         [Header("Army Formation Tuning")]
         [Range(6, 16)] public int pilotCount = 12;
         public float perimeterRadius = 11.5f;
@@ -50,7 +60,21 @@ namespace Cyberpunk.Mars
         public bool isArmyObliterated = false;
 
         private readonly List<PilotUnit> _pilots = new List<PilotUnit>();
+        private readonly List<DropPodInstance> _dropPods = new List<DropPodInstance>();
         private AudioSource _audioSource;
+
+        public class DropPodInstance
+        {
+            public GameObject rootObject;
+            public Vector3 startPos;
+            public Vector3 targetPos;
+            public Quaternion descentRot;
+            public Quaternion landedRot;
+            public ParticleSystem flameFX;
+            public Light retroLight;
+            public bool hasRetroBurned;
+            public bool hasLanded;
+        }
 
         public class PilotUnit
         {
@@ -93,6 +117,18 @@ namespace Cyberpunk.Mars
             if (powerRiflePrefab == null)
                 powerRiflePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/PolygonMech/Prefabs/Weapons/SM_Wep_PowerRifle_01.prefab");
 
+            if (dropPodPrefab == null)
+                dropPodPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/PolygonSciFiSpace/Prefabs/Vehicles/SM_Veh_EscapePod_Large_01.prefab");
+            if (dropPodPrefab == null)
+                dropPodPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Synty/PolygonSciFiWorlds/Prefabs/Props/Vehicles/SM_Veh_DropShip_01.prefab");
+
+            if (whiteSmokeFX == null)
+                whiteSmokeFX = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/PolygonMech/Prefabs/FX/FX_Smoke_White_01.prefab");
+            if (thrusterFlameFX == null)
+                thrusterFlameFX = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/PolygonMech/Prefabs/FX/FX_Flame_Exhaust_01.prefab");
+            if (landingDustFX == null)
+                landingDustFX = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Synty/PolygonSciFiWorlds/Prefabs/FX/FX_Ship_Hover_Dust_01.prefab");
+
             if (mercGruntAudio == null)
                 mercGruntAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/NPC_Chatter/npc_merc_grunt_01.wav");
             if (mercGruntAudio == null)
@@ -104,6 +140,355 @@ namespace Cyberpunk.Mars
             if (laserDeflectAudio == null)
                 laserDeflectAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/NPC_Chatter/npc_reaction_startle_01.wav");
 #endif
+        }
+
+        /// <summary>
+        /// STAGE 1: StarCraft Drop Pod Armada Sequence (StarCraft Cinematic Reference 1:34-1:45).
+        /// Drops 4 heavy pods from orbit/Dreadnoughts, retro-burns at Y=14m, slams onto ground,
+        /// vents steam & blows doors, then deploys 12 pilots into an 11.5m firing circle.
+        /// </summary>
+        public IEnumerator PerformStarCraftDropPodArmadaRoutine(Vector3 center, Action onPodsLanded = null, Action onArmyFormed = null)
+        {
+            if (isArmySpawned) yield break;
+            isArmySpawned = true;
+            isArmyObliterated = false;
+            armyCenterPos = center;
+
+            CleanupArmy();
+
+            // 1. Establish 4 tactical Drop Pod landing zones around Alita
+            Vector3[] podOffsets = new Vector3[]
+            {
+                new Vector3(-9.2f, 0f, 6.2f),
+                new Vector3(9.2f, 0f, 6.2f),
+                new Vector3(-7.5f, 0f, -8.2f),
+                new Vector3(7.5f, 0f, -8.2f)
+            };
+
+            _dropPods.Clear();
+
+            for (int i = 0; i < podCount && i < podOffsets.Length; i++)
+            {
+                Vector3 targetPos = center + podOffsets[i];
+                targetPos.y = center.y;
+
+                // Approaching diagonally from Dreadnought hangar shelf
+                Vector3 startPos = targetPos + new Vector3(-26f, podDescentAltitude, 42f);
+                Vector3 descentDir = (targetPos - startPos).normalized;
+                Quaternion descentRot = Quaternion.LookRotation(descentDir) * Quaternion.Euler(90f, 0f, 0f);
+                Quaternion landedRot = Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f);
+
+                GameObject podGO = null;
+                if (dropPodPrefab != null)
+                {
+                    podGO = Instantiate(dropPodPrefab, startPos, descentRot, transform);
+                }
+                else
+                {
+                    podGO = CreateProceduralDropPod(startPos, descentRot);
+                }
+                podGO.name = $"StarCraft_DropPod_{i + 1:D2}";
+                podGO.transform.localScale = Vector3.one * 1.35f;
+
+                // Add bottom retro thruster light
+                GameObject lightGO = new GameObject("Retro_Thruster_Light");
+                lightGO.transform.SetParent(podGO.transform, false);
+                lightGO.transform.localPosition = new Vector3(0f, -1.2f, 0f);
+                var retroLight = lightGO.AddComponent<Light>();
+                retroLight.type = LightType.Point;
+                retroLight.color = new Color(1.0f, 0.45f, 0.10f); // Hot orange flame
+                retroLight.range = 22f;
+                retroLight.intensity = 3.5f;
+
+                // Add thruster exhaust particle system
+                ParticleSystem flamePS = null;
+                if (thrusterFlameFX != null)
+                {
+                    var fx = Instantiate(thrusterFlameFX, lightGO.transform);
+                    fx.transform.localPosition = Vector3.zero;
+                    fx.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                    flamePS = fx.GetComponent<ParticleSystem>();
+                }
+
+                _dropPods.Add(new DropPodInstance
+                {
+                    rootObject = podGO,
+                    startPos = startPos,
+                    targetPos = targetPos,
+                    descentRot = descentRot,
+                    landedRot = landedRot,
+                    flameFX = flamePS,
+                    retroLight = retroLight,
+                    hasRetroBurned = false,
+                    hasLanded = false
+                });
+            }
+
+            // Play distant atmospheric descent roar
+            if (_audioSource != null)
+            {
+                _audioSource.pitch = 0.95f;
+                _audioSource.PlayOneShot(MechAudioSynth.GetThrusterLoop(), 0.85f);
+            }
+
+            float timer = 0f;
+            bool retroFired = false;
+
+            while (timer < podDescentDuration)
+            {
+                timer += Time.deltaTime;
+                float norm = Mathf.Clamp01(timer / podDescentDuration);
+
+                // High-velocity deceleration curve (terminal entry -> retro burn)
+                float curve = norm < 0.68f ? (norm / 0.68f) * 0.72f : 0.72f + Mathf.SmoothStep(0f, 0.28f, (norm - 0.68f) / 0.32f);
+
+                for (int i = 0; i < _dropPods.Count; i++)
+                {
+                    var pod = _dropPods[i];
+                    if (pod.hasLanded) continue;
+
+                    Vector3 curPos = Vector3.Lerp(pod.startPos, pod.targetPos, curve);
+                    pod.rootObject.transform.position = curPos;
+
+                    // Transition rotation upright as it brakes
+                    float rotT = Mathf.Clamp01((curve - 0.5f) / 0.5f);
+                    pod.rootObject.transform.rotation = Quaternion.Slerp(pod.descentRot, pod.landedRot, rotT);
+
+                    // Trigger Retro-Burn Cluster (StarCraft 1:42) at Y <= 14m
+                    if (!pod.hasRetroBurned && curPos.y <= center.y + 14f)
+                    {
+                        pod.hasRetroBurned = true;
+                        if (pod.retroLight != null) pod.retroLight.intensity = 14f;
+                        if (pod.flameFX != null && !pod.flameFX.isPlaying) pod.flameFX.Play();
+                    }
+                }
+
+                // Audio cue for retro-rockets
+                if (!retroFired && norm >= 0.68f)
+                {
+                    retroFired = true;
+                    if (_audioSource != null)
+                    {
+                        _audioSource.PlayOneShot(MechAudioSynth.GetThrusterIgnition(), 1.0f);
+                    }
+                    if (MarsArrivalCutsceneDirector.Instance != null)
+                    {
+                        MarsArrivalCutsceneDirector.Instance.AddCameraTrauma(0.45f);
+                    }
+                }
+
+                yield return null;
+            }
+
+            // ════════════════════════════════════════════════════════════════════════
+            // GROUND SLAMDOWN & RETRO-CUTOFF (StarCraft 1:45)
+            // ════════════════════════════════════════════════════════════════════════
+            for (int i = 0; i < _dropPods.Count; i++)
+            {
+                var pod = _dropPods[i];
+                pod.hasLanded = true;
+                pod.rootObject.transform.position = pod.targetPos;
+                pod.rootObject.transform.rotation = pod.landedRot;
+
+                if (pod.retroLight != null) pod.retroLight.intensity = 0f;
+                if (pod.flameFX != null) pod.flameFX.Stop();
+
+                // Spawn 360° red dust shockwave ring at pod base
+                SpawnPodLandingDustRing(pod.targetPos);
+
+                // Spawn pneumatic steam venting from pod hatches
+                SpawnPodSteamVents(pod.targetPos);
+            }
+
+            arePodsLanded = true;
+
+            // Colossal kinetic slamdown sound
+            if (_audioSource != null)
+            {
+                _audioSource.pitch = 0.90f;
+                _audioSource.PlayOneShot(MechAudioSynth.GetSeismicSlam(), 1.0f);
+                _audioSource.PlayOneShot(MechAudioSynth.GetPneumaticRelease(), 0.95f);
+            }
+
+            if (MarsArrivalCutsceneDirector.Instance != null)
+            {
+                MarsArrivalCutsceneDirector.Instance.AddCameraTrauma(0.95f);
+            }
+
+            onPodsLanded?.Invoke();
+
+            // Wait 0.35s for doors to blow open & steam to vent
+            yield return new WaitForSeconds(0.35f);
+
+            // ════════════════════════════════════════════════════════════════════════
+            // DEPLOY 12 PILOTS FROM PODS INTO COMBAT PERIMETER
+            // ════════════════════════════════════════════════════════════════════════
+            SpawnPilotsFromDropPods(center);
+
+            onArmyFormed?.Invoke();
+        }
+
+        private void SpawnPilotsFromDropPods(Vector3 center)
+        {
+            float angleStep = 360f / pilotCount;
+
+            for (int i = 0; i < pilotCount; i++)
+            {
+                float angle = i * angleStep;
+                float rad = angle * Mathf.Deg2Rad;
+
+                float radius = perimeterRadius + UnityEngine.Random.Range(-0.8f, 0.8f);
+                Vector3 finalPos = center + new Vector3(Mathf.Sin(rad) * radius, 0f, Mathf.Cos(rad) * radius);
+                finalPos.y = center.y;
+
+                // Pick the nearest pod as spawn origin
+                int podIdx = i % Mathf.Max(1, _dropPods.Count);
+                Vector3 spawnOrigin = _dropPods.Count > 0 ? _dropPods[podIdx].targetPos : finalPos;
+                spawnOrigin.y = center.y;
+
+                Vector3 lookDir = (center - finalPos);
+                lookDir.y = 0f;
+                Quaternion spawnRot = lookDir != Vector3.zero ? Quaternion.LookRotation(lookDir) : Quaternion.identity;
+
+                GameObject chosenPrefab = (i % 2 == 0) ? malePilotPrefab : femalePilotPrefab;
+                if (chosenPrefab == null) chosenPrefab = malePilotPrefab;
+                if (chosenPrefab == null) continue;
+
+                // Spawn at final position facing Alita
+                GameObject pilotGO = Instantiate(chosenPrefab, finalPos, spawnRot, transform);
+                pilotGO.name = $"MechPilot_Soldier_{i + 1:D2}";
+                pilotGO.tag = "Untagged";
+
+                var anim = pilotGO.GetComponent<Animator>();
+                if (anim != null)
+                {
+#if UNITY_EDITOR
+                    var animCtrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/InsaneGun_Sword_Set/Ect/AnimatorContrl/atk_gun_01.controller");
+                    if (animCtrl == null)
+                        animCtrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/Animations/ShootRifle_Controller.controller");
+                    if (animCtrl != null) anim.runtimeAnimatorController = animCtrl;
+#endif
+                    anim.applyRootMotion = false;
+                }
+
+                GameObject rifleGO = AttachWeaponToPilot(pilotGO, (i % 2 == 0) ? arcRiflePrefab : powerRiflePrefab);
+
+                var ragdoll = pilotGO.GetComponent<EuphoriaRagdollController>();
+                if (ragdoll == null) ragdoll = pilotGO.AddComponent<EuphoriaRagdollController>();
+                ragdoll.autoRecover = false;
+                ragdoll.autoFreezeFatalRagdolls = true;
+                ragdoll.ragdollForceMultiplier = 1.65f;
+                ragdoll.SetupRagdollBones();
+
+                LineRenderer laser = SetupLaserSight(pilotGO, rifleGO);
+                Light muzzleLight = SetupMuzzleLight(rifleGO);
+
+                _pilots.Add(new PilotUnit
+                {
+                    rootObject = pilotGO,
+                    animator = anim,
+                    ragdoll = ragdoll,
+                    rifleObject = rifleGO,
+                    laserSight = laser,
+                    muzzleLight = muzzleLight,
+                    isDead = false
+                });
+            }
+
+            Debug.Log($"[MarsInvasionArmyManager] StarCraft Drop Pod armada deployed {pilotCount} Mech Pilots into tactical perimeter!");
+        }
+
+        public void SpawnPodLandingDustRing(Vector3 pos)
+        {
+            if (landingDustFX != null)
+            {
+                var dust = Instantiate(landingDustFX, pos + Vector3.up * 0.1f, Quaternion.identity);
+                Destroy(dust, 4.0f);
+            }
+            else
+            {
+                // Procedural expanding Martian red dust ring
+                GameObject dustRingGO = new GameObject("FX_Pod_Dust_Shockwave");
+                dustRingGO.transform.position = pos + Vector3.up * 0.1f;
+                var mf = dustRingGO.AddComponent<MeshFilter>();
+                var mr = dustRingGO.AddComponent<MeshRenderer>();
+                mf.sharedMesh = CreateRingMesh(24, 0.75f);
+
+                var mat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                mat.color = new Color(0.85f, 0.42f, 0.22f, 0.75f); // Martian rust-orange dust
+                mr.sharedMaterial = mat;
+
+                StartCoroutine(ExpandDustRingRoutine(dustRingGO, mat, 14f, 1.2f));
+            }
+        }
+
+        private IEnumerator ExpandDustRingRoutine(GameObject ringGO, Material mat, float maxRadius, float duration)
+        {
+            float t = 0f;
+            while (t < duration)
+            {
+                t += Time.deltaTime;
+                float norm = Mathf.Clamp01(t / duration);
+                float radius = Mathf.Lerp(1.2f, maxRadius, Mathf.Sin(norm * Mathf.PI * 0.5f));
+                ringGO.transform.localScale = new Vector3(radius, 1f, radius);
+                mat.color = new Color(0.85f, 0.42f, 0.22f, Mathf.Lerp(0.75f, 0f, norm));
+                yield return null;
+            }
+            Destroy(ringGO);
+        }
+
+        private void SpawnPodSteamVents(Vector3 pos)
+        {
+            if (whiteSmokeFX != null)
+            {
+                var smoke1 = Instantiate(whiteSmokeFX, pos + new Vector3(1.1f, 0.8f, 0f), Quaternion.Euler(-30f, 90f, 0f));
+                var smoke2 = Instantiate(whiteSmokeFX, pos + new Vector3(-1.1f, 0.8f, 0f), Quaternion.Euler(-30f, -90f, 0f));
+                Destroy(smoke1, 3.0f);
+                Destroy(smoke2, 3.0f);
+            }
+        }
+
+        private GameObject CreateProceduralDropPod(Vector3 pos, Quaternion rot)
+        {
+            GameObject pod = new GameObject("Procedural_Drop_Pod");
+            pod.transform.position = pos;
+            pod.transform.rotation = rot;
+
+            // Main armored capsule body
+            GameObject body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            body.name = "Pod_Hull";
+            body.transform.SetParent(pod.transform, false);
+            body.transform.localScale = new Vector3(2.4f, 2.8f, 2.4f);
+
+            var mr = body.GetComponent<MeshRenderer>();
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            mat.color = new Color(0.28f, 0.12f, 0.10f); // Dark Terran/Dominion maroon-red
+            if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", 0.75f);
+            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.45f);
+            mr.sharedMaterial = mat;
+
+            // Strip collider so it doesn't obstruct player/ragdolls
+            var col = body.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+
+            // Nose cone / heat shield
+            GameObject nose = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            nose.name = "Heat_Shield";
+            nose.transform.SetParent(pod.transform, false);
+            nose.transform.localPosition = new Vector3(0f, 2.7f, 0f);
+            nose.transform.localScale = new Vector3(2.35f, 1.2f, 2.35f);
+            var noseCol = nose.GetComponent<Collider>();
+            if (noseCol != null) Destroy(noseCol);
+
+            return pod;
+        }
+
+        public void FastForwardDropPods(Vector3 center)
+        {
+            if (isArmySpawned) return;
+            CleanupArmy();
+            SpawnPilotArmy(center);
+            arePodsLanded = true;
         }
 
         /// <summary>
@@ -593,8 +978,19 @@ namespace Cyberpunk.Mars
                 }
             }
             _pilots.Clear();
+
+            foreach (var pod in _dropPods)
+            {
+                if (pod.rootObject != null)
+                {
+                    Destroy(pod.rootObject);
+                }
+            }
+            _dropPods.Clear();
+
             isArmySpawned = false;
             isArmyFiring = false;
+            arePodsLanded = false;
         }
 
         private void OnDestroy()

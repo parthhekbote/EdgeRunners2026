@@ -677,6 +677,12 @@ namespace SyntyCombined.World
                 );
                 CyberpunkHUDController.Instance.ShowToast("STARSHIP SECURED: PROCEED TO SANCTUARY POD [E]", 5.0f);
             }
+
+            // In the live story the director owns what happens next (delivering the cores to Voss)
+            if (BlackMarketStoryCombatDirector.Instance != null)
+            {
+                BlackMarketStoryCombatDirector.Instance.OnCoresSecured();
+            }
         }
 
         private void CheckInsertionBayProximity()

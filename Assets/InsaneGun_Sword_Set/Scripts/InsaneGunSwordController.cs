@@ -2080,7 +2080,18 @@ namespace InsaneGun.Combat
 
             SafeSetTrigger(HashJumpTrigger);
             SafeSetBool(HashIsJumping, true);
-            // Silent jump takeoff (impact audio plays cleanly on landing, Cyberpunk 2077 / Elden Ring style)
+
+            // Servo hop on takeoff; the armoured landing thud plays on ground contact
+            AudioClip hopClip = CyberCombatAudioSynth.GetJumpTakeoff();
+            if (audioSource != null && hopClip != null)
+            {
+                audioSource.pitch = Random.Range(0.96f, 1.05f);
+                audioSource.PlayOneShot(hopClip, 0.6f);
+            }
+            else
+            {
+                CyberCombatAudioSynth.PlayAtPoint(hopClip, transform.position, 0.6f);
+            }
         }
 
         // ── Sword Holster & Sheathe / Draw System ───────────────────────────
