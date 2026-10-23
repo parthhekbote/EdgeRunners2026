@@ -1023,26 +1023,78 @@ namespace Cyberpunk.Missions
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Spawns a completely isolated AudioSource for the impact clip.
-        /// Using a fresh GameObject guarantees the clip is heard regardless of
-        /// Time.timeScale, AudioListener.pause, or the state of any shared source.
-        /// The object self-destructs after the clip length (+ 0.3s headroom).
+        /// Plays the stab impact sound as three layered sources so it CANNOT be missed:
+        ///   Layer 1 – Synthesized bass thud/crack (no file needed, always works)
+        ///   Layer 2 – User's impact_sound.mp3 (if valid)
+        ///   Layer 3 – Thunder clip (guaranteed to exist, adds rumble)
+        /// All sources are fresh isolated GameObjects; TimeScale / AudioListener cannot silence them.
         /// </summary>
-        private void PlayImpactOnce(AudioClip clip)
+        private void PlayImpactOnce(AudioClip userClip)
+        {
+            // Layer 1: procedurally synthesised heavy boom (bass thud + metallic crack)
+            AudioClip synthClip = BuildSynthImpact();
+            if (synthClip != null) FireOneShotSource(synthClip, 1.0f);
+
+            // Layer 2: user's file (may be silent/bad – layered on top so the synth covers it)
+            if (userClip != null) FireOneShotSource(userClip, 0.95f);
+
+            // Layer 3: thunder/rumble for low-end body
+            if (_thunderClip != null) FireOneShotSource(_thunderClip, 0.7f);
+        }
+
+        /// <summary>Creates a fresh isolated AudioSource on its own GameObject and plays the clip.</summary>
+        private static void FireOneShotSource(AudioClip clip, float volume)
         {
             if (clip == null) return;
-            var go = new GameObject("_ImpactOneShot");
-            DontDestroyOnLoad(go); // survive scene reloads mid-cutscene
+            var go = new GameObject("_ImpactLayer");
+            DontDestroyOnLoad(go);
             var src = go.AddComponent<AudioSource>();
             src.spatialBlend = 0f;
-            src.volume = 1f;
-            src.priority = 0;               // highest priority in Unity's mixer
-            src.ignoreListenerPause = true;  // not silenced by AudioListener.pause
-            src.ignoreListenerVolume = false;
-            src.velocityUpdateMode = AudioVelocityUpdateMode.Fixed; // immune to timeScale
+            src.volume = Mathf.Clamp01(volume);
+            src.priority = 0;                            // highest mixer priority
+            src.ignoreListenerPause = true;
+            src.velocityUpdateMode = AudioVelocityUpdateMode.Fixed;
             src.clip = clip;
             src.Play();
-            Destroy(go, clip.length + 0.3f);
+            Destroy(go, clip.length + 0.5f);
+        }
+
+        /// <summary>
+        /// Synthesises a 0.9s impact: a sub-bass sine thud (60 Hz → fast decay) layered
+        /// with a white-noise transient burst. Guaranteed to produce audible sound.
+        /// </summary>
+        private static AudioClip BuildSynthImpact()
+        {
+            const int sampleRate = 44100;
+            const float duration  = 0.9f;
+            int samples = Mathf.CeilToInt(sampleRate * duration);
+            float[] data = new float[samples];
+
+            System.Random rng = new System.Random(42); // deterministic noise
+
+            for (int i = 0; i < samples; i++)
+            {
+                float t     = (float)i / sampleRate;
+                float tNorm = t / duration;
+
+                // Sub-bass thud: 60 Hz sine, decays in ~0.35s
+                float thudEnv  = Mathf.Exp(-t * 9f);
+                float thud     = Mathf.Sin(2f * Mathf.PI * 60f * t) * thudEnv * 0.85f;
+
+                // Mid-range punch: 200 Hz sine, decays in ~0.12s
+                float punchEnv = Mathf.Exp(-t * 28f);
+                float punch    = Mathf.Sin(2f * Mathf.PI * 200f * t) * punchEnv * 0.55f;
+
+                // White-noise crack: very sharp, decays in ~0.04s
+                float crackEnv = Mathf.Exp(-t * 90f);
+                float crack    = (float)(rng.NextDouble() * 2.0 - 1.0) * crackEnv * 0.70f;
+
+                data[i] = Mathf.Clamp(thud + punch + crack, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("SynthImpact", samples, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
         }
         /// <summary>The in-game HUD canvas keeps resetting its CanvasGroup alpha, so toggle the root Canvas itself.</summary>
         private static void SetGameplayHudVisible(bool visible)
