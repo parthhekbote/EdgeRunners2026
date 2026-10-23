@@ -316,6 +316,9 @@ namespace Cyberpunk.Missions
                     OnPlayerDiedInternal();
                     return;
                 }
+
+                // Drive relentless AI aggression and coordinated sword attacks matching Blackwall Rogue AI
+                DriveActiveAggression();
             }
 
             // Escort guidance: while the prologue walk is active, Ido is the target.
@@ -981,7 +984,7 @@ namespace Cyberpunk.Missions
                 new Vector3(0f, 0f, 4.5f)
             };
 
-            float[] activationDelays = new float[] { 0.0f, 1.8f, 3.5f };
+            float[] activationDelays = new float[] { 0.0f, 0.8f, 1.6f };
             string[] names = new string[] { "⛧ SHADOW RONIN", "⛧ HEAVY ENFORCER", "⛧ CORRUPTED COMBAT BOT" };
             string[] fallbackPaths = new string[]
             {
@@ -1108,18 +1111,27 @@ namespace Cyberpunk.Missions
                 ctrl.controlMode = InsaneGunSwordController.ControlMode.TrainingDummy;
                 ctrl.inputLocked = true;
 
-                // SCALED-DOWN TUTORIAL STATS: ~3-4 hits to kill (115 HP), 7 light dmg, 10 heavy dmg, relaxed pacing
-                ctrl.maxHealth = 115f;
-                ctrl.currentHealth = 115f;
-                ctrl.attackDamage = 7.0f;
-                ctrl.heavyAttackDamage = 10.0f;
+                // Blackwall Rogue AI combat stats baseline
+                ctrl.maxHealth = 105f;
+                ctrl.currentHealth = 105f;
+                ctrl.attackDamage = 8.5f;
+                ctrl.heavyAttackDamage = 14.0f;
                 ctrl.gunDamagePerShot = 4.0f;
-                ctrl.runSpeed = 3.8f;
-                ctrl.walkSpeed = 2.0f;
-                ctrl.minAttackInterval = 2.50f;
+                ctrl.runSpeed = 5.8f;
+                ctrl.walkSpeed = 3.2f;
+                ctrl.minAttackInterval = 0.40f;
                 ctrl.comboAcceptWindowStart = 0.65f;
                 ctrl.autoReviveOnDeath = false;
-                ctrl.enemyLayers = (1 << 8) | (1 << 3) | (1 << 0);
+                ctrl.enemyLayers = (1 << 8) | (1 << 0);
+                ctrl.groundLayers = ~0;
+                ctrl.aiParryChance = 0.0f;
+                ctrl.aiBlockChance = 0.05f;
+                ctrl.aiBlockMitigation = 0.35f;
+                ctrl.aiDodgeReactionChance = 0.10f;
+                ctrl.maxPoise = 20f;
+                ctrl.currentPoise = 20f;
+                ctrl.hasHyperArmor = false;
+                ctrl.isSwordDrawn = true;
 
                 var ragdoll = thug.GetComponent<EuphoriaRagdollController>();
                 if (ragdoll == null) ragdoll = thug.AddComponent<EuphoriaRagdollController>();
@@ -1172,6 +1184,8 @@ namespace Cyberpunk.Missions
             trail.startWidth = 0.70f;
             trail.endWidth = 0.02f;
             ctrl.swordTrail = trail;
+            ctrl.swordInstance = katana.transform;
+            ctrl.rightHandSocket = rHand;
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -1295,13 +1309,20 @@ namespace Cyberpunk.Missions
             var audioMgr = GetComponent<Mission1_AudioManager>() ?? Mission1_AudioManager.Instance;
             audioMgr?.StartMissionBGM();
 
-            // 3. Activate Razor Punks in combat AI mode with stagger
+            // 3. Activate Razor Punks in combat AI mode with stagger & group coordination
             foreach (var tracker in enemyTrackers)
             {
                 if (tracker != null)
                 {
                     tracker.SetIdentity(tracker.displayName, playerTransform);
                     tracker.ActivateCombatAI();
+                }
+            }
+            foreach (var ctrl in activeEnemies)
+            {
+                if (ctrl != null && !ctrl.IsDead)
+                {
+                    EnemyGroupCombatCoordinator.Instance?.RegisterCombatant(ctrl, playerTransform);
                 }
             }
 
@@ -1632,8 +1653,75 @@ namespace Cyberpunk.Missions
             Mission1_AudioManager.Instance?.PlayHit(true);
         }
 
+        private float _lastGroupAttackTime = 0f;
+
+        /// <summary>
+        /// Relentlessly drives living Mission 1 enemies to attack Alita in coordinated rhythm,
+        /// matching the Blackwall Rogue AI combat behavior.
+        /// Integrates with EnemyGroupCombatCoordinator so when 2 or more enemies are active,
+        /// they surround Alita first and coordinate attacks one at a time via single-token cadence.
+        /// </summary>
+        private void DriveActiveAggression()
+        {
+            if (playerTransform == null) return;
+
+            var coordinator = EnemyGroupCombatCoordinator.Instance;
+            if (coordinator != null && coordinator.IsGroupSurroundActive(playerTransform))
+            {
+                // Multi-Enemy Coordination Active:
+                // EnemyGroupCombatCoordinator manages the surrounding ring formation and
+                // grants attack tokens one by one. Do not force uncoordinated attacks!
+                return;
+            }
+
+            if (Time.time - _lastGroupAttackTime < 0.65f) return;
+
+            for (int i = 0; i < activeEnemies.Count; i++)
+            {
+                var ctrl = activeEnemies[i];
+                if (ctrl == null || ctrl.IsDead || ctrl.inputLocked) continue;
+
+                float dist = Vector3.Distance(ctrl.transform.position, playerTransform.position);
+                float strikeRange = ctrl.transform.localScale.x > 1.25f ? 4.2f : 3.2f;
+
+                // If within striking distance and not currently attacking, unleash sword strikes & combos!
+                if (dist <= strikeRange && !ctrl.IsAttacking && !ctrl.IsComboRunning)
+                {
+                    float r = Random.value;
+                    if (r < 0.40f)
+                    {
+                        ctrl.StartLightAttack(Vector3.zero);
+                    }
+                    else if (r < 0.70f)
+                    {
+                        ctrl.StartAIGunSwordCombo(InsaneGunSwordController.AIGunSwordComboType.ExecutionerShred);
+                    }
+                    else
+                    {
+                        ctrl.StartAIGunSwordCombo(InsaneGunSwordController.AIGunSwordComboType.BlitzkriegOverdrive);
+                    }
+                    _lastGroupAttackTime = Time.time;
+                    break;
+                }
+                // If enemy is mid-range (3.2m to 7.0m) and not attacking, trigger gap closer
+                else if (dist > 3.2f && dist <= 7.0f && !ctrl.IsAttacking && !ctrl.IsComboRunning)
+                {
+                    if (Random.value < 0.20f)
+                    {
+                        ctrl.StartAIGunSwordCombo(InsaneGunSwordController.AIGunSwordComboType.StalkerLunge);
+                        _lastGroupAttackTime = Time.time;
+                        break;
+                    }
+                }
+            }
+        }
+
         private void OnEnemyDied(InsaneGunSwordController enemy)
         {
+            if (enemy != null)
+            {
+                EnemyGroupCombatCoordinator.Instance?.UnregisterCombatant(enemy);
+            }
             if (state != MissionState.CombatInArena) return;
 
             killCount++;

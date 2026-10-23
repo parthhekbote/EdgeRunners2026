@@ -925,7 +925,11 @@ namespace InsaneGun.Combat
 
             PlaySwordSlash(_comboIndex, isFinisher);
             AAACyberCombatVFX.SpawnSlashArc(transform, _comboIndex, isFinisher);
-            if (_ghostEmitter != null) _ghostEmitter.EmitBurst(0.12f, isFinisher ? new Color(1f, 0.75f, 0.15f, 0.8f) : new Color(0f, 0.88f, 1f, 0.65f), 0.035f, 0.20f);
+            if (_ghostEmitter != null)
+            {
+                Color comboColor = isFinisher ? new Color(0.95f, 0.70f, 0.15f, 0.65f) : new Color(0.0f, 0.75f, 0.95f, 0.55f);
+                _ghostEmitter.EmitBurst(0.12f, comboColor, 0.055f, 0.18f);
+            }
 
             float dmg = isFinisher ? attackDamage * 2.5f : attackDamage * (1f + 0.08f * (_comboIndex - 1));
             int impactCi = isFinisher ? 3 : 0; // 7th hit finisher launches into Euphoria Ragdoll!
@@ -999,7 +1003,11 @@ namespace InsaneGun.Combat
             SetSwordTrailEmitting(true);
             StartCoroutine(DisableTrailAfter(dur + 0.18f));
             AAACyberCombatVFX.SpawnSlashArc(transform, step == 3 ? 7 : (step == 2 ? 6 : 1), isFinisher);
-            if (_ghostEmitter != null) _ghostEmitter.EmitBurst(0.18f, isFinisher ? new Color(1f, 0.75f, 0.15f, 0.8f) : new Color(0.95f, 0.12f, 0.65f, 0.75f), 0.035f, 0.24f);
+            if (_ghostEmitter != null)
+            {
+                Color heavyColor = isFinisher ? new Color(0.95f, 0.70f, 0.15f, 0.65f) : _ghostEmitter.heavyComboColor;
+                _ghostEmitter.EmitBurst(0.16f, heavyColor, 0.055f, 0.20f);
+            }
 
             Transform lt = controlMode == ControlMode.PlayerControlled ? FindBestLungeTarget(12f, 150f) : targetEnemy;
             if (lt != null)
@@ -1213,7 +1221,11 @@ namespace InsaneGun.Combat
             SafeSetInteger(HashDodgeDir, di); SafeSetTrigger(HashDodgeTrigger);
             PlaySound(dashSounds != null && dashSounds.Length > 0 ? dashSounds : dodgeSounds);
             AAACyberCombatVFX.SpawnDodgeFX(transform.position, dir);
-            if (_ghostEmitter != null) _ghostEmitter.EmitBurst(dodgeDuration * 0.90f, new Color(0.0f, 1.8f, 2.2f, 0.90f), 0.035f, 0.45f);
+            if (_ghostEmitter != null)
+            {
+                Color dashCol = _ghostEmitter.dodgeGhostColor;
+                _ghostEmitter.EmitBurst(dodgeDuration * 0.85f, dashCol, 0.055f, 0.22f);
+            }
             float elapsed = 0f;
             while (elapsed < dodgeDuration)
             {
@@ -1816,7 +1828,7 @@ namespace InsaneGun.Combat
                 {
                     // Pure Sword Rush: High-Speed Dash Lunge -> Horizontal Slash -> Heavy Piercing Thrust!
                     AlignToTargetEnemy();
-                    if (_ghostEmitter != null) _ghostEmitter.EmitBurst(0.25f, new Color(1f, 0.2f, 0.2f, 0.8f), 0.03f, 0.25f);
+                    if (_ghostEmitter != null) _ghostEmitter.EmitBurst(0.22f, new Color(0.85f, 0.15f, 0.15f, 0.60f), 0.055f, 0.20f);
                     Vector3 dashDir = targetEnemy != null ? (targetEnemy.position - transform.position).normalized : transform.forward;
                     dashDir.y = 0f;
                     StartCoroutine(CombatStep(dashDir * 9f, 0.20f));

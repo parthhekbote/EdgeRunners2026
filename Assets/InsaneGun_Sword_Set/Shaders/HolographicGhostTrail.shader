@@ -2,13 +2,13 @@ Shader "InsaneGun/HolographicGhostTrail"
 {
     Properties
     {
-        [HDR] _GhostColor ("Ghost Color", Color) = (0.0, 1.8, 2.2, 0.9)
-        _RimPower ("Rim Power", Range(0.5, 6.0)) = 2.0
+        [HDR] _GhostColor ("Ghost Color", Color) = (0.0, 0.85, 1.05, 0.65)
+        _RimPower ("Rim Power", Range(0.5, 6.0)) = 2.5
         _Alpha ("Alpha Multiplier", Range(0.0, 1.0)) = 1.0
-        _EmissionGain ("Emission Gain", Range(1.0, 8.0)) = 3.5
-        _CoreOpacity ("Core Opacity", Range(0.2, 1.0)) = 0.65
+        _EmissionGain ("Emission Gain", Range(0.5, 4.0)) = 1.15
+        _CoreOpacity ("Core Opacity", Range(0.05, 1.0)) = 0.20
         _ScanlineFreq ("Scanline Frequency", Range(10.0, 200.0)) = 85.0
-        _ScanlineIntensity ("Scanline Intensity", Range(0.0, 1.0)) = 0.40
+        _ScanlineIntensity ("Scanline Intensity", Range(0.0, 1.0)) = 0.35
     }
     SubShader
     {
@@ -79,12 +79,12 @@ Shader "InsaneGun/HolographicGhostTrail"
                 float scanlinePattern = sin(input.positionWS.y * _ScanlineFreq) * 0.5 + 0.5;
                 float scanlines = lerp(1.0, scanlinePattern, _ScanlineIntensity);
 
-                // Punchy core fill ensures the projection stands out clearly in bright daylight / lit environments
+                // Elegant translucent core with sharp rim fresnel highlight
                 float core = _CoreOpacity;
-                float bodyIntensity = (core + fresnel * (1.0 - core * 0.35)) * scanlines;
+                float bodyIntensity = (core * 0.45 + fresnel * 1.15) * scanlines;
 
                 half3 finalColor = _GhostColor.rgb * bodyIntensity * _EmissionGain;
-                half finalAlpha = saturate((core * 0.85 + fresnel * 0.95) * _GhostColor.a * _Alpha);
+                half finalAlpha = saturate((core * 0.40 + fresnel * 0.85) * _GhostColor.a * _Alpha);
                 return half4(finalColor, finalAlpha);
             }
             ENDHLSL

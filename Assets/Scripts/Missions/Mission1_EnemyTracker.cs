@@ -1,19 +1,23 @@
 using System.Collections;
-using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using InsaneGun.Combat;
+using SyntyCombined;
 
 namespace Cyberpunk.Missions
 {
     /// <summary>
-    /// Tracks individual Mission 1 enemy state ("RAZOR PUNKS"):
-    /// - Billboarded floating health bar + red nameplate ("⛧ RAZOR PUNK X") + red diamond marker
-    /// - Menacing idle patrol (paces 2m) until mission accepted
+    /// Tracks individual Mission 1 enemy state:
+    /// - Billboarded floating health bar + red nameplate + red diamond marker
+    /// - Menacing idle patrol / rival sparring until mission accepted
     /// - Proximity (12m) and on-damage aggro trigger
     /// - Staggered activation delays (Thug 1 instant, Thug 2 0.8s, Thug 3 1.6s)
-    /// - Enforces exact 5-hit stats: 175 HP (35x5 dmg), 11 dmg, no blitz/combos
+    /// - True Blackwall Rogue AI combat characteristics:
+    ///   * Relentless aggression, fast 0.40s attack intervals, 5.8m/s run speed
+    ///   * Multi-layered combos: ExecutionerShred, BlitzkriegOverdrive, StalkerLunge gap closers
+    ///   * Fair defense: 0% parry, 35% block mitigation (punches through), responsive stagger on 15-25 poise
+    ///   * Multi-enemy tactical surround via EnemyGroupCombatCoordinator
     /// - Smooth health bar drain and death cleanup
     /// - Triggers metallic combat hit sounds and death sting via Mission1_AudioManager
     /// </summary>
@@ -56,13 +60,9 @@ namespace Cyberpunk.Missions
         private Vector3 _lastFramePosition;
         private float _smoothedMoveSpeed = 0f;
 
-        // Reflection handles for AI combat suppression
-        private static readonly FieldInfo _aiComboTargetField = 
-            typeof(InsaneGunSwordController).GetField("_aiComboTarget", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo _aiPhaseField = 
-            typeof(InsaneGunSwordController).GetField("_aiPhase", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo _aiThreatField = 
-            typeof(InsaneGunSwordController).GetField("_aiThreatMeter", BindingFlags.NonPublic | BindingFlags.Instance);
+        // Coroutine & Aggression tracking
+        private Coroutine _delayedActivationCoroutine;
+        private float _lastSoloAttackTime = 0f;
 
         private void Awake()
         {
@@ -102,6 +102,7 @@ namespace Cyberpunk.Missions
         {
             if (combatController != null)
             {
+                EnemyGroupCombatCoordinator.Instance?.UnregisterCombatant(combatController);
                 combatController.OnDamaged -= OnTookDamage;
                 combatController.OnDeath -= OnDied;
             }
@@ -115,44 +116,57 @@ namespace Cyberpunk.Missions
         public void ApplyTutorialStats()
         {
             if (combatController == null) return;
-            // Scaled-down Mission 1 Combat Stats: Accessible tutorial pacing (~3-4 hits to kill, light damage, slow intervals)
-            float hp = 115f;
-            float lightDmg = 7.0f;
-            float heavyDmg = 10.0f;
-            float run = 3.8f;
-            float walk = 2.0f;
-            float attackInterval = 2.50f;
+
+            // Blackwall Combat AI characteristics: Aggressive, agile, combo-driven, fair defense & poise
+            float hp = 105f;
+            float lightDmg = 8.0f;
+            float heavyDmg = 13.0f;
+            float run = 5.8f;
+            float walk = 3.2f;
+            float attackInterval = 0.40f;
+            float poise = 20f;
+            float dodgeChance = 0.10f;
+            float blockChance = 0.05f;
 
             string upper = (displayName ?? "").ToUpperInvariant();
             if (upper.Contains("RONIN") || upper.Contains("NINJA"))
             {
-                // Shadow Ronin: Agile but fragile (105 HP, light strikes 6 dmg, 2.20s interval)
-                hp = 105f;
-                lightDmg = 6.0f;
-                heavyDmg = 9.0f;
-                run = 4.0f;
-                walk = 2.2f;
-                attackInterval = 2.20f;
+                // Shadow Ronin: Fast, agile, elusive (95 HP, 8 dmg, 0.35s interval, 6.2 run speed)
+                hp = 95f;
+                lightDmg = 8.0f;
+                heavyDmg = 13.0f;
+                run = 6.2f;
+                walk = 3.4f;
+                attackInterval = 0.35f;
+                poise = 15f;
+                dodgeChance = 0.15f;
+                blockChance = 0.04f;
             }
             else if (upper.Contains("ENFORCER"))
             {
-                // Heavy Enforcer: Sturdy but slow windups (130 HP, 8 dmg, 2.80s interval)
-                hp = 130f;
-                lightDmg = 8.0f;
-                heavyDmg = 12.0f;
-                run = 3.5f;
-                walk = 1.8f;
-                attackInterval = 2.80f;
+                // Heavy Enforcer: Sturdy, crushing strikes (120 HP, 10 dmg, 0.45s interval, 5.5 run speed)
+                hp = 120f;
+                lightDmg = 10.0f;
+                heavyDmg = 15.0f;
+                run = 5.5f;
+                walk = 3.0f;
+                attackInterval = 0.45f;
+                poise = 25f;
+                dodgeChance = 0.06f;
+                blockChance = 0.08f;
             }
-            else if (upper.Contains("COMBAT BOT") || upper.Contains("MECH"))
+            else if (upper.Contains("COMBAT BOT") || upper.Contains("MECH") || upper.Contains("PUNK"))
             {
-                // Corrupted Combat Bot: Steady robotic advance (115 HP, 7 dmg, 2.50s interval)
-                hp = 115f;
-                lightDmg = 7.0f;
-                heavyDmg = 10.0f;
-                run = 3.8f;
-                walk = 2.0f;
-                attackInterval = 2.50f;
+                // Corrupted Combat Bot / Razor Punk: Pure Blackwall Rogue AI baseline
+                hp = 105f;
+                lightDmg = 8.5f;
+                heavyDmg = 14.0f;
+                run = 5.8f;
+                walk = 3.2f;
+                attackInterval = 0.40f;
+                poise = 20f;
+                dodgeChance = 0.10f;
+                blockChance = 0.05f;
             }
 
             combatController.maxHealth = hp;
@@ -165,7 +179,17 @@ namespace Cyberpunk.Missions
             combatController.minAttackInterval = attackInterval;
             combatController.comboAcceptWindowStart = 0.65f;
             combatController.autoReviveOnDeath = false;
-            combatController.enemyLayers = (1 << 8) | (1 << 3) | (1 << 0);
+            combatController.enemyLayers = (1 << 8) | (1 << 0);
+            combatController.groundLayers = ~0;
+
+            // Defense & Poise stats matching Blackwall AI (visceral stagger, 0% parry, slight block)
+            combatController.aiParryChance = 0.0f;
+            combatController.aiBlockChance = blockChance;
+            combatController.aiBlockMitigation = 0.35f; // 65% damage taken even when blocking
+            combatController.aiDodgeReactionChance = dodgeChance;
+            combatController.maxPoise = poise;
+            combatController.currentPoise = poise;
+            combatController.hasHyperArmor = false;
         }
 
         public void SetIdentity(string name, Transform player)
@@ -183,7 +207,8 @@ namespace Cyberpunk.Missions
             isCombatActivated = true;
             if (activationDelay > 0.05f)
             {
-                StartCoroutine(DelayedActivationRoutine(activationDelay));
+                if (_delayedActivationCoroutine != null) StopCoroutine(_delayedActivationCoroutine);
+                _delayedActivationCoroutine = StartCoroutine(DelayedActivationRoutine(activationDelay));
             }
             else
             {
@@ -199,18 +224,34 @@ namespace Cyberpunk.Missions
                 combatController.controlMode = InsaneGunSwordController.ControlMode.TrainingDummy;
             }
             yield return new WaitForSeconds(delay);
+            _delayedActivationCoroutine = null;
             ApplyCombatActivation();
         }
 
         private void ApplyCombatActivation()
         {
+            if (_delayedActivationCoroutine != null)
+            {
+                StopCoroutine(_delayedActivationCoroutine);
+                _delayedActivationCoroutine = null;
+            }
+
             if (combatController != null && !combatController.IsDead)
             {
                 combatController.isInvincible = false;
                 combatController.inputLocked = false;
+                combatController.isSwordDrawn = true;
+                if (playerTransform == null)
+                {
+                    var p = GameObject.FindWithTag("Player");
+                    if (p != null) playerTransform = p.transform;
+                }
                 combatController.targetEnemy = playerTransform;
                 combatController.controlMode = InsaneGunSwordController.ControlMode.AICirclingEnemy;
                 ApplyTutorialStats();
+
+                // Register with EnemyGroupCombatCoordinator so enemies surround Alita and coordinate attacks
+                EnemyGroupCombatCoordinator.Instance?.RegisterCombatant(combatController, playerTransform);
             }
         }
 
@@ -246,21 +287,6 @@ namespace Cyberpunk.Missions
             }
             else
             {
-                // Controlled combat pacing: limit to single strikes for scaled-down difficulty
-                if (_aiComboTargetField != null)
-                {
-                    _aiComboTargetField.SetValue(combatController, 1);
-                }
-                _aiThreatField?.SetValue(combatController, 0f);
-                if (_aiPhaseField != null)
-                {
-                    int phase = (int)_aiPhaseField.GetValue(combatController);
-                    if (phase == 3) // Blitz phase
-                    {
-                        _aiPhaseField.SetValue(combatController, 1); // Reset to Circle phase
-                    }
-                }
-
                 // Aggro check when combat is active
                 if (!isAggroed && playerTransform != null)
                 {
@@ -269,6 +295,13 @@ namespace Cyberpunk.Missions
                     {
                         TriggerAggro();
                     }
+                }
+
+                // If Mission1_StreetTrialManager is not present or driving (e.g. standalone test scene),
+                // drive solo AI aggression matching Blackwall Rogue AI behavior
+                if (Mission1_StreetTrialManager.Instance == null)
+                {
+                    DriveSoloAggression();
                 }
             }
 
@@ -288,7 +321,14 @@ namespace Cyberpunk.Missions
                 return;
             }
 
-            // Measure horizontal movement over this frame
+            if (isCombatActivated)
+            {
+                // In active combat, InsaneGunSwordController natively drives MoveSpeed
+                // and animator blend trees for running, strafing, lunging and combos!
+                return;
+            }
+
+            // Measure horizontal movement over this frame (for idle patrol & sparring)
             Vector3 currentPos = transform.position;
             Vector3 disp = currentPos - _lastFramePosition;
             disp.y = 0f;
@@ -306,7 +346,7 @@ namespace Cyberpunk.Missions
 
             // Target animation MoveSpeed: 0 = Idle, 1 = Walk, 2 = Run
             float targetMoveSpeed = 0f;
-            if (currentHorizontalSpeed > 3.2f)
+            if (currentHorizontalSpeed > 3.6f)
             {
                 targetMoveSpeed = 2.0f; // Running
             }
@@ -321,6 +361,52 @@ namespace Cyberpunk.Missions
 
             _smoothedMoveSpeed = Mathf.MoveTowards(_smoothedMoveSpeed, targetMoveSpeed, Time.deltaTime * 6f);
             _animator.SetFloat(HashMoveSpeed, _smoothedMoveSpeed);
+        }
+
+        /// <summary>
+        /// Drives solo aggression when not managed by Mission1_StreetTrialManager,
+        /// matching the Blackwall Rogue AI combat behavior.
+        /// </summary>
+        private void DriveSoloAggression()
+        {
+            if (playerTransform == null || combatController == null || combatController.IsDead || combatController.inputLocked) return;
+
+            var coordinator = EnemyGroupCombatCoordinator.Instance;
+            if (coordinator != null && coordinator.IsGroupSurroundActive(playerTransform))
+            {
+                return;
+            }
+
+            if (Time.time - _lastSoloAttackTime < 0.65f) return;
+
+            float dist = Vector3.Distance(transform.position, playerTransform.position);
+            float strikeRange = transform.localScale.x > 1.25f ? 4.2f : 3.2f;
+
+            if (dist <= strikeRange && !combatController.IsAttacking && !combatController.IsComboRunning)
+            {
+                float r = Random.value;
+                if (r < 0.40f)
+                {
+                    combatController.StartLightAttack(Vector3.zero);
+                }
+                else if (r < 0.70f)
+                {
+                    combatController.StartAIGunSwordCombo(InsaneGunSwordController.AIGunSwordComboType.ExecutionerShred);
+                }
+                else
+                {
+                    combatController.StartAIGunSwordCombo(InsaneGunSwordController.AIGunSwordComboType.BlitzkriegOverdrive);
+                }
+                _lastSoloAttackTime = Time.time;
+            }
+            else if (dist > 3.2f && dist <= 7.0f && !combatController.IsAttacking && !combatController.IsComboRunning)
+            {
+                if (Random.value < 0.20f)
+                {
+                    combatController.StartAIGunSwordCombo(InsaneGunSwordController.AIGunSwordComboType.StalkerLunge);
+                    _lastSoloAttackTime = Time.time;
+                }
+            }
         }
 
         /// <summary>
@@ -391,6 +477,8 @@ namespace Cyberpunk.Missions
                 combatController.controlMode = InsaneGunSwordController.ControlMode.AICirclingEnemy;
                 combatController.targetEnemy = playerTransform;
                 combatController.inputLocked = false;
+                combatController.isSwordDrawn = true;
+                EnemyGroupCombatCoordinator.Instance?.RegisterCombatant(combatController, playerTransform);
             }
         }
 
@@ -406,10 +494,16 @@ namespace Cyberpunk.Missions
                 return;
             }
 
+            // If struck while in staggered delay, wake up immediately into combat!
+            if (combatController != null && combatController.inputLocked)
+            {
+                ApplyCombatActivation();
+            }
+
             // Play metallic impact sound and grunt through Mission1_AudioManager
             Mission1_AudioManager.Instance?.PlayHit(false);
 
-            if (!isAggroed && isCombatActivated)
+            if (!isAggroed)
             {
                 TriggerAggro();
             }
@@ -417,6 +511,8 @@ namespace Cyberpunk.Missions
 
         private void OnDied(InsaneGunSwordController self)
         {
+            EnemyGroupCombatCoordinator.Instance?.UnregisterCombatant(self);
+
             // Play death sting + kill chime through Mission1_AudioManager
             Mission1_AudioManager.Instance?.PlayKill();
 
@@ -438,6 +534,7 @@ namespace Cyberpunk.Missions
 
             if (combatController != null)
             {
+                EnemyGroupCombatCoordinator.Instance?.UnregisterCombatant(combatController);
                 if (combatController.IsDead)
                 {
                     combatController.Revive(pos);

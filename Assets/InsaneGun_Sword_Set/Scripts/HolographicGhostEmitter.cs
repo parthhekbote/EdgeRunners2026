@@ -14,19 +14,19 @@ namespace InsaneGun.Combat
     {
         [Header("Ghost Visuals")]
         [Tooltip("Default color of the holographic projection")]
-        public Color defaultGhostColor = new Color(0.0f, 1.8f, 2.2f, 0.90f); // Luminous Cyber Cyan
+        public Color defaultGhostColor = new Color(0.0f, 0.85f, 1.05f, 0.65f); // Subtle Cyber Cyan
 
         [Tooltip("Color for heavy combo lunges & finishers")]
-        public Color heavyComboColor = new Color(2.5f, 0.15f, 1.2f, 0.95f);  // Luminous Neon Magenta
+        public Color heavyComboColor = new Color(1.1f, 0.15f, 0.65f, 0.70f);  // Elegant Neon Magenta
 
         [Tooltip("Color for evasive dodges")]
-        public Color dodgeGhostColor = new Color(0.1f, 2.2f, 1.8f, 0.90f);  // Electric Mint Cyan
+        public Color dodgeGhostColor = new Color(0.1f, 0.85f, 1.05f, 0.60f);  // Soft Cyber Cyan
 
         [Tooltip("Duration each ghost projection remains visible before fading completely")]
-        public float ghostLifetime = 0.45f;
+        public float ghostLifetime = 0.22f;
 
         [Tooltip("Time between each snapshot during a continuous burst")]
-        public float burstInterval = 0.035f;
+        public float burstInterval = 0.055f;
 
         private SkinnedMeshRenderer[] _skinnedMeshes;
         private Material _ghostMaterial;
@@ -37,6 +37,17 @@ namespace InsaneGun.Combat
 
         private void Awake()
         {
+            // Auto-clamp legacy HDR values so scene/prefab overrides don't blow out bloom
+            if (defaultGhostColor.g > 1.3f || defaultGhostColor.b > 1.3f || defaultGhostColor.r > 1.3f)
+                defaultGhostColor = new Color(0.0f, 0.85f, 1.05f, 0.65f);
+            if (dodgeGhostColor.g > 1.3f || dodgeGhostColor.b > 1.3f || dodgeGhostColor.r > 1.3f)
+                dodgeGhostColor = new Color(0.1f, 0.85f, 1.05f, 0.60f);
+            if (heavyComboColor.r > 1.5f || heavyComboColor.g > 1.5f || heavyComboColor.b > 1.5f)
+                heavyComboColor = new Color(1.1f, 0.15f, 0.65f, 0.70f);
+
+            if (ghostLifetime > 0.35f) ghostLifetime = 0.22f;
+            if (burstInterval < 0.05f) burstInterval = 0.055f;
+
             RefreshRenderers();
             InitMaterial();
         }
@@ -161,8 +172,8 @@ namespace InsaneGun.Combat
 
                 elapsed += Time.deltaTime;
                 float progress = Mathf.Clamp01(elapsed / lifetime);
-                // Sharp cybernetic ease-out: lingers vibrant before cleanly dissolving
-                float alpha = Mathf.Clamp01(1f - (progress * progress * progress));
+                // Smooth cybernetic dissipation curve: immediately begins dissolving into the air
+                float alpha = Mathf.Clamp01(Mathf.Pow(1f - progress, 1.4f));
 
                 mpb.SetFloat(PropAlpha, alpha);
                 if (mr != null) mr.SetPropertyBlock(mpb);
