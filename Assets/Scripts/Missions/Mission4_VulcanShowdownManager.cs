@@ -1648,15 +1648,25 @@ namespace Cyberpunk.Missions
 
         private static void OnSceneLoadedForIdoMessage(Scene scene, LoadSceneMode mode)
         {
-            if (!PendingIdoReputationMessage || scene.name != "Demo_City") return;
+            if (scene.name != "Demo_City") return;
+            if ((!PendingIdoReputationMessage && !IsVulcanDefeated) || IdoAssassinationDirector.HasPlayed || IdoAssassinationDirector.Instance != null) return;
             PendingIdoReputationMessage = false;
+            TriggerIdoReputationMessage();
+        }
+
+        public static void TriggerIdoReputationMessage()
+        {
+            Cyberpunk.World.PitSkyLiftSystem.DeactivateMission3();
+            var existing = GameObject.Find("IdoReputationMessenger");
+            if (existing != null) Destroy(existing);
             new GameObject("IdoReputationMessenger").AddComponent<IdoReputationMessenger>();
         }
 
-        private class IdoReputationMessenger : MonoBehaviour
+        public class IdoReputationMessenger : MonoBehaviour
         {
             private IEnumerator Start()
             {
+                Cyberpunk.World.PitSkyLiftSystem.DeactivateMission3();
                 // Let the loading screen finish and the player settle outside the arena doors.
                 yield return new WaitForSecondsRealtime(4.0f);
 

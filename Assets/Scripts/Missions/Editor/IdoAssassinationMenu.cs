@@ -48,5 +48,53 @@ namespace Cyberpunk.Missions.EditorTools
             }
             IdoAssassinationDirector.Begin();
         }
+
+        [MenuItem("Tools/Missions/🎬 Test Arena Exit -> Ido Comms -> Sector 7 Pathway", priority = 23)]
+        public static void TestArenaExitFlow()
+        {
+            if (!Application.isPlaying)
+            {
+                Debug.Log("[IdoAssassination] Starting Play Mode...");
+                EditorApplication.isPlaying = true;
+                return;
+            }
+
+            Mission4_VulcanShowdownManager.IsVulcanDefeated = true;
+            World.PitArenaDoorTrigger.IsReturningFromPit = true;
+            World.PitArenaDoorTrigger.HasVisitedPit = true;
+            World.PitSkyLiftSystem.DeactivateMission3();
+
+            var player = GameObject.FindWithTag("Player");
+            if (player != null)
+            {
+                var cc = player.GetComponent<CharacterController>();
+                if (cc != null) cc.enabled = false;
+                player.transform.position = new Vector3(16.50f, 27.05f, -1.25f);
+                player.transform.rotation = Quaternion.Euler(0f, 270f, 0f);
+                if (cc != null) cc.enabled = true;
+            }
+
+            Mission4_VulcanShowdownManager.TriggerIdoReputationMessage();
+        }
+
+        [MenuItem("Tools/Missions/🎬 Test Server Room Unlock (Popup & Pathway)", priority = 24)]
+        public static void TestServerRoomUnlock()
+        {
+            if (!Application.isPlaying)
+            {
+                Debug.Log("[IdoAssassination] Starting Play Mode...");
+                EditorApplication.isPlaying = true;
+                return;
+            }
+
+            // Unlock Mission 5
+            World.IdoBridgeAmbushDirector.UnlockMission5();
+
+            // Show aesthetic popup
+            Alita.UI.ServerRoomUnlockNotificationUI.Show();
+
+            // Start aesthetic dual-layer navigation tracer
+            ServerRoomNavTracer.Begin();
+        }
     }
 }

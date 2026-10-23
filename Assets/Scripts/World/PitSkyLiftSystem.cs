@@ -60,6 +60,20 @@ namespace Cyberpunk.World
             }
         }
 
+        public static void DeactivateMission3()
+        {
+            IsMission3Active = false;
+            if (Instance != null)
+            {
+                if (Instance._gpsFloorLine != null)
+                    Instance._gpsFloorLine.positionCount = 0;
+                if (Instance._goldTracerLine != null)
+                    Instance._goldTracerLine.positionCount = 0;
+                if (Instance._minimapBlipRect != null)
+                    Instance._minimapBlipRect.gameObject.SetActive(false);
+            }
+        }
+
         [Header("Tuning")]
         public float interactionRadius = 2.8f;
         public float warpCooldown = 2.0f;
@@ -124,10 +138,20 @@ namespace Cyberpunk.World
             }
             Instance = this;
 
-            if (Cyberpunk.World.PitArenaDoorTrigger.HasVisitedPit ||
+            bool isPostPit = Cyberpunk.World.PitArenaDoorTrigger.IsReturningFromPit ||
+                             Cyberpunk.Missions.Mission4_VulcanShowdownManager.IsVulcanDefeated ||
+                             Cyberpunk.Missions.Mission4_VulcanShowdownManager.PendingIdoReputationMessage ||
+                             Cyberpunk.Missions.IdoAssassinationDirector.Instance != null ||
+                             Cyberpunk.Missions.IdoAssassinationDirector.HasPlayed;
+
+            if (!isPostPit &&
                 (Cyberpunk.Inventory.CyberpunkInventory.Instance != null && Cyberpunk.Inventory.CyberpunkInventory.Instance.CountOf("arena_pass") > 0))
             {
                 IsMission3Active = true;
+            }
+            else
+            {
+                IsMission3Active = false;
             }
 
             BuildGUIStyles();
@@ -402,8 +426,14 @@ namespace Cyberpunk.World
                 if (_playerTransform == null) return;
             }
 
+            bool m3Suppressed = Cyberpunk.World.PitArenaDoorTrigger.IsReturningFromPit ||
+                                Cyberpunk.Missions.Mission4_VulcanShowdownManager.IsVulcanDefeated ||
+                                Cyberpunk.Missions.Mission4_VulcanShowdownManager.PendingIdoReputationMessage ||
+                                Cyberpunk.Missions.IdoAssassinationDirector.Instance != null ||
+                                Cyberpunk.Missions.IdoAssassinationDirector.HasPlayed;
+
             // Dynamically activate Mission 3 navigation if pass is secured, M2 completed, or F3 pressed
-            if (!IsMission3Active)
+            if (!IsMission3Active && !m3Suppressed)
             {
                 bool hasPass = Cyberpunk.Inventory.CyberpunkInventory.Instance != null 
                     && Cyberpunk.Inventory.CyberpunkInventory.Instance.CountOf("arena_pass") > 0;
@@ -417,21 +447,29 @@ namespace Cyberpunk.World
                 }
             }
 
-            if (!IsMission3Active)
+            if (m3Suppressed)
             {
-                // Before Mission 2 is completed, keep navigation trail and blip hidden
-                if (_gpsFloorLine != null && _gpsFloorLine.positionCount > 0)
-                    _gpsFloorLine.positionCount = 0;
-                if (_minimapBlipRect != null && _minimapBlipRect.gameObject.activeSelf)
-                    _minimapBlipRect.gameObject.SetActive(false);
-                return;
+                IsMission3Active = false;
             }
 
-            if (_minimapBlipRect != null && !_minimapBlipRect.gameObject.activeSelf)
-                _minimapBlipRect.gameObject.SetActive(true);
+            if (!IsMission3Active)
+            {
+                // Before Mission 2 is completed or after Vulcan is defeated, keep navigation trail and blip hidden
+                if (_gpsFloorLine != null && _gpsFloorLine.positionCount > 0)
+                    _gpsFloorLine.positionCount = 0;
+                if (_goldTracerLine != null && _goldTracerLine.positionCount > 0)
+                    _goldTracerLine.positionCount = 0;
+                if (_minimapBlipRect != null && _minimapBlipRect.gameObject.activeSelf)
+                    _minimapBlipRect.gameObject.SetActive(false);
+            }
+            else
+            {
+                if (_minimapBlipRect != null && !_minimapBlipRect.gameObject.activeSelf)
+                    _minimapBlipRect.gameObject.SetActive(true);
 
-            UpdateMinimapBlip();
-            UpdateGpsTracer();
+                UpdateMinimapBlip();
+                UpdateGpsTracer();
+            }
 
             Vector3 pPos = _playerTransform.position;
             float dLow = Vector3.Distance(pPos, LowStationPos);
@@ -737,6 +775,14 @@ namespace Cyberpunk.World
 
         private void DrawScreenWaypointMarker()
         {
+            if (!IsMission3Active ||
+                Cyberpunk.Missions.Mission4_VulcanShowdownManager.IsVulcanDefeated ||
+                Cyberpunk.Missions.IdoAssassinationDirector.Instance != null ||
+                Cyberpunk.Missions.IdoAssassinationDirector.HasPlayed)
+            {
+                return;
+            }
+
             Camera cam = Camera.main;
             if (cam == null || _playerTransform == null) return;
 

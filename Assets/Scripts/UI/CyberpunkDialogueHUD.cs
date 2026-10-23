@@ -483,7 +483,8 @@ namespace Alita.UI
             _conversationQueue.Add(new DialogueLineData(speaker, text, customPortrait, speakerTitle, autoAdvanceDuration, onComplete));
             _currentQueueIndex = 0;
             _onLineCompleteCallback = onComplete;
-            _onConversationCompleteCallback = null;
+            // Keep a pending conversation-complete callback (e.g. a mission briefing popup) so that an
+            // interrupting one-off line cannot silently drop it; it fires when this dialogue closes.
 
             _openedFrame = Time.frameCount;
             _lastInputTime = Time.unscaledTime;

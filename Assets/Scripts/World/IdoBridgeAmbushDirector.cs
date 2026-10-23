@@ -69,6 +69,9 @@ namespace Cyberpunk.World
             Mission5Unlocked = false;
         }
 
+        /// <summary>Opens the Mission 5 server-room door (called when Ido's death scene finishes).</summary>
+        public static void UnlockMission5() => Mission5Unlocked = true;
+
         public static void TryBegin()
         {
             if (HasPlayed) return;
@@ -309,6 +312,8 @@ namespace Cyberpunk.World
             Mission5Unlocked = true;
             CyberpunkHUDController.Instance?.SetQuestObjective("MISSION 5 // THE SERVER ROOM",
                 "Ido's last signal traces to the server room. Reach the door and enter [E]");
+            Alita.UI.ServerRoomUnlockNotificationUI.Show();
+            Cyberpunk.Missions.ServerRoomNavTracer.Begin();
         }
 
         // ── Beats ────────────────────────────────────────────────────────────────

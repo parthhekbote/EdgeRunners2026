@@ -267,11 +267,36 @@ namespace Cyberpunk.Missions
                     "Take the pass with your blade. Enter the Pit arena... and find who ordered the strike.";
                 uiManager.ShowIntelPopup("Dr. Ido [Final Cache]", brief, "[ TRACK THE SCALPER ]", "[Enter] Jack In", OnBriefAccepted, null);
                 Debug.Log("[Mission2] M2 briefing emergency cache shown.");
+                StartCoroutine(BriefingFailsafeRoutine());
             }
             else
             {
                 Debug.LogWarning("[Mission2] No UIManager for briefing; starting hunt directly.");
                 OnBriefAccepted();
+            }
+        }
+
+        /// <summary>
+        /// If another system hijacks the dialogue box during the briefing, the accept callback can be lost
+        /// and Mission 2 would sit in Briefing forever. Start the hunt once the dialogue HUD has been idle for a while.
+        /// </summary>
+        private IEnumerator BriefingFailsafeRoutine()
+        {
+            float idle = 0f;
+            yield return new WaitForSecondsRealtime(2.0f);
+            while (state == M2State.Briefing)
+            {
+                var hud = Alita.UI.CyberpunkDialogueHUD.Instance;
+                bool open = hud != null && hud.isDialogueActive;
+                idle = open ? 0f : idle + Time.unscaledDeltaTime;
+                if (idle > 2.5f)
+                {
+                    Debug.LogWarning("[Mission2] Briefing callback was lost; starting the hunt via failsafe.");
+                    if (uiManager != null) uiManager.DismissPopup();
+                    if (state == M2State.Briefing) OnBriefAccepted();
+                    yield break;
+                }
+                yield return null;
             }
         }
 

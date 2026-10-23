@@ -929,15 +929,26 @@ namespace Cyberpunk.World
                     }
                 }
 
-                // Activate Mission 3 in Demo_City
-                PitSkyLiftSystem.ActivateMission3();
-
-                // Set HUD quest objective cleanly
-                if (CyberpunkHUDController.Instance != null)
+                if (PitArenaDoorTrigger.IsReturningFromPit ||
+                    Cyberpunk.Missions.Mission4_VulcanShowdownManager.IsVulcanDefeated ||
+                    Cyberpunk.Missions.Mission4_VulcanShowdownManager.PendingIdoReputationMessage ||
+                    Cyberpunk.Missions.IdoAssassinationDirector.Instance != null ||
+                    Cyberpunk.Missions.IdoAssassinationDirector.HasPlayed)
                 {
-                    CyberpunkHUDController.Instance.SetQuestObjective(
-                        "// M3: THE PIT // COMBAT ARENA",
-                        "> Championship arena accessed\n> Return via Upper City Sky Terrace or explore Sector 04");
+                    PitSkyLiftSystem.DeactivateMission3();
+                }
+                else
+                {
+                    // Activate Mission 3 in Demo_City
+                    PitSkyLiftSystem.ActivateMission3();
+
+                    // Set HUD quest objective cleanly
+                    if (CyberpunkHUDController.Instance != null)
+                    {
+                        CyberpunkHUDController.Instance.SetQuestObjective(
+                            "// M3: THE PIT // COMBAT ARENA",
+                            "> Championship arena accessed\n> Return via Upper City Sky Terrace or explore Sector 04");
+                    }
                 }
             }
 
@@ -1009,9 +1020,9 @@ namespace Cyberpunk.World
             CyberpunkLoadingScreen.Hide();
             PitArenaDoorTrigger.PendingSpawnPos = null;
 
-            // Back in the city after beating Vulcan: Ido calls for help from the bridge
-            if (sceneName == PitArenaDoorTrigger.CitySceneName)
-                IdoBridgeAmbushDirector.TryBegin();
+            // Back in the city after beating Vulcan, Ido's reputation call and the SwitchBlade assassination
+            // (IdoAssassinationDirector) take over. Stop any lingering arena navigation.
+            PitSkyLiftSystem.DeactivateMission3();
             PitArenaDoorTrigger.IsInTransit = false;
             PitArenaDoorTrigger.IsReturningFromPit = false;
 
