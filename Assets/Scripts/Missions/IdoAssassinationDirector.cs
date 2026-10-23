@@ -75,6 +75,8 @@ namespace Cyberpunk.Missions
         private AudioSource _music;
         private AudioSource _sfx;
         private AudioClip _musicClip, _thrustClip, _thunderClip, _dashClip;
+        // Bridge-battle audio (Assets/Audio/switchblade_bridge_battle/)
+        private AudioClip _bridgeBgmClip, _stabSoundClip, _impactSoundClip;
         private GameObject _vfxStab, _vfxBlood, _vfxElectric, _vfxLightning, _vfxSmoke, _vfxFog;
         private readonly List<GameObject> _entryFx = new List<GameObject>();
         private readonly List<GameObject> _hiddenBystanders = new List<GameObject>();
@@ -253,6 +255,17 @@ namespace Cyberpunk.Missions
             _thrustClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Sword_Slash_Piercing_Thrust_01.wav");
             _thunderClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Weather/dragon-studio-dry-thunder-364468.mp3");
             _dashClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Dash_Cyber_01.wav");
+
+            // Bridge-battle audio – copied from the user-added .mpeg files to proper .mp3 names
+            const string bb = "Assets/Audio/switchblade_bridge_battle/";
+            _bridgeBgmClip  = AssetDatabase.LoadAssetAtPath<AudioClip>(bb + "bridge_bgm.mp3");
+            _stabSoundClip  = AssetDatabase.LoadAssetAtPath<AudioClip>(bb + "stab_sound.mp3");
+            _impactSoundClip = AssetDatabase.LoadAssetAtPath<AudioClip>(bb + "impact_sound.mp3");
+
+            if (_bridgeBgmClip  == null) Debug.LogWarning("[IdoAssassination] bridge_bgm.mp3 not found.");
+            if (_stabSoundClip  == null) Debug.LogWarning("[IdoAssassination] stab_sound.mp3 not found.");
+            if (_impactSoundClip == null) Debug.LogWarning("[IdoAssassination] impact_sound.mp3 not found.");
+
             _vfxStab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Synty/PolygonParticles/Prefabs/FX_SwordStab_01.prefab");
             _vfxBlood = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Synty/PolygonParticles/Prefabs/FX_BloodSplat_01.prefab");
             _vfxElectric = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Synty/PolygonParticles/Prefabs/FX_Electricity_01.prefab");
@@ -722,7 +735,9 @@ namespace Cyberpunk.Missions
             StartCoroutine(BystanderSweepRoutine());
             GotGTitleCardUI.GetOrCreate().SetLetterboxOnly(true, 0.45f);
 
-            if (_musicClip != null) { _music.clip = _musicClip; _music.volume = 0.0f; _music.Play(); StartCoroutine(FadeMusic(0.7f, 3f)); }
+            // Use bridge BGM if available, fall back to the generic mission music
+            AudioClip openingMusic = _bridgeBgmClip != null ? _bridgeBgmClip : _musicClip;
+            if (openingMusic != null) { _music.clip = openingMusic; _music.volume = 0.0f; _music.Play(); StartCoroutine(FadeMusic(0.7f, 3f)); }
 
             Quaternion faceWest = Quaternion.Euler(0f, -90f, 0f);
             Quaternion faceEast = Quaternion.Euler(0f, 90f, 0f);
@@ -860,7 +875,12 @@ namespace Cyberpunk.Missions
                 _idoAnim.applyRootMotion = true; // the victim clip carries Ido's stagger forward
                 _idoAnim.CrossFadeInFixedTime("Victim", 0.05f, 0);
             }
-            if (_sfx != null && _thrustClip != null) _sfx.PlayOneShot(_thrustClip, 1f);
+            // Stab sound (bridge-battle) has priority; fall back to generic thrust SFX
+            if (_sfx != null)
+            {
+                if (_stabSoundClip != null) _sfx.PlayOneShot(_stabSoundClip, 1f);
+                else if (_thrustClip != null) _sfx.PlayOneShot(_thrustClip, 1f);
+            }
             yield return new WaitForSecondsRealtime(0.45f);
 
             const float slowScale = 0.22f;
@@ -873,6 +893,8 @@ namespace Cyberpunk.Missions
             SpawnStabEffects(chest);
             SpawnShockwave(new Vector3(IdoPos.x, BridgeY, BridgeZ));
             TriggerShake(1.2f, 1.2f);
+            // Impact sound (bridge-battle) plays the moment the shockwave rolls toward Alita
+            if (_sfx != null && _impactSoundClip != null) _sfx.PlayOneShot(_impactSoundClip, 0.9f);
             yield return new WaitForSecondsRealtime(0.7f);
 
             // [Shot 7] The shockwave hits Alita: she is thrown to the deck, still in slow motion, time recovering as she falls
