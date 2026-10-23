@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b575168df834455db73d31324613266, type: 3}
+  m_Name: TrafficSettings
+  m_EditorClassIdentifier: Assembly-CSharp::CyberpunkDev.Traffic.TrafficSettings
+  targetCarCount: 15
+  lowFpsCarCount: 8
+  lowFpsThreshold: 45
+  lowFpsEvaluationDuration: 3
+  globalAltitudeOffset: 0
+  minSpawnInterval: 3
+  maxSpawnInterval: 6.5
+  minSpawnHeadway: 18
+  spawnTransitionDistance: 16
+  despawnTransitionDistance: 16
+  prewarmTraffic: 1
+  globalSpeedMultiplier: 1
+  minCarSpeed: 8
+  maxCarSpeed: 15
+  verticalBobAmplitude: 0.25
+  verticalBobFrequency: 1
+  enableOrganicWander: 1
+  wanderAmplitude: 0.25
+  wanderFrequency: 0.2
+  maxBankAngle: 22
+  bankDamping: 4.5
+  distanceCullThreshold: 280
+  trailCullDistance: 120
+  behindCameraCullAngle: 105
+  enableCulling: 1
+  enableAmbientDrone: 0
+  maxPooledAudioSources: 4
+  masterTrafficVolume: 0.55
+  engineHumVolume: 0.35
+  passByWhooshVolume: 0.5
+  ambientCityTrafficVolume: 0.08
+  audioMinDistance: 3
+  audioMaxDistance: 22
+  passByTriggerDistance: 12
+  audioReassignInterval: 0.35
