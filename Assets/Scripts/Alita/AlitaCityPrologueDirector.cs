@@ -1170,18 +1170,20 @@ namespace Alita
         private IEnumerator HandoffMessageRoutine()
         {
             // Walk ambush bots smoothly into standoff formation along the bridge (never teleport!)
+            // NOTE: yield cannot appear inside a try/catch (CS1626), so we obtain the enumerator
+            // inside the try and then yield it outside the catch block.
+            IEnumerator ambushWalk = null;
             try
             {
                 var stage = FindAnyObjectByType<Mission1_StreetTrialManager>();
                 if (stage != null)
-                {
-                    yield return stage.WalkAmbushBotsToStandoffRoutine();
-                }
+                    ambushWalk = stage.WalkAmbushBotsToStandoffRoutine();
             }
             catch (System.Exception ex)
             {
                 Debug.LogError($"[Prologue] Ambush staging exception: {ex}");
             }
+            if (ambushWalk != null) yield return ambushWalk;
 
             // Standoff: the rogue bots demand Alita's surrender and Ido pleads,
             // then the ambush springs and Alita takes over mid-fight.
