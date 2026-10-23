@@ -227,7 +227,7 @@ namespace Alita.UI
                 canvas = GetComponent<Canvas>();
                 if (canvas == null) canvas = gameObject.AddComponent<Canvas>();
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.sortingOrder = 500; // Above gameplay & cutscene bars
+                canvas.sortingOrder = 1000; // Above gameplay & cutscene bars (GotG titlecard is 950)
 
                 var scaler = GetComponent<CanvasScaler>();
                 if (scaler == null) scaler = gameObject.AddComponent<CanvasScaler>();
@@ -582,7 +582,7 @@ namespace Alita.UI
                 upper.Contains("ENFORCER") || upper.Contains("RECOVERY") || upper.Contains("SQUAD") ||
                 upper.Contains("VECTOR") || upper.Contains("COMBAT UNIT") || upper.Contains("DROID") ||
                 upper.Contains("CORPO") || upper.Contains("CYNOSURE") || upper.Contains("EREBUS") ||
-                upper.Contains("BLACKWALL") || upper.Contains("MECH") || upper.Contains("TITAN") ||
+                upper.Contains("BLACKWALL") || upper.Contains("SWITCHBLADE") || upper.Contains("MECH") || upper.Contains("TITAN") ||
                 upper.Contains("HAMMER") || upper.Contains("DRIFT CONTROL") || upper.Contains("SECURITY"))
                 return DialogueTheme.RogueBot;
             if (upper.Contains("SCALPER") || upper.Contains("RAZOR") || upper.Contains("PUNK") ||

@@ -1663,6 +1663,7 @@ namespace Cyberpunk.Missions
                     CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "Alita... you did it. The whole district just watched you take down Vulcan."),
                     CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "You've earned a reputation in this city now. People respect you for what you did in the Pit, so no one will attack you anymore, even if you attack them."),
                     CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "They'll only run from you now. Use that respect wisely."),
+                    CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "There's something about your past I need to tell you. Meet me on the Sector 7 skybridge. Come alone."),
                 };
                 bool done = false;
                 Alita.UI.CyberpunkDialogueHUD.GetOrCreate().StartConversation(lines, () => done = true);
@@ -1672,6 +1673,7 @@ namespace Cyberpunk.Missions
                     t += Time.unscaledDeltaTime;
                     yield return null;
                 }
+                IdoAssassinationDirector.Begin();
                 Destroy(gameObject);
             }
         }

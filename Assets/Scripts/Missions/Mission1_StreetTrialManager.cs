@@ -163,8 +163,11 @@ namespace Cyberpunk.Missions
 
         public static bool ShouldSuppressMission1()
         {
-            return Cyberpunk.World.PitArenaDoorTrigger.IsReturningFromPit
-                || (Cyberpunk.World.PitArenaDoorTrigger.PendingSpawnPos.HasValue && Cyberpunk.World.PitArenaDoorTrigger.HasVisitedPit);
+            return IsMission1Completed
+                || Cyberpunk.World.PitArenaDoorTrigger.IsReturningFromPit
+                || (Cyberpunk.World.PitArenaDoorTrigger.PendingSpawnPos.HasValue && Cyberpunk.World.PitArenaDoorTrigger.HasVisitedPit)
+                || IdoAssassinationDirector.Instance != null
+                || IdoAssassinationDirector.HasPlayed;
         }
 
         /// <summary>
@@ -226,6 +229,13 @@ namespace Cyberpunk.Missions
             // Wait 2 frames so CyberCityStartPointReceiver positions player at spawn
             yield return null;
             yield return null;
+
+            if (ShouldSuppressMission1())
+            {
+                Debug.Log("[Mission1] InitSequenceRoutine: aborted after wait because ShouldSuppressMission1() is true.");
+                Destroy(gameObject);
+                yield break;
+            }
 
             InitializePlayerAndSpawn();
             SetupMissionZone();
@@ -299,6 +309,15 @@ namespace Cyberpunk.Missions
 
         private void Update()
         {
+            // Only the post-Mission-4 assassination finale retires a running Mission 1. Do NOT use
+            // ShouldSuppressMission1() here: it includes IsMission1Completed, which becomes true when
+            // Mission 1 finishes and would destroy this manager before the Mission 2 handoff runs.
+            if (IdoAssassinationDirector.HasPlayed || IdoAssassinationDirector.Instance != null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
             // Fallback check: if player reference was lost, re-acquire
             if (playerTransform == null && playerGameObject != null)
             {
@@ -962,6 +981,7 @@ namespace Cyberpunk.Missions
         // ─────────────────────────────────────────────────────────────────────
         private void SetupEnemies()
         {
+            if (ShouldSuppressMission1()) return;
             if (activeEnemies.Count > 0) return;
 
             // Wire trial protection: pre-combat M1 bots whiff instead of taking damage.

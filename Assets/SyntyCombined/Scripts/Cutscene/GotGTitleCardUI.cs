@@ -258,8 +258,11 @@ namespace SyntyCombined.Cutscene
         /// </summary>
         public void SetLetterboxOnly(bool active, float fadeDuration = 0.6f)
         {
+            if (_mainCanvasGroup != null && active) _mainCanvasGroup.alpha = 1f;
+            if (_titleContainer != null) _titleContainer.gameObject.SetActive(false);
             StartCoroutine(SetLetterboxRoutine(active, fadeDuration));
         }
+
 
         private IEnumerator TitleCardAnimationRoutine()
         {
