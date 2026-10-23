@@ -225,7 +225,7 @@ namespace Cyberpunk.Missions.Editor
                 existingMgr.enableRivalInfighting = true;
                 if (existingMgr.uiManager != null)
                 {
-                    existingMgr.uiManager.idoPortraitSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Characters/Doctor/Textures/T_Doctor_Ido_HoloPortrait.png");
+                    existingMgr.uiManager.idoPortraitSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/UI/Dialogue/T_DoctorIdo_Dialogue_Portrait.png");
                 }
                 var existingAudio = existingMgr.GetComponent<Mission1_AudioManager>();
                 if (existingAudio != null)
@@ -281,12 +281,8 @@ namespace Cyberpunk.Missions.Editor
             var uiMgr = uiObj.AddComponent<Mission1_UIManager>();
             mgr.uiManager = uiMgr;
 
-            // Doctor Ido Portrait (Cutscene Doctor)
-            uiMgr.idoPortraitSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Characters/Doctor/Textures/T_Doctor_Ido_HoloPortrait.png");
-            if (uiMgr.idoPortraitSprite == null)
-            {
-                uiMgr.idoPortraitSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Characters/Doctor/Textures/T_Doctor_Ido_HoloPortrait.jpg");
-            }
+            // Doctor Ido Portrait (Normal 2D Cyberpunk Dialogue Portrait)
+            uiMgr.idoPortraitSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/UI/Dialogue/T_DoctorIdo_Dialogue_Portrait.png");
             if (uiMgr.idoPortraitSprite == null)
             {
                 uiMgr.idoPortraitSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Synty/InterfaceSciFiSoldierHUD/Samples/Sprites/SPR_HUD_SciFi_Example_Comms_Portrait.png");

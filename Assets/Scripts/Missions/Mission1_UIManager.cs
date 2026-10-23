@@ -131,12 +131,8 @@ namespace Cyberpunk.Missions
             bodyFont   = Resources.Load<TMP_FontAsset>("SyntyUI/Fonts/Font_SciFi_Body");
 
 #if UNITY_EDITOR
-            // High-resolution Dr. Daisuke Ido Cyberpunk Holographic Portrait
-            idoPortraitSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Characters/Doctor/Textures/T_Doctor_Ido_HoloPortrait.png");
-            if (idoPortraitSprite == null)
-            {
-                idoPortraitSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Characters/Doctor/Textures/T_Doctor_Ido_HoloPortrait.jpg");
-            }
+            // Normal 2D Cyberpunk Dialogue Portrait for Dr. Daisuke Ido
+            idoPortraitSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/UI/Dialogue/T_DoctorIdo_Dialogue_Portrait.png");
             if (idoPortraitSprite == null)
             {
                 idoPortraitSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Synty/InterfaceSciFiSoldierHUD/Samples/Sprites/SPR_HUD_SciFi_Example_Comms_Portrait.png");
@@ -278,9 +274,7 @@ namespace Cyberpunk.Missions
         public void ShowCompletedPopup(Action onClosed)
         {
             string body =
-                "Combat telemetry confirmed. All three corrupted enforcer cores have suffered total shutdown. The bridge corridor is clear.\n\n" +
-                "Your reaction times and motor sync exceeded my calculations... that combat instinct wasn't built in any Scrapyard clinic.\n\n" +
-                "Catch your breath, Alita. The lower district is open to explore, but keep your guard up.";
+                "Combat telemetry confirmed. All three corrupted enforcer cores have suffered total shutdown. The bridge corridor is clear.";
             ShowPopup("Dr. Ido", body, "[ COMPLETE MISSION ]", "[Enter] Return", onClosed, true);
         }
 
@@ -298,16 +292,9 @@ namespace Cyberpunk.Missions
             if (_dimBackdrop != null) _dimBackdrop.SetActive(false);
             if (_popupPanel != null) _popupPanel.SetActive(false);
 
-            // Audio: incoming ring + Ido voice line + duck background music
+            // Audio: incoming ring chime + duck background music (single channel: voice handled by CyberpunkDialogueHUD)
             Mission1_AudioManager.Instance?.DuckBGM(true);
-            if (isComplete)
-                Mission1_AudioManager.Instance?.PlayUICompleteCall();
-            else if (voiceOverride != null)
-                Mission1_AudioManager.Instance?.PlayRingAndVoice(voiceOverride);
-            else if (playVoiceLine)
-                Mission1_AudioManager.Instance?.PlayUICall();
-            else
-                Mission1_AudioManager.Instance?.PlayRingOnly();
+            Mission1_AudioManager.Instance?.PlayRingOnly();
 
             string spk = string.IsNullOrEmpty(speakerName) ? "DR. DYSON IDO" : speakerName;
             string title = "CYBER-SURGEON // COMMS";

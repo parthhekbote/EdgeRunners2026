@@ -499,6 +499,7 @@ namespace Cyberpunk.World
 
         private static void HandleSceneLoadedArrival(Scene scene, LoadSceneMode mode)
         {
+            Alita.UI.CyberpunkDialogueHUD.Instance?.CloseDialogue();
             CheckSceneBootstrap(scene);
 
             if (PendingSpawnPos.HasValue)
@@ -703,6 +704,7 @@ namespace Cyberpunk.World
             if (IsInTransit) yield break;
             IsInTransit = true;
             SetPlayerInputLocked(true);
+            Alita.UI.CyberpunkDialogueHUD.Instance?.CloseDialogue();
 
             if (audioSource != null && accessGrantedSound != null)
                 audioSource.PlayOneShot(accessGrantedSound, 0.9f);
@@ -1287,8 +1289,11 @@ namespace Cyberpunk.World
 
             // No leaving mid-cutscene or while any dialogue box is open (E also advances dialogue).
             var showdown = Cyberpunk.Missions.Mission4_VulcanShowdownManager.Instance;
+            // Also blocked while Vulcan kneels / the finisher plays: [E] there means "execute", not "leave".
             bool cutsceneActive = showdown != null &&
-                showdown.currentPhase == Cyberpunk.Missions.Mission4_VulcanShowdownManager.ShowdownPhase.CinematicHijack;
+                (showdown.currentPhase == Cyberpunk.Missions.Mission4_VulcanShowdownManager.ShowdownPhase.CinematicHijack ||
+                 showdown.currentPhase == Cyberpunk.Missions.Mission4_VulcanShowdownManager.ShowdownPhase.KneelingDefeat ||
+                 showdown.currentPhase == Cyberpunk.Missions.Mission4_VulcanShowdownManager.ShowdownPhase.VictoryCompleted);
             bool dialogueOpen = Alita.UI.CyberpunkDialogueHUD.Instance != null &&
                 Alita.UI.CyberpunkDialogueHUD.Instance.isDialogueActive;
             if (dialogueOpen) _lastDialogueSeenTime = Time.unscaledTime;

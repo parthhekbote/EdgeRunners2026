@@ -259,21 +259,8 @@ namespace Cyberpunk.Missions
                 SendPlayerToBridgeStart();
             }
 
-            if (uiManager != null)
-            {
-                string brief =
-                    "Alita... if you are decrypting this emergency cache, the Factory hit squads found us on the bridge.\n\n" +
-                    "They can never erase who you are. A Razor scalper right here by the bridge is flashing a spare Pit pass.\n\n" +
-                    "Take the pass with your blade. Enter the Pit arena... and find who ordered the strike.";
-                uiManager.ShowIntelPopup("Dr. Ido [Final Cache]", brief, "[ TRACK THE SCALPER ]", "[Enter] Jack In", OnBriefAccepted, null);
-                Debug.Log("[Mission2] M2 briefing emergency cache shown.");
-                StartCoroutine(BriefingFailsafeRoutine());
-            }
-            else
-            {
-                Debug.LogWarning("[Mission2] No UIManager for briefing; starting hunt directly.");
-                OnBriefAccepted();
-            }
+            // Seamless transition: directly accept briefing and queue radio subtitles (no overlapping modal dialogue)
+            OnBriefAccepted();
         }
 
         /// <summary>
@@ -949,12 +936,8 @@ namespace Cyberpunk.Missions
             }
             Debug.Log("[Mission2] MISSION 2: COMPLETE // M3 UNLOCKED: THE PIT.");
 
-            if (uiManager != null)
-            {
-                uiManager.ShowIntelPopup("Dr. Ido",
-                    "ARENA PASS secured, ghost. Flash that chip at the Pit door tomorrow night and they have to let you in.\n\nYou fight for real money now — Corp-free, crowd-loud, no questions.",
-                    "[ ENTER THE PIT ]", "[Enter] Continue", null, null);
-            }
+            // Story line between Ido and Alita is cleanly delivered via subtitles at lines 926-928.
+            // Modal popup omitted so that arena entrance is clean and unobstructed.
         }
 
         private void EnterFailedEscaped(EscapeReason reason)

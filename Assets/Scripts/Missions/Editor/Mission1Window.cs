@@ -98,7 +98,7 @@ namespace Cyberpunk.Missions.Editor
 
             // Cutscene Doctor Status
             var docPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Characters/Doctor/Doctor.prefab");
-            var docPortrait = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Characters/Doctor/Textures/T_Doctor_Ido_HoloPortrait.png");
+            var docPortrait = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/UI/Dialogue/T_DoctorIdo_Dialogue_Portrait.png");
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Dr. Ido (Cutscene):", GUILayout.Width(130));
             GUI.color = (docPrefab != null && docPortrait != null) ? Color.green : Color.yellow;

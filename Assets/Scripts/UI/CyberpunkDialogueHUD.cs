@@ -865,8 +865,8 @@ namespace Alita.UI
                     if (!string.IsNullOrEmpty(speakerTitle))
                     {
                         speakerNameText.text = $"<size=75%><color=#A5F3FC>// {speakerTitle.ToUpper()}</color></size>";
-                        nRect.anchoredPosition = new Vector2(655f, -42f);
-                        nRect.sizeDelta = new Vector2(400f, 28f);
+                        nRect.anchoredPosition = new Vector2(655f, -97f);
+                        nRect.sizeDelta = new Vector2(480f, 26f);
                         speakerNameText.color = ColorSwitchbladeCyan;
                         speakerNameText.gameObject.SetActive(true);
                     }
@@ -891,8 +891,8 @@ namespace Alita.UI
                 var bRect = dialogueBodyText.rectTransform;
                 bRect.anchorMin = new Vector2(0f, 0f);
                 bRect.anchorMax = new Vector2(1f, 1f);
-                bRect.offsetMin = new Vector2(305f, 26f);
-                bRect.offsetMax = new Vector2(-95f, -106f);
+                bRect.offsetMin = new Vector2(310f, 38f);
+                bRect.offsetMax = new Vector2(-110f, -152f);
                 dialogueBodyText.fontSize = 21f;
                 dialogueBodyText.lineSpacing = 6f;
                 dialogueBodyText.color = new Color(0.94f, 0.98f, 1f, 1f);
