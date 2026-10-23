@@ -30,6 +30,7 @@ CAST = [
     (("ALITA",), ("en-US-AvaMultilingualNeural", "+0%", "+0Hz")),
     (("DYSON", "IDO", "DOCTOR"), ("en-US-AndrewMultilingualNeural", "-4%", "+0Hz")),
     (("VULCAN", "FORGE-LORD", "FORGE LORD"), ("en-US-ChristopherNeural", "-8%", "-3Hz")),
+    (("SWITCHBLADE",), ("en-US-SteffanNeural", "-8%", "-2Hz")),
     (("KAELEN", "VOSS", "COLLECTOR"), ("en-US-GuyNeural", "-4%", "+0Hz")),
     (("CYNOSURE", "EREBUS", "BLACKWALL"), ("en-US-EmmaMultilingualNeural", "-4%", "+0Hz")),
     (("DRIFT CONTROL", "STATION", "TRAFFIC", "SENSORS", "MAINFRAME", "SYSTEM", "DISPATCH", "RADAR", "COMMS //", "TERMINAL"),

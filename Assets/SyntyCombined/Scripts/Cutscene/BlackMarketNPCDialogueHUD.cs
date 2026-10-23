@@ -191,7 +191,15 @@ namespace SyntyCombined.BlackMarket
 
             string stepIndicator = totalSteps > 1 ? $"{role} [{step}/{totalSteps}]" : role;
 
-            CyberpunkDialogueHUD.GetOrCreate().ShowDialogue(
+            var dialogueHud = CyberpunkDialogueHUD.GetOrCreate();
+            // Vendors and informants without their own portrait must not borrow Alita's card
+            if (speaker != "ALITA" && speaker != "KAELEN VOSS" && !string.IsNullOrEmpty(speaker))
+            {
+                CyberpunkDialogueHUD.StreetNpcSpeakers.Add(speaker);
+                if (portrait == null) portrait = dialogueHud.StreetNpcPortrait;
+            }
+
+            dialogueHud.ShowDialogue(
                 speaker,
                 text,
                 portrait,

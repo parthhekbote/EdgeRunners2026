@@ -861,6 +861,10 @@ namespace SyntyCombined
                     break;
             }
 
+            // The hand-recorded wavs were made for an earlier script and no longer say what is on screen:
+            // speak the generated voice for the exact text instead (still routed through the face for lip sync)
+            voiceClip = Cyberpunk.Audio.DialogueVoice.Find(speaker, text);
+
             _currentSpeaker = speaker;
             _speakerColor = speakerCol;
 

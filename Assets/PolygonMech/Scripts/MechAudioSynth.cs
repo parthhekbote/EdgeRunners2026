@@ -26,8 +26,25 @@ namespace PolygonMech
 
         private const int SampleRate = 44100;
 
+        private const string SfxFolder = "MechSfx/";
+
+        // Authored clips (Tools/SfxGen/make_mech_sfx.py) win; the in-engine synth below is only a fallback
+        private static AudioClip[] LoadSet(string prefix, int count)
+        {
+            var clips = new AudioClip[count];
+            for (int i = 0; i < count; i++)
+            {
+                clips[i] = Resources.Load<AudioClip>(SfxFolder + prefix + "_" + (i + 1).ToString("00"));
+                if (clips[i] == null) return null;
+            }
+            return clips;
+        }
+
+        private static AudioClip LoadOne(string name) => Resources.Load<AudioClip>(SfxFolder + name);
+
         public static AudioClip GetFootstepStomp()
         {
+            if (_footstepStomps == null) _footstepStomps = LoadSet("Mech_Stomp", 3);
 #if UNITY_EDITOR
             if (_footstepStomps == null)
             {
@@ -46,12 +63,14 @@ namespace PolygonMech
 
         public static AudioClip GetPneumaticRelease()
         {
+            if (_pneumaticReleases == null) _pneumaticReleases = LoadSet("Mech_Pneumatic", 2);
             if (_pneumaticReleases == null) GeneratePneumaticReleases();
             return _pneumaticReleases[Random.Range(0, _pneumaticReleases.Length)];
         }
 
         public static AudioClip GetServoWhine()
         {
+            if (_servoWhines == null) _servoWhines = LoadSet("Mech_Hydraulic", 3);
 #if UNITY_EDITOR
             if (_servoWhines == null)
             {
@@ -70,6 +89,7 @@ namespace PolygonMech
 
         public static AudioClip GetMovementServoLoop()
         {
+            if (_movementServoLoop == null) _movementServoLoop = LoadOne("Mech_Reactor_Loop");
 #if UNITY_EDITOR
             if (_movementServoLoop == null)
             {
@@ -83,54 +103,63 @@ namespace PolygonMech
 
         public static AudioClip GetJointStrain()
         {
+            if (_jointStrains == null) _jointStrains = LoadSet("Mech_JointStrain", 2);
             if (_jointStrains == null) GenerateJointStrains();
             return _jointStrains[Random.Range(0, _jointStrains.Length)];
         }
 
         public static AudioClip GetThrusterIgnition()
         {
+            if (_thrusterIgnition == null) _thrusterIgnition = LoadOne("Mech_ThrusterIgnition");
             if (_thrusterIgnition == null) GenerateThrusterClips();
             return _thrusterIgnition;
         }
 
         public static AudioClip GetThrusterLoop()
         {
+            if (_thrusterLoop == null) _thrusterLoop = LoadOne("Mech_ThrusterLoop");
             if (_thrusterLoop == null) GenerateThrusterClips();
             return _thrusterLoop;
         }
 
         public static AudioClip GetMissileLaunch()
         {
+            if (_missileLaunches == null) _missileLaunches = LoadSet("Mech_MissileLaunch", 3);
             if (_missileLaunches == null) GenerateMissileLaunches();
             return _missileLaunches[Random.Range(0, _missileLaunches.Length)];
         }
 
         public static AudioClip GetSeismicSlam()
         {
+            if (_seismicSlams == null) _seismicSlams = LoadSet("Mech_SeismicSlam", 2);
             if (_seismicSlams == null) GenerateSeismicSlams();
             return _seismicSlams[Random.Range(0, _seismicSlams.Length)];
         }
 
         public static AudioClip GetImpactHeavy()
         {
+            if (_impactHeavies == null) _impactHeavies = LoadSet("Mech_ImpactHeavy", 2);
             if (_impactHeavies == null) GenerateImpactHeavies();
             return _impactHeavies[Random.Range(0, _impactHeavies.Length)];
         }
 
         public static AudioClip GetTitanBladeCleave()
         {
+            if (_titanBladeCleaves == null) _titanBladeCleaves = LoadSet("Mech_TitanBladeCleave", 2);
             if (_titanBladeCleaves == null) GenerateTitanBladeCleaves();
             return _titanBladeCleaves[Random.Range(0, _titanBladeCleaves.Length)];
         }
 
         public static AudioClip GetGatlingShot()
         {
+            if (_gatlingShots == null) _gatlingShots = LoadSet("Mech_Gatling", 2);
             if (_gatlingShots == null) GenerateGatlingShots();
             return _gatlingShots[Random.Range(0, _gatlingShots.Length)];
         }
 
         public static AudioClip GetOverdriveAlarm()
         {
+            if (_overdriveAlarm == null) _overdriveAlarm = LoadOne("Mech_OverdriveAlarm");
             if (_overdriveAlarm == null) GenerateOverdriveAlarm();
             return _overdriveAlarm;
         }

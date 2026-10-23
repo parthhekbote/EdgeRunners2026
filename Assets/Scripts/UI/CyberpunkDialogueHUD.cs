@@ -583,9 +583,15 @@ namespace Alita.UI
             _typewriterCoroutine = StartCoroutine(TypewriterRoutine(line.dialogueText, line.autoAdvanceTime));
         }
 
+        /// <summary>Speakers (black-market vendors and informants) that get the gold street-NPC card instead of falling back to Alita's.</summary>
+        public static readonly HashSet<string> StreetNpcSpeakers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        public Sprite StreetNpcPortrait => scalperPortraitSprite;
+
         private DialogueTheme DetermineTheme(string speaker)
         {
             if (string.IsNullOrEmpty(speaker)) return DialogueTheme.Alita;
+            if (StreetNpcSpeakers.Contains(speaker)) return DialogueTheme.Scalper;
             string upper = speaker.ToUpper();
             if (upper.Contains("IDO") || upper.Contains("DOCTOR") || upper.Contains("DYSON") || upper.Contains("SURGEON"))
                 return DialogueTheme.DoctorIdo;
