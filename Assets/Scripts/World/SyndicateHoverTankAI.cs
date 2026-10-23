@@ -65,6 +65,12 @@ namespace SyntyCombined.World
         public float cannonCooldown = 3.2f;
         public float cannonDamage = 28f;
         public float laserBurstDamage = 8f;
+
+        [Header("Aim")]
+        [Tooltip("Every shot is aimed beside Alita, never at her: the tank is a threat, not a damage source")]
+        public bool intentionallyMissPlayer = true;
+        public float cannonMissDistance = 5.5f;
+        public float laserMissDistance = 2.8f;
         public float attackRange = 55f;
 
         [Header("Hover Motion Settings")]
@@ -481,6 +487,7 @@ namespace SyntyCombined.World
         {
             Vector3 spawnPos = muzzlePoint != null ? muzzlePoint.position : transform.position + Vector3.up * 2.2f;
             Vector3 aimTarget = targetPlayer != null ? (targetPlayer.position + Vector3.up * 1.0f) : spawnPos + transform.forward * 30f;
+            if (intentionallyMissPlayer && targetPlayer != null) aimTarget = MissPoint(spawnPos, aimTarget, cannonMissDistance);
             Vector3 fireDir = (aimTarget - spawnPos).normalized;
 
             // 1. Muzzle Flash
@@ -522,7 +529,7 @@ namespace SyntyCombined.World
             if (col != null) col.isTrigger = true;
 
             var projScript = projObj.AddComponent<TankPlasmaProjectile>();
-            projScript.Initialize(fireDir, 38f, cannonDamage, explosionPrefab, OnProjectileImpact);
+            projScript.Initialize(fireDir, 38f, cannonDamage, explosionPrefab, OnProjectileImpact, intentionallyMissPlayer, 1f);
         }
 
         private IEnumerator BarrelRecoilRoutine()
@@ -560,6 +567,7 @@ namespace SyntyCombined.World
                 spawnPos += turretTransform.rotation * offset;
 
                 Vector3 targetPos = targetPlayer != null ? (targetPlayer.position + Vector3.up * 1.0f + Random.insideUnitSphere * 0.4f) : spawnPos + transform.forward * 30f;
+                if (intentionallyMissPlayer && targetPlayer != null) targetPos = MissPoint(spawnPos, targetPos, laserMissDistance);
                 Vector3 dir = (targetPos - spawnPos).normalized;
 
                 // Spawn laser bolt
@@ -578,11 +586,23 @@ namespace SyntyCombined.World
                 if (col != null) col.isTrigger = true;
 
                 var projScript = bolt.AddComponent<TankPlasmaProjectile>();
-                projScript.Initialize(dir, 55f, laserBurstDamage, null, null);
+                projScript.Initialize(dir, 55f, laserBurstDamage, null, null, intentionallyMissPlayer, 0f);
 
                 PlayLaserSound();
                 yield return new WaitForSeconds(0.12f);
             }
+        }
+
+        /// <summary>A point beside the target (random side, a little short or long) so the shot lands near Alita but never on her.</summary>
+        private Vector3 MissPoint(Vector3 from, Vector3 target, float distance)
+        {
+            Vector3 toTarget = target - from;
+            toTarget.y = 0f;
+            if (toTarget.sqrMagnitude < 0.01f) toTarget = transform.forward;
+            Vector3 side = Vector3.Cross(Vector3.up, toTarget.normalized);
+            float sign = Random.value < 0.5f ? -1f : 1f;
+            float along = Random.Range(-2.5f, 3.5f);
+            return target + side * sign * (distance + Random.Range(0f, 1.5f)) + toTarget.normalized * along;
         }
 
         private void OnProjectileImpact(Vector3 hitPoint)
@@ -702,6 +722,7 @@ namespace SyntyCombined.World
                     var exp = Instantiate(explosionPrefab, hoverPads[i].position, Quaternion.identity);
                     Destroy(exp, 3f);
                 }
+                if (hoverPads[i] != null) TankExplosionFX.Spawn(hoverPads[i].position, 0.7f, i == 0 ? TankExplosionFX.Sound.Shell : TankExplosionFX.Sound.None);
                 yield return new WaitForSeconds(0.15f);
             }
 
@@ -712,6 +733,8 @@ namespace SyntyCombined.World
                 bigExp.transform.localScale = Vector3.one * 2.5f;
                 Destroy(bigExp, 4f);
             }
+            if (turretTransform != null) TankExplosionFX.Spawn(turretTransform.position + Vector3.up * 1f, 3.4f, TankExplosionFX.Sound.Death);
+            StopHoverLoop();
 
             // Drop chassis to ground
             Vector3 dropPos = transform.position;
@@ -736,38 +759,66 @@ namespace SyntyCombined.World
         }
 
         #region Audio Synthesis
+        private static AudioClip Authored(string name) => Resources.Load<AudioClip>("TankSfx/" + name);
+
+        private AudioSource _hoverLoop;
+
+        private void StartHoverLoop()
+        {
+            var clip = Authored("Tank_Hover_Loop");
+            if (clip == null) return;
+            if (_hoverLoop == null)
+            {
+                _hoverLoop = gameObject.AddComponent<AudioSource>();
+                _hoverLoop.loop = true;
+                _hoverLoop.playOnAwake = false;
+                _hoverLoop.spatialBlend = 1f;
+                _hoverLoop.minDistance = 7f;
+                _hoverLoop.maxDistance = 70f;
+                _hoverLoop.volume = 0.42f;
+            }
+            _hoverLoop.clip = clip;
+            if (!_hoverLoop.isPlaying) _hoverLoop.Play();
+        }
+
+        private void StopHoverLoop()
+        {
+            if (_hoverLoop != null) _hoverLoop.Stop();
+        }
+
         private void PlayEngineSpoolSound()
         {
             if (_audioSource == null) return;
-            AudioClip clip = GenerateSpoolClip();
+            StartHoverLoop();
+            AudioClip clip = Authored("Tank_Engine_Spool") ?? GenerateSpoolClip();
             _audioSource.PlayOneShot(clip, 0.85f);
         }
 
         private void PlayCannonChargeSound()
         {
             if (_audioSource == null) return;
-            AudioClip clip = GenerateChargeClip();
+            AudioClip clip = Authored("Tank_Cannon_Charge") ?? GenerateChargeClip();
             _audioSource.PlayOneShot(clip, 0.95f);
         }
 
         private void PlayCannonBlastSound()
         {
             if (_audioSource == null) return;
-            AudioClip clip = GenerateCannonBlastClip();
+            AudioClip clip = Authored("Tank_Cannon_Blast") ?? GenerateCannonBlastClip();
             _audioSource.PlayOneShot(clip, 1.0f);
         }
 
         private void PlayLaserSound()
         {
             if (_audioSource == null) return;
-            AudioClip clip = GenerateLaserBoltClip();
+            AudioClip clip = Authored("Tank_Laser_Bolt") ?? GenerateLaserBoltClip();
             _audioSource.PlayOneShot(clip, 0.65f);
         }
 
         private void PlayHitArmorSound()
         {
             if (_audioSource == null) return;
-            AudioClip clip = GenerateArmorHitClip();
+            AudioClip clip = Authored("Tank_Armor_Hit") ?? GenerateArmorHitClip();
             _audioSource.PlayOneShot(clip, 0.75f);
         }
 
@@ -913,9 +964,13 @@ namespace SyntyCombined.World
         private GameObject _explosionPrefab;
         private System.Action<Vector3> _onHitCallback;
         private float _lifetime = 4.5f;
+        private bool _harmless;
+        private float _blastScale;
 
-        public void Initialize(Vector3 dir, float speed, float damage, GameObject expPrefab, System.Action<Vector3> onHit)
+        public void Initialize(Vector3 dir, float speed, float damage, GameObject expPrefab, System.Action<Vector3> onHit, bool harmless = false, float blastScale = 0f)
         {
+            _harmless = harmless;
+            _blastScale = blastScale;
             _direction = dir.normalized;
             _speed = speed;
             _damage = damage;
@@ -948,8 +1003,8 @@ namespace SyntyCombined.World
         {
             _onHitCallback?.Invoke(point);
 
-            // Deal damage to Alita if hit
-            if (hitCol != null)
+            // Deal damage to Alita if hit (shots that are meant to miss never hurt her, even if she steps into the blast)
+            if (!_harmless && hitCol != null)
             {
                 var swordCtrl = hitCol.GetComponentInParent<InsaneGunSwordController>();
                 if (swordCtrl != null)
@@ -959,7 +1014,7 @@ namespace SyntyCombined.World
             }
 
             // Area damage for heavy cannon explosion
-            if (_damage > 15f)
+            if (!_harmless && _damage > 15f)
             {
                 var nearby = Physics.OverlapSphere(point, 3.2f);
                 foreach (var col in nearby)
@@ -972,7 +1027,8 @@ namespace SyntyCombined.World
                 }
             }
 
-            // Spawn explosion effect
+            // Spawn explosion effect: the layered fireball / shockwave / smoke, plus the stock prefab
+            if (_blastScale > 0f) TankExplosionFX.Spawn(point, _blastScale, TankExplosionFX.Sound.Shell);
             if (_explosionPrefab != null)
             {
                 var exp = Instantiate(_explosionPrefab, point, Quaternion.identity);
@@ -980,6 +1036,258 @@ namespace SyntyCombined.World
             }
 
             Destroy(gameObject);
+        }
+    }
+
+    /// <summary>
+    /// Layered procedural explosion: white-hot flash light, fire ball, rolling smoke, flying sparks and an expanding
+    /// ground shockwave, with an authored explosion sound. Everything cleans itself up.
+    /// </summary>
+    public static class TankExplosionFX
+    {
+        public enum Sound { None, Shell, Death }
+
+        private static Material _additive;
+        private static Material _smoke;
+        private static Material _ring;
+
+        private static Shader ParticleShader() =>
+            Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
+
+        private static Material Additive()
+        {
+            if (_additive != null) return _additive;
+            _additive = MakeMaterial(true);
+            return _additive;
+        }
+
+        private static Material Smoke()
+        {
+            if (_smoke != null) return _smoke;
+            _smoke = MakeMaterial(false);
+            return _smoke;
+        }
+
+        private static Material MakeMaterial(bool additive)
+        {
+            var m = new Material(ParticleShader());
+            m.color = Color.white;
+            if (m.HasProperty("_Surface")) m.SetFloat("_Surface", 1f);
+            if (m.HasProperty("_Blend")) m.SetFloat("_Blend", additive ? 2f : 0f);
+            if (m.HasProperty("_SrcBlend")) m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            if (m.HasProperty("_DstBlend")) m.SetFloat("_DstBlend", additive ? (float)UnityEngine.Rendering.BlendMode.One : (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            if (m.HasProperty("_ZWrite")) m.SetFloat("_ZWrite", 0f);
+            m.renderQueue = 3000;
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            return m;
+        }
+
+        public static void Spawn(Vector3 point, float scale, Sound sound)
+        {
+            if (!Application.isPlaying) return;
+            var root = new GameObject("FX_Tank_Explosion");
+            root.transform.position = point;
+            float life = 3.5f + scale;
+
+            // 1. Flash light: blinding for a few frames, then a falling ember glow
+            var lightGo = new GameObject("Flash");
+            lightGo.transform.SetParent(root.transform, false);
+            lightGo.transform.localPosition = Vector3.up * 0.6f * scale;
+            var light = lightGo.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.62f, 0.25f);
+            light.range = 22f * scale;
+            light.intensity = 30f * scale;
+            light.shadows = LightShadows.None;
+            root.AddComponent<TankExplosionFlicker>().Init(light, 30f * scale, 0.9f + 0.25f * scale);
+
+            // 2. Fireball (additive, expands fast, fades to deep orange)
+            AddParticles(root.transform, "Fire", Additive(), scale, p =>
+            {
+                var main = p.main;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 0.8f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(2f * scale, 7f * scale);
+                main.startSize = new ParticleSystem.MinMaxCurve(1.6f * scale, 3.6f * scale);
+                main.startColor = new Color(1f, 0.85f, 0.45f, 1f);
+                main.gravityModifier = -0.15f;
+                var em = p.emission; em.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)Mathf.RoundToInt(26 * scale)) });
+                var sh = p.shape; sh.shapeType = ParticleSystemShapeType.Sphere; sh.radius = 0.6f * scale;
+                var col = p.colorOverLifetime; col.enabled = true;
+                col.color = Ramp(new Color(1f, 0.95f, 0.7f), new Color(1f, 0.45f, 0.08f), new Color(0.35f, 0.08f, 0.02f));
+                var size = p.sizeOverLifetime; size.enabled = true;
+                size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.35f), new Keyframe(0.25f, 1f), new Keyframe(1f, 1.35f)));
+            });
+
+            // 3. Smoke column (alpha blended, slow, lingers)
+            AddParticles(root.transform, "Smoke", Smoke(), scale, p =>
+            {
+                var main = p.main;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(2.2f, 3.6f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(0.8f * scale, 3.2f * scale);
+                main.startSize = new ParticleSystem.MinMaxCurve(2.2f * scale, 4.6f * scale);
+                main.startColor = new Color(0.16f, 0.15f, 0.15f, 0.8f);
+                main.gravityModifier = -0.06f;
+                main.startRotation = new ParticleSystem.MinMaxCurve(0f, 6.28f);
+                var em = p.emission; em.SetBursts(new[] { new ParticleSystem.Burst(0.08f, (short)Mathf.RoundToInt(14 * scale)) });
+                var sh = p.shape; sh.shapeType = ParticleSystemShapeType.Hemisphere; sh.radius = 0.9f * scale;
+                var col = p.colorOverLifetime; col.enabled = true;
+                col.color = Ramp(new Color(0.35f, 0.3f, 0.28f, 0.0f), new Color(0.18f, 0.17f, 0.16f, 0.75f), new Color(0.1f, 0.1f, 0.1f, 0f), true);
+                var size = p.sizeOverLifetime; size.enabled = true;
+                size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.4f), new Keyframe(1f, 1.6f)));
+                var rot = p.rotationOverLifetime; rot.enabled = true; rot.z = new ParticleSystem.MinMaxCurve(-0.5f, 0.5f);
+            });
+
+            // 4. Sparks / molten debris (stretched streaks that arc and fall)
+            AddParticles(root.transform, "Sparks", Additive(), scale, p =>
+            {
+                var main = p.main;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.4f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(9f * scale, 22f * scale);
+                main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.2f);
+                main.startColor = new Color(1f, 0.7f, 0.25f, 1f);
+                main.gravityModifier = 1.4f;
+                main.simulationSpace = ParticleSystemSimulationSpace.World;
+                var em = p.emission; em.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)Mathf.RoundToInt(42 * scale)) });
+                var sh = p.shape; sh.shapeType = ParticleSystemShapeType.Hemisphere; sh.radius = 0.4f * scale;
+                var col = p.colorOverLifetime; col.enabled = true;
+                col.color = Ramp(new Color(1f, 0.95f, 0.7f), new Color(1f, 0.5f, 0.1f), new Color(0.5f, 0.1f, 0.02f), true);
+                var r = p.GetComponent<ParticleSystemRenderer>();
+                r.renderMode = ParticleSystemRenderMode.Stretch; r.lengthScale = 3.2f; r.velocityScale = 0.04f;
+            });
+
+            // 5. Ground shockwave: a flat ring that expands and fades
+            var ring = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            ring.name = "Shockwave";
+            Object.Destroy(ring.GetComponent<Collider>());
+            ring.transform.SetParent(root.transform, false);
+            ring.transform.localPosition = Vector3.up * 0.08f;
+            ring.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            var rr = ring.GetComponent<MeshRenderer>();
+            rr.sharedMaterial = RingMaterial();
+            rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            root.AddComponent<TankShockwaveRing>().Init(ring.transform, rr, 12f * scale, 0.55f + 0.1f * scale);
+
+            // 6. Sound (3D, at the blast)
+            if (sound != Sound.None)
+            {
+                var clip = Resources.Load<AudioClip>(sound == Sound.Death ? "TankSfx/Tank_Death_Explosion" : "TankSfx/Tank_Shell_Explosion");
+                if (clip != null) AudioSource.PlayClipAtPoint(clip, point, sound == Sound.Death ? 1f : 0.9f);
+            }
+
+            Object.Destroy(root, life);
+        }
+
+        private static Material RingMaterial()
+        {
+            if (_ring != null) return _ring;
+            _ring = MakeMaterial(true);
+            var tex = new Texture2D(128, 128, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            for (int y = 0; y < 128; y++)
+            {
+                for (int x = 0; x < 128; x++)
+                {
+                    float d = Vector2.Distance(new Vector2(x, y), new Vector2(63.5f, 63.5f)) / 63.5f;
+                    float a = Mathf.Clamp01(1f - Mathf.Abs(d - 0.82f) / 0.14f);   // thin bright ring near the rim
+                    a = a * a * (d <= 1f ? 1f : 0f);
+                    tex.SetPixel(x, y, new Color(1f, 0.8f, 0.5f, a));
+                }
+            }
+            tex.Apply();
+            if (_ring.HasProperty("_BaseMap")) _ring.SetTexture("_BaseMap", tex);
+            _ring.mainTexture = tex;
+            _ring.color = new Color(1f, 0.75f, 0.4f, 1f);
+            return _ring;
+        }
+
+        private static void AddParticles(Transform parent, string name, Material mat, float scale, System.Action<ParticleSystem> configure)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.loop = false;
+            main.playOnAwake = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 220;
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = mat;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            var em = ps.emission; em.rateOverTime = 0f;
+            configure(ps);
+            ps.Play();
+        }
+
+        private static ParticleSystem.MinMaxGradient Ramp(Color a, Color b, Color c, bool useAlpha = false)
+        {
+            var g = new Gradient();
+            g.SetKeys(
+                new[] { new GradientColorKey(a, 0f), new GradientColorKey(b, 0.45f), new GradientColorKey(c, 1f) },
+                new[] { new GradientAlphaKey(useAlpha ? a.a : 1f, 0f), new GradientAlphaKey(useAlpha ? b.a : 0.9f, 0.45f), new GradientAlphaKey(useAlpha ? c.a : 0f, 1f) });
+            return new ParticleSystem.MinMaxGradient(g);
+        }
+    }
+
+    /// <summary>Drives the flash light of a TankExplosionFX: white-hot spike, then a flickering ember glow that dies out.</summary>
+    public class TankExplosionFlicker : MonoBehaviour
+    {
+        private Light _light;
+        private float _peak;
+        private float _duration;
+        private float _t;
+
+        public void Init(Light light, float peak, float duration)
+        {
+            _light = light;
+            _peak = peak;
+            _duration = duration;
+        }
+
+        private void Update()
+        {
+            if (_light == null) return;
+            _t += Time.deltaTime;
+            float k = Mathf.Clamp01(_t / _duration);
+            float spike = Mathf.Exp(-k * 9f);
+            float ember = (1f - k) * 0.22f * (0.8f + 0.2f * Mathf.Sin(_t * 47f));
+            _light.intensity = _peak * (spike + ember);
+            _light.color = Color.Lerp(new Color(1f, 0.85f, 0.55f), new Color(1f, 0.4f, 0.1f), k);
+            if (k >= 1f) _light.enabled = false;
+        }
+    }
+
+    /// <summary>Expands and fades the flat ring of a TankExplosionFX.</summary>
+    public class TankShockwaveRing : MonoBehaviour
+    {
+        private Transform _ring;
+        private MeshRenderer _renderer;
+        private float _maxSize;
+        private float _duration;
+        private float _t;
+        private MaterialPropertyBlock _block;
+
+        public void Init(Transform ring, MeshRenderer renderer, float maxSize, float duration)
+        {
+            _ring = ring;
+            _renderer = renderer;
+            _maxSize = maxSize;
+            _duration = duration;
+            _block = new MaterialPropertyBlock();
+        }
+
+        private void Update()
+        {
+            if (_ring == null) return;
+            _t += Time.deltaTime;
+            float k = Mathf.Clamp01(_t / _duration);
+            float eased = 1f - Mathf.Pow(1f - k, 3f);
+            _ring.localScale = Vector3.one * Mathf.Lerp(0.6f, _maxSize, eased);
+            var c = new Color(1f, 0.75f, 0.4f, (1f - k) * 0.9f);
+            _renderer.GetPropertyBlock(_block);
+            _block.SetColor("_BaseColor", c);
+            _block.SetColor("_Color", c);
+            _renderer.SetPropertyBlock(_block);
+            if (k >= 1f) _ring.gameObject.SetActive(false);
         }
     }
 }

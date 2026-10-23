@@ -33,8 +33,8 @@ namespace Cyberpunk.Mars
             new Vector3(0f, -15.7f, -131f),
         };
 
-        public static Rig BuildColossal(GameObject ship) => Build(ship, ColossalNozzles, 4.0f, 150f, 18f);
-        public static Rig BuildCarrier(GameObject ship) => Build(ship, CarrierNozzles, 1.8f, 90f, 14f);
+        public static Rig BuildColossal(GameObject ship) => Build(ship, ColossalNozzles, 21f, 150f, 18f);
+        public static Rig BuildCarrier(GameObject ship) => Build(ship, CarrierNozzles, 11f, 90f, 14f);
 
         private static Rig Build(GameObject ship, Vector3[] nozzles, float anchorScale, float lightRange, float lightIntensity)
         {
@@ -71,7 +71,7 @@ namespace Cyberpunk.Mars
                 if (start + 1 < nozzles.Length) mid = (nozzles[start] + nozzles[start + 1]) * 0.5f;
                 var lightGo = new GameObject("Engine_Glow");
                 lightGo.transform.SetParent(pod.transform, false);
-                lightGo.transform.localPosition = mid + Vector3.back * (anchorScale * 4f);
+                lightGo.transform.localPosition = mid + Vector3.back * (anchorScale * 1.5f);
                 var l = lightGo.AddComponent<Light>();
                 l.type = LightType.Point;
                 l.color = new Color(0.35f, 0.9f, 1f);
