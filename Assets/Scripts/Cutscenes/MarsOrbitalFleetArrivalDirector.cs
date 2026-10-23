@@ -713,25 +713,41 @@ namespace Cyberpunk.Mars
             Vector3 ship1Start = new Vector3(-60f, 15f, 1350f);
             Vector3 ship1Mid = new Vector3(-100f, 5f, 650f);
 
+            // TRAVEL FAST AND STOP AT AN INSTANT (Hyper-relativistic Snap Deceleration)
             float b1Timer = 0f;
-            float b1Dur = 2.8f;
+            float b1Dur = 3.0f;
+            float snapTime = 0.38f; // Arrives in 0.38 seconds then STOPS DEAD!
 
             while (b1Timer < b1Dur)
             {
                 b1Timer += Time.deltaTime;
-                float norm = Mathf.Clamp01(b1Timer / b1Dur);
-                float smooth = Mathf.SmoothStep(0f, 1f, norm);
 
-                if (flagshipColossal != null)
+                if (b1Timer <= snapTime)
                 {
-                    flagshipColossal.transform.localPosition = Vector3.Lerp(ship1Start, ship1Mid, smooth);
+                    // Ultra-fast arrival curve: 95% distance in first 0.2s, snapping to dead stop at snapTime
+                    float t = b1Timer / snapTime;
+                    float snapProgress = 1.0f - Mathf.Pow(1.0f - t, 5f);
+                    if (flagshipColossal != null)
+                    {
+                        flagshipColossal.transform.localPosition = Vector3.Lerp(ship1Start, ship1Mid, snapProgress);
+                    }
+                }
+                else
+                {
+                    // DEAD STOP (practically zero speed, tiny 0.2m/s ambient space drift)
+                    float driftTime = b1Timer - snapTime;
+                    if (flagshipColossal != null)
+                    {
+                        flagshipColossal.transform.localPosition = ship1Mid + new Vector3(0f, 0f, -0.2f * driftTime);
+                    }
                 }
 
                 if (cinematicCamera != null)
                 {
-                    Vector3 p = Vector3.Lerp(b1CamStart, b1CamEnd, smooth);
+                    float camNorm = Mathf.Clamp01(b1Timer / b1Dur);
+                    Vector3 p = Vector3.Lerp(b1CamStart, b1CamEnd, camNorm);
                     cinematicCamera.transform.position = ApplyCameraShake(p);
-                    cinematicCamera.transform.rotation = Quaternion.Euler(-18f + smooth * 6f, -22f + smooth * 4f, 0f);
+                    cinematicCamera.transform.rotation = Quaternion.Euler(-18f + camNorm * 6f, -22f + camNorm * 4f, 0f);
                 }
 
                 yield return null;
@@ -756,7 +772,7 @@ namespace Cyberpunk.Mars
             // Starboard warp flash for Carrier emergence (Ref: Sec 17)
             Vector3 warpPoint2 = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(420f, 60f, 1000f));
             StartCoroutine(TriggerWarpShockwave(warpPoint2, new Color(0.2f, 0.95f, 0.85f), 1.5f));
-            AddCameraTrauma(0.7f);
+            AddCameraTrauma(0.85f);
 
             if (_sfxSource != null && warpBoomAudio != null)
             {
@@ -777,33 +793,47 @@ namespace Cyberpunk.Mars
                 }
             }
 
-            Vector3 carrierStart = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(420f, -20f, 900f));
+            Vector3 carrierStart = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(420f, -20f, 1200f));
             Vector3 carrierMid = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(420f, -35f, 450f));
 
+            // CARRIER TRAVELS FAST AND STOPS AT AN INSTANT
             float b2Timer = 0f;
             float b2Dur = 2.6f;
+            float carrierSnapTime = 0.35f;
 
             while (b2Timer < b2Dur)
             {
                 b2Timer += Time.deltaTime;
                 float norm = Mathf.Clamp01(b2Timer / b2Dur);
-                float smooth = Mathf.SmoothStep(0f, 1f, norm);
+
+                if (b2Timer <= carrierSnapTime)
+                {
+                    float ct = b2Timer / carrierSnapTime;
+                    float carrierSnap = 1.0f - Mathf.Pow(1.0f - ct, 5f);
+                    if (carrierGalactic != null)
+                    {
+                        carrierGalactic.transform.position = Vector3.Lerp(carrierStart, carrierMid, carrierSnap);
+                    }
+                }
+                else
+                {
+                    // DEAD STOP (locked in formation drift)
+                    if (carrierGalactic != null)
+                    {
+                        carrierGalactic.transform.position = carrierMid;
+                    }
+                }
 
                 if (flagshipColossal != null)
                 {
-                    flagshipColossal.transform.localPosition = Vector3.Lerp(ship1Mid, new Vector3(-115f, 2f, 540f), smooth);
-                }
-
-                if (carrierGalactic != null)
-                {
-                    carrierGalactic.transform.position = Vector3.Lerp(carrierStart, carrierMid, smooth);
+                    flagshipColossal.transform.localPosition = Vector3.Lerp(ship1Mid, new Vector3(-115f, 2f, 540f), norm);
                 }
 
                 if (cinematicCamera != null)
                 {
-                    Vector3 p = Vector3.Lerp(b2CamStart, b2CamEnd, smooth);
+                    Vector3 p = Vector3.Lerp(b2CamStart, b2CamEnd, norm);
                     cinematicCamera.transform.position = ApplyCameraShake(p);
-                    cinematicCamera.transform.rotation = Quaternion.Slerp(b2CamStartRot, b2CamEndRot, smooth);
+                    cinematicCamera.transform.rotation = Quaternion.Slerp(b2CamStartRot, b2CamEndRot, norm);
                 }
 
                 yield return null;
@@ -921,7 +951,7 @@ namespace Cyberpunk.Mars
             SetThrustersIntensity(1.0f);
         }
 
-        private void SetThrustersIntensity(float factor)
+        public void SetThrustersIntensity(float factor)
         {
             foreach (var l in _flagshipThrusterLights)
             {
