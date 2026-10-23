@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d680fce7921ee743a7943a553d928f0, type: 3}
+  m_Name: BlackMarket_Arrival_FlightPath
+  m_EditorClassIdentifier: Assembly-CSharp::SyntyCombined.Cutscene.BlackMarketFlightPathSO
+  waypoints:
+  - label: 01_BehindCamera_Flyby
+    position: {x: -126.5, y: 212.8, z: 1005}
+    handleIn: {x: 0, y: 0, z: 15}
+    handleOut: {x: -4.5, y: -9.5, z: -48}
+    rollBankAngle: 8
+    targetSpeed: 135
+    thrusterPower: 1.8
+    cameraFov: 60
+  - label: 02_CameraPass_Overhead
+    position: {x: -138, y: 188, z: 890}
+    handleIn: {x: 6, y: 12, z: 55}
+    handleOut: {x: -14, y: -10, z: -75}
+    rollBankAngle: -18
+    targetSpeed: 120
+    thrusterPower: 1.6
+    cameraFov: 60
+  - label: 03_Cosmic_S_Turn
+    position: {x: -175, y: 160, z: 620}
+    handleIn: {x: 35, y: 22, z: 80}
+    handleOut: {x: -35, y: -25, z: -85}
+    rollBankAngle: -42
+    targetSpeed: 90
+    thrusterPower: 1.4
+    cameraFov: 60
+  - label: 04_TitleDrop_CageEntry
+    position: {x: -95, y: 95, z: 340}
+    handleIn: {x: -35, y: 30, z: 85}
+    handleOut: {x: 35, y: -25, z: -80}
+    rollBankAngle: 38
+    targetSpeed: 72
+    thrusterPower: 1.2
+    cameraFov: 65
+  - label: 05_StationCore_CraneWeave
+    position: {x: 12, y: 42, z: 125}
+    handleIn: {x: -35, y: 25, z: 80}
+    handleOut: {x: 10, y: -14, z: -42}
+    rollBankAngle: -24
+    targetSpeed: 48
+    thrusterPower: 0.95
+    cameraFov: 65
+  - label: 06_LandingPad_Approach
+    position: {x: 27.48, y: 7.2, z: 47}
+    handleIn: {x: -5, y: 7, z: 21}
+    handleOut: {x: 0, y: -1.8, z: -6}
+    rollBankAngle: 0
+    targetSpeed: 18
+    thrusterPower: 0.65
+    cameraFov: 62
+  - label: 07_LandingPad_Touchdown
+    position: {x: 27.48, y: 1.86, z: 34}
+    handleIn: {x: 0, y: 0, z: 5}
+    handleOut: {x: 0, y: 0, z: 0}
+    rollBankAngle: 0
+    targetSpeed: 0
+    thrusterPower: 0.2
+    cameraFov: 60
+  curveColor: {r: 0, g: 0.95, b: 1, a: 0.95}
+  handleColor: {r: 1, g: 0.85, b: 0.05, a: 0.85}
+  waypointColor: {r: 1, g: 0.25, b: 0.45, a: 1}
+  curveResolution: 80

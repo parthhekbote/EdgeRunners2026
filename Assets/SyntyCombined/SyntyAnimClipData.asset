@@ -1,0 +1,275 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d310fc612aa7f892a4319272e3d0469, type: 3}
+  m_Name: SyntyAnimClipData
+  m_EditorClassIdentifier: 
+  paramMoveSpeed: MoveSpeed
+  paramCurrentGait: CurrentGait
+  paramIsWalking: IsWalking
+  paramIsCrouching: IsCrouching
+  paramIsGrounded: IsGrounded
+  paramIsJumping: IsJumping
+  paramStrafeX: StrafeDirectionX
+  paramStrafeZ: StrafeDirectionZ
+  paramIsStrafing: IsStrafing
+  paramLeanValue: LeanValue
+  paramFallingDuration: FallingDuration
+  paramMovementInputHeld: MovementInputHeld
+  paramMovementInputTapped: MovementInputTapped
+  paramIsStopped: IsStopped
+  paramIsStarting: IsStarting
+  paramSwordDrawn: SwordDrawn
+  paramSwordDrawnWeight: SwordDrawnWeight
+  paramIsSliding: IsSliding
+  paramCombatState: CombatState
+  paramAttackID: AttackID
+  paramDodgeDirection: DodgeDirection
+  paramHitDirection: HitDirection
+  idleStanding: {fileID: 1827226128182048838, guid: a4b8f2deec6a99945987cfc59b1b4e54, type: 3}
+  idleCrouching: {fileID: 1827226128182048838, guid: 52a2eb3158000934eb33267c807b8b15, type: 3}
+  walkForward: {fileID: 1827226128182048838, guid: 190a58a12980995419db837d86e230d8, type: 3}
+  walkStrafeL: {fileID: 1827226128182048838, guid: 0eb3e976ef3ccbb4b9bb3ec2e1d7164f, type: 3}
+  walkStrafeR: {fileID: 1827226128182048838, guid: b87784217dc9c8c4fa00d2e1a45cb404, type: 3}
+  walkStrafeFL: {fileID: 1827226128182048838, guid: 92c649d225502eb40af8e5abdb49f6b6, type: 3}
+  walkStrafeFR: {fileID: 1827226128182048838, guid: 4c35cb045c0fa2f439a5496cc3401ea3, type: 3}
+  walkStrafeBL: {fileID: 1827226128182048838, guid: c29e899bc714b254aa6d3dc609e4cf63, type: 3}
+  walkStrafeBR: {fileID: 1827226128182048838, guid: 6cceb67a7303e1a409ffea96dc8e1e0a, type: 3}
+  walkBackward: {fileID: 1827226128182048838, guid: a74912d595c2d934b82146ebbd5ea36f, type: 3}
+  runForward: {fileID: 1827226128182048838, guid: 4f79281e6eb3df54889369eba3aa1c67, type: 3}
+  runStrafeL: {fileID: 1827226128182048838, guid: d294a4226e928db4fbbd933c19ccf5a1, type: 3}
+  runStrafeR: {fileID: 1827226128182048838, guid: 4699ac7f1156bfc4dba616d9b3a05234, type: 3}
+  runStrafeFL: {fileID: 1827226128182048838, guid: 4c272e8ffeefc6a4ab141f84a6712559, type: 3}
+  runStrafeFR: {fileID: 1827226128182048838, guid: b982f3686334e9248b6b2020e5682d9e, type: 3}
+  runStrafeBL: {fileID: 1827226128182048838, guid: d466621781c6a7449aa01e5ac0dd2c0f, type: 3}
+  runStrafeBR: {fileID: 1827226128182048838, guid: ae899eb338d4f7443b77e2cc71e0b29e, type: 3}
+  runBackward: {fileID: 1827226128182048838, guid: b28d41dc2454f694fac9ab766e54323a, type: 3}
+  sprintForward: {fileID: 1827226128182048838, guid: d2995d8a62be0ce42a4e73698b62b275, type: 3}
+  sprintUp25: {fileID: 2456350506861332852, guid: 4de3c8a78ac4b784ba488361340c847a, type: 3}
+  sprintDown25: {fileID: -2805965702499575919, guid: eacc01f5b493c414eb3aef0f4cedf608, type: 3}
+  sprintToCrouch: {fileID: 965086860733634941, guid: 224fd581a54ad3048b7ea3cd00db7941, type: 3}
+  crouchWalkForward: {fileID: 1827226128182048838, guid: db828642e342e7a469d83568b41af133, type: 3}
+  crouchWalkStrafeL: {fileID: -5273236785355700695, guid: 14439d6b546a820478659db25db4a4d4, type: 3}
+  crouchWalkStrafeR: {fileID: 1827226128182048838, guid: 9c360478cd4308d47891db4ce38ff3a9, type: 3}
+  crouchWalkBackward: {fileID: 1827226128182048838, guid: 311f313eae5f24c4ea66070f5b8342f5, type: 3}
+  jumpIdle: {fileID: -2993534804863918692, guid: b3f40610e0721964c9679e65bd5a61bd, type: 3}
+  jumpWalking: {fileID: -7955037871088759745, guid: 27d9e2694d711be42a8631acbc94a6d4, type: 3}
+  jumpRunning: {fileID: 8177929354538030626, guid: 0ad48af31f611b94fba9833e4fc50476, type: 3}
+  jumpSprinting: {fileID: 8252669403298163198, guid: d13c8ea1e9491a4438f8d589acaa9b03, type: 3}
+  fallShort: {fileID: 3874071007334998130, guid: 8a47dcc6235cb2746aa329ea965a6900, type: 3}
+  fallLarge: {fileID: -2805380940262304345, guid: 624ffc388f3d12049918dae4488676e4, type: 3}
+  landSoft: {fileID: 8511969792219828138, guid: 5b750a06450eb454f971cbc16c776fb4, type: 3}
+  landMedium: {fileID: -7734881759595652149, guid: ac4a40b639e33a0409a005769a922b74, type: 3}
+  landHard: {fileID: -1153343825925790964, guid: ce59be620f8e5ba42aba34a93d0ad827, type: 3}
+  idleToRunForward: {fileID: 0}
+  idleToRun90L: {fileID: 0}
+  idleToRun90R: {fileID: 0}
+  idleToRun180L: {fileID: 0}
+  idleToRun180R: {fileID: 0}
+  idleToWalkForward: {fileID: 0}
+  runToIdleLFoot: {fileID: 0}
+  runToIdleRFoot: {fileID: 0}
+  walkToIdleLFoot: {fileID: 0}
+  walkToIdleRFoot: {fileID: 0}
+  standToCrouch: {fileID: 0}
+  crouchToStand: {fileID: 0}
+  armedIdleStanding: {fileID: 1375766457120316241, guid: b94969b4c36c3c94284f72888ad9289d, type: 3}
+  armedWalkForward: {fileID: 6736751888470005484, guid: 6450293c798e377498e58b607d9dd2a9, type: 3}
+  armedWalkStrafeL: {fileID: 469470165381189648, guid: 3080bf419692fec49acebc6668d0c0f0, type: 3}
+  armedWalkStrafeR: {fileID: 4399204903765491861, guid: c56d39e0faa53d344887ac754af51752, type: 3}
+  armedWalkStrafeFL: {fileID: -9049065309134964762, guid: 57343f3349965f647a4842ce73853a56, type: 3}
+  armedWalkStrafeFR: {fileID: 3981214313555701066, guid: 2ad8046b729a3a84db5b83963e92f429, type: 3}
+  armedWalkStrafeBL: {fileID: -6856542207201513008, guid: b02643f5891d58642b4328c20bee0b68, type: 3}
+  armedWalkStrafeBR: {fileID: -1179652456018694991, guid: 19906bd2bf37e254baef8ad0ac67d296, type: 3}
+  armedWalkBackward: {fileID: 2388242288736846233, guid: 97475f0895c1d53448bfa1edb3afd179, type: 3}
+  armedRunForward: {fileID: -9007198454346736609, guid: 5f8944c22c6533145ac7e99248716628, type: 3}
+  armedRunStrafeL: {fileID: -8793620176532906607, guid: 2a0bc7d78ad53e143b18c6ff94147c08, type: 3}
+  armedRunStrafeR: {fileID: 3744927724446242017, guid: 5e3298be6599e3a40907eb935a68e769, type: 3}
+  armedRunStrafeFL: {fileID: -2378108833371699281, guid: c3076939f5f17124b978c69041662349, type: 3}
+  armedRunStrafeFR: {fileID: -8206255001548464739, guid: 5234f84156da6f248a8f0cacc5009986, type: 3}
+  armedRunStrafeBL: {fileID: -329534233486051981, guid: 79e819b7f4703874b8760c97b8695125, type: 3}
+  armedRunStrafeBR: {fileID: 18596264935999876, guid: 816acf00370c1ea49931f7a40d4ad77f, type: 3}
+  armedRunBackward: {fileID: -3969706692863482349, guid: 4c8066f052dbfb94187eb0758b055973, type: 3}
+  armedSprintForward: {fileID: -4471568756137579510, guid: 5067fcc7fc614304aa6b3e3df41c25d9, type: 3}
+  armedCrouchIdle: {fileID: 0}
+  armedCrouchWalkForward: {fileID: 3723229255978890374, guid: 06d1430db79909f44861eca744f94c4a, type: 3}
+  armedCrouchWalkStrafeL: {fileID: -6920747088866676825, guid: 0b5c6538624ff1b448985f89263c9629, type: 3}
+  armedCrouchWalkStrafeR: {fileID: 2211475156631496212, guid: 757cbf8a297be91418fb4c295441b53c, type: 3}
+  armedCrouchWalkBackward: {fileID: 3327051570167698589, guid: d53e2cf68c790c44abafac323dabe3ce, type: 3}
+  swordIdleBase: {fileID: 1375766457120316241, guid: b94969b4c36c3c94284f72888ad9289d, type: 3}
+  swordIdleSheathed: {fileID: 4633405635672463638, guid: 337b75aab1898ea438de04c0e28143be, type: 3}
+  swordIdleEnergetic: {fileID: -1376588494570868927, guid: 14d4926c849cab049b4d6ff70ec0ed60, type: 3}
+  swordIdleFlourish: {fileID: 5119973695547190099, guid: 8e4420a97da5910449d9ab3bfde41051, type: 3}
+  swordIdleMenacingBegin: {fileID: 6589896209628347084, guid: 12dcbfb75107a884db83fbfc26955a7d, type: 3}
+  swordIdleMenacingLoop: {fileID: -3634702890504892199, guid: f574f64a099779248beea90d27b2dde0, type: 3}
+  swordIdleMenacingEnd: {fileID: 7214013095423146428, guid: b8e5830ac52bc7e409e95a4fc6ad6547, type: 3}
+  drawSword: {fileID: -1799629646076063188, guid: 1e112675476098345a62bc14cbf8a7ef, type: 3}
+  sheatheSword: {fileID: 2918243416346985125, guid: febb68dd712756c4c883a3e4f482d3b1, type: 3}
+  drawSwapNormTime: 0.35
+  sheatheSwapNormTime: 0.5
+  lightComboA:
+    clip: {fileID: -7717634560727564301, guid: 9f773338b2a96174ebe9b63870034ca3, type: 3}
+    comboWindowNorm: 0.4
+    exitWindowNorm: 0.75
+  lightComboB:
+    clip: {fileID: 5800342443961765143, guid: 95697c3218923dd43aa160c110bfbc79, type: 3}
+    comboWindowNorm: 0.4
+    exitWindowNorm: 0.75
+  lightComboC:
+    clip: {fileID: -8890989884591690541, guid: c9e0b6900401fcb42980df96b84db76c, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.85
+  heavyComboA:
+    clip: {fileID: -8709411803423658444, guid: f3800f1bd189abc469fcc7c374371a91, type: 3}
+    comboWindowNorm: 0.55
+    exitWindowNorm: 0.85
+  heavyComboB:
+    clip: {fileID: 7713716175428577925, guid: 94770028b07a9ce44b555d283c113a86, type: 3}
+    comboWindowNorm: 0.55
+    exitWindowNorm: 0.85
+  heavyComboC:
+    clip: {fileID: -2621343224683262629, guid: 2511e6dc0955bde4395e6b369d7d8707, type: 3}
+    comboWindowNorm: 0.85
+    exitWindowNorm: 0.88
+  heavyFlourish:
+    clip: {fileID: -8410095740252109900, guid: b48c7e37f2264c3418122c894c6f98af, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.85
+  heavyStab:
+    clip: {fileID: 8332939666779294377, guid: b963d0c4e093a9c4ea792b8095e51ba2, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.8
+  lightFencing:
+    clip: {fileID: 1767946901908681430, guid: f1b706a7569d3564c871c395216c5dbd, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.8
+  lightLeaping:
+    clip: {fileID: -7914165499043647036, guid: 72f114cf4075d3b4db5ce63cb994a704, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.85
+  spinningCyclone:
+    clip: {fileID: 0}
+    comboWindowNorm: 0
+    exitWindowNorm: 0
+  overheadSlam:
+    clip: {fileID: 0}
+    comboWindowNorm: 0
+    exitWindowNorm: 0
+  shoulderCharge:
+    clip: {fileID: 0}
+    comboWindowNorm: 0
+    exitWindowNorm: 0
+  blockBegin: {fileID: -1905609392677946133, guid: f0ff99e8eab4a414f9d77bc4eec20c58, type: 3}
+  blockLoop: {fileID: 8952413660455403669, guid: b96a3e38fca3f1f4ab5c7baf1321adad, type: 3}
+  blockEnd: {fileID: -1322499967654159940, guid: bda0f2cfce46d2a4ea7240385b97e185, type: 3}
+  parryForward:
+    clip: {fileID: -8364131450492058579, guid: 7966ebc17e0dc2a4b8faaf62594fb9b2, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.8
+  parryLeft:
+    clip: {fileID: 1833931591034000090, guid: d8fffad451c75ed4eb493ed8fc040ff7, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.8
+  parryRight:
+    clip: {fileID: -6681140159703487740, guid: 3b3e1dc00268ab9478f37609c8d5a393, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.8
+  parryBreak:
+    clip: {fileID: 7996402717578182690, guid: 4fcd7aa8f0cf2c24797b5076c7f6ddbc, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.9
+  counterShove:
+    clip: {fileID: 4023623632855673703, guid: 828888b34302fe14287e9cd61695aa75, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.85
+  pommelStrike:
+    clip: {fileID: 6046083245655090877, guid: 7697c0667cb467a4bb21c9e0b248d42b, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.85
+  parryReturnToBlock: {fileID: 8856239983432694316, guid: 9763e5345af7e854d90aedaecb71f9e4, type: 3}
+  dodgeForward:
+    clip: {fileID: 6808892750511483125, guid: 80f9aad568ebdbf4f9fd28c054c27a20, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.85
+  dodgeBack:
+    clip: {fileID: -377892130397285394, guid: b3ac7f325a7e6a843be780efd40ca046, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.85
+  dodgeLeft:
+    clip: {fileID: 8020556318125480424, guid: e8bce1554d1659347aae4f4f75892c21, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.85
+  dodgeRight:
+    clip: {fileID: 6279025081173566251, guid: ced228295807f164e9c82db85cc29c88, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.85
+  dodgeRollForward:
+    clip: {fileID: -6821712913461239410, guid: 3dd6129ee8b00f44294969e4601728a5, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.88
+  dodgeRollBack:
+    clip: {fileID: -5513451613650016088, guid: 63d4732793f6f534887f433911ae8fd3, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.88
+  dodgeRollLeft:
+    clip: {fileID: 8349434863822044283, guid: d1b0bc5999cc985488548bbe48b832f2, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.88
+  dodgeRollRight:
+    clip: {fileID: 1785380911206079018, guid: 3f3848065b8e77c489f46f86ca36957b, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.88
+  hitReactForward:
+    clip: {fileID: -5694488986427802680, guid: adc1feaf8563f6247989bffd0737b6ad, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.9
+  hitReactBack:
+    clip: {fileID: 5410598297907043000, guid: 646e411aff9e6a3409589c9eebc68c3a, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.9
+  hitReactLeft:
+    clip: {fileID: 8990611995264232770, guid: 202a1ac9f04ce2a419bc2bdd6b148b2a, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.9
+  hitReactRight:
+    clip: {fileID: -8134992637236915294, guid: 881ed1a8905746f4d9b1def6f9e773dd, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.9
+  hitStaggerForward:
+    clip: {fileID: 8724492062134716513, guid: 3af9f677619822043a708e52c79ba040, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.9
+  hitStaggerBack:
+    clip: {fileID: 8724492062134716513, guid: 2c9d421561b7c9941bd5d9942e4dcaa5, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.9
+  hitStaggerLeft:
+    clip: {fileID: -5950831409251336622, guid: ec81d250c60b03d47b70b65309c588ee, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.9
+  hitStaggerRight:
+    clip: {fileID: -5950831409251336622, guid: bb9255eddd5619c4e9398d076eb337fd, type: 3}
+    comboWindowNorm: 0
+    exitWindowNorm: 0.9
+  knockDownBegin: {fileID: 3719875270879779954, guid: 7ba7023334e89e340927c5c166306e04, type: 3}
+  knockDownLoop: {fileID: 3546632239941170796, guid: 334f831830b92884ca55ad69efd72917, type: 3}
+  knockDownEnd: {fileID: -7560739488375888718, guid: 8a405eac44feba441a02a2df3f42f432, type: 3}
+  stunBegin: {fileID: 3635232535751687706, guid: f348d316efadffb46a8fe603f8bac817, type: 3}
+  stunLoop: {fileID: -2029077043182818740, guid: 23b7cb91698239b4aa8dd2c6e5298354, type: 3}
+  stunEnd: {fileID: -6759780123328594538, guid: ee840371c325fd748b10e1b2f509cff2, type: 3}
+  deathForward: {fileID: -7862834798869268496, guid: 90f98101f7a4c2c4bbbf30f76e7b91c7, type: 3}
+  deathBack: {fileID: -1444214504022159124, guid: a0b8f6f252ea03c46b36b357f5ea81e5, type: 3}
+  deathLeft: {fileID: 2178902523417233475, guid: 65976cacc9c112c4bb50b463be29f1db, type: 3}
+  deathRight: {fileID: -5737455498129746005, guid: fb3c21dead0f2e54284772f27eb1de00, type: 3}
+  walkClipSpeed: 1.4
+  runClipSpeed: 2.5
+  sprintClipSpeed: 7
+  crouchClipSpeed: 1.1

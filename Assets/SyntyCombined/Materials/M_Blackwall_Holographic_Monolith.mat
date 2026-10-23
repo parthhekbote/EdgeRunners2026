@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_Blackwall_Holographic_Monolith
+  m_Shader: {fileID: 4800000, guid: 74945999f6e105a40a61d813632aa416, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _DataTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _FresnelIntensity: 3.5
+    - _FresnelPower: 2.8
+    - _GlitchFrequency: 12
+    - _GlitchIntensity: 0.85
+    - _GlitchPhase: 0
+    - _PulseSpeed: 1.4
+    - _ScanlineDensity: 220
+    - _ScanlineFrequency: 140
+    - _ScanlineSpeed: 1.2
+    - _ScrollSpeed: 2.2
+    - _TendrilIntensity: 2.2
+    - _TendrilScale: 5.5
+    - _TendrilSpeed: 0.8
+    m_Colors:
+    - _BaseColor: {r: 0.015, g: 0.002, b: 0.006, a: 0.96}
+    - _CoreEnergyColor: {r: 5.5, g: 0.45, b: 0.08, a: 1}
+    - _DataTiling: {r: 28, g: 48, b: 0, a: 0}
+    - _EmissionColor: {r: 5, g: 0.02, b: 0.08, a: 1}
+    - _GlitchFlashColor: {r: 6.5, g: 0.2, b: 0.35, a: 1}
+    - _MacroBlockTiling: {r: 8, g: 14, b: 0, a: 0}
+    - _Tiling: {r: 18, g: 34, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

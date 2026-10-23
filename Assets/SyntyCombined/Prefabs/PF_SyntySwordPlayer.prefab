@@ -1,0 +1,246 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2130898792022422623
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3842382232832823133}
+  m_Layer: 0
+  m_Name: CameraTarget
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3842382232832823133
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2130898792022422623}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.45, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7425407547971352238}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6846217519396486210
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7425407547971352238}
+  - component: {fileID: 264243249390249742}
+  - component: {fileID: 6015823742916612181}
+  m_Layer: 0
+  m_Name: PF_SyntySwordPlayer
+  m_TagString: Player
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7425407547971352238
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6846217519396486210}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 7357212529006638055}
+  - {fileID: 3842382232832823133}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &264243249390249742
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6846217519396486210}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 1.8
+  m_Radius: 0.28
+  m_SlopeLimit: 45
+  m_StepOffset: 0.25
+  m_SkinWidth: 0.02
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0.9, z: 0}
+--- !u!114 &6015823742916612181
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6846217519396486210}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27422ca79af214f57803a84a7f835c43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SyntyCombined.SyntySwordLocomotionController
+  maxHealth: 150
+  currentHealth: 150
+  isInvincible: 1
+  blockMitigation: 0.85
+  characterMesh: {fileID: 7357212529006638055}
+  animator: {fileID: 3529200346008365469}
+  clips: {fileID: 11400000, guid: a1b2c3d4e5f601b8c9d0e1f2a3b4c5d6, type: 2}
+  handSwordOffset: {x: 0.08, y: 0.01, z: -0.01}
+  handSwordRotation: {x: 0, y: 180, z: 90}
+  hipSwordOffset: {x: 0.18, y: -0.05, z: -0.08}
+  hipSwordRotation: {x: -10, y: 15, z: 110}
+  swordPrefab: {fileID: 1530859087307534, guid: ca8d427b471a77745835639d65f3c276, type: 3}
+  sheathPrefab: {fileID: 0}
+  swordMesh: {fileID: 0}
+  swordMaterial: {fileID: 0}
+  swordScale: {x: 1, y: 1, z: 1}
+  playerCamera: {fileID: 0}
+  cameraTarget: {fileID: 3842382232832823133}
+  cameraDistance: 4.5
+  cameraMinDist: 1.5
+  cameraMaxDist: 12
+  cameraZoomSpeed: 4
+  cameraZoomSmooth: 10
+  camMinPitch: -20
+  camMaxPitch: 55
+  cameraSensitivity: 180
+  cameraLagSpeed: 14
+  cameraCollisionMask:
+    serializedVersion: 2
+    m_Bits: 0
+  firstPersonView: 1
+  firstPersonEyeOffset: {x: 0, y: 0.15, z: 0.12}
+  togglePerspectiveKey: 118
+  walkSpeed: 1.4
+  runSpeed: 2.5
+  sprintSpeed: 7
+  crouchSpeed: 1.1
+  blockMoveSpeed: 1.2
+  acceleration: 14
+  deceleration: 18
+  rotationSpeed: 12
+  gravity: -19.6
+  combatStrafeMode: 1
+  jumpForce: 7.5
+  airControl: 0.85
+  standHeight: 1.8
+  crouchHeight: 1.2
+  capsuleRadius: 0.28
+  actionCooldown: 0.08
+  blockLockoutAfterAttack: 0.25
+  combatLayerFadeSpeed: 12
+  locomotionLayerIndex: 0
+  swordArmLayerIndex: 1
+  swordHandLayerIndex: 2
+  combatLayerIndex: 3
+  showCombatHUD: 1
+  slideDuration: 0.85
+  slideSpeedMultiplier: 1.35
+--- !u!1001 &7030304483045479436
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7425407547971352238}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -4744043595305881647, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.050577722
+      objectReference: {fileID: 0}
+    - target: {fileID: -4744043595305881647, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.05421311
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_Name
+      value: PolygonSyntyCharacter
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7, type: 2}
+    - target: {fileID: 5866666021909216657, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+--- !u!95 &3529200346008365469 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+  m_PrefabInstance: {fileID: 7030304483045479436}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7357212529006638055 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 68a29e70ae95f6a4195bf0fcbb538019, type: 3}
+  m_PrefabInstance: {fileID: 7030304483045479436}
+  m_PrefabAsset: {fileID: 0}
