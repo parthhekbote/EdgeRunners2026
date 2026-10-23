@@ -470,9 +470,10 @@ namespace SyntyCombined.World
             landingPadPos = new Vector3(b.center.x, groundY + rest, b.center.z);
             landingPadRot = rot;
 
-            // Alita steps off beside the cockpit, on the deck
-            Vector3 side = (rot * Vector3.right).normalized * 3.6f;
-            _alitaDisembarkPos = new Vector3(landingPadPos.x + side.x, GroundYAt(landingPadPos.x + side.x, landingPadPos.z + side.z, landingPadPos.y + 6f, landingPadPos.y) + 0.05f, landingPadPos.z + side.z);
+            // Alita steps off cleanly outside the ship's wings on the deck, facing toward Voss & market
+            Vector3 side = (rot * Vector3.right).normalized * 7.5f;
+            float padGroundY = GroundYAt(landingPadPos.x + side.x, landingPadPos.z + side.z, landingPadPos.y + 6f, landingPadPos.y);
+            _alitaDisembarkPos = new Vector3(landingPadPos.x + side.x, padGroundY + 0.12f, landingPadPos.z + side.z);
             _hasAlitaDisembarkPos = true;
 
             if (CollectorBetrayalManager.Instance != null) CollectorBetrayalManager.Instance.landingPadPos = landingPadPos;
@@ -488,6 +489,9 @@ namespace SyntyCombined.World
                 string n = h.collider.name.ToLowerInvariant();
                 if (n.Contains("alita") || n.Contains("nightshade") || n.Contains("starship") || n.StartsWith("npc_")) continue;
                 if (h.collider.GetComponentInParent<CharacterController>() != null) continue;
+                if (h.collider.transform.root.name.ToLowerInvariant().Contains("nightshade")) continue;
+                if (h.collider.transform.root.name.ToLowerInvariant().Contains("starship")) continue;
+                if (h.collider.isTrigger) continue;
                 if (h.point.y > best) best = h.point.y;
             }
             return float.IsNegativeInfinity(best) ? fallback : best;
@@ -631,17 +635,18 @@ namespace SyntyCombined.World
                 // Disembark Alita safely onto the flight deck landing pad
                 nightshadeShip.DisembarkPlayer();
 
-                // Place Alita cleanly beside cockpit on the pad surface
+                // Place Alita cleanly on the pad surface facing towards Voss / Sanctuary Pod
                 var player = GameObject.FindWithTag("Player");
                 if (player != null)
                 {
-                    Vector3 safeAlitaPos = _hasAlitaDisembarkPos ? _alitaDisembarkPos : new Vector3(22.88f, 1.88f, 34.00f);
+                    Vector3 safeAlitaPos = _hasAlitaDisembarkPos ? _alitaDisembarkPos : nightshadeShip.CalculateSafeDisembarkPosition(out _);
                     var cc = player.GetComponent<CharacterController>();
                     if (cc != null) cc.enabled = false;
                     player.transform.position = safeAlitaPos;
-                    player.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
-                    if (cc != null) cc.enabled = true;
+                    player.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
                     Physics.SyncTransforms();
+                    if (cc != null) cc.enabled = true;
+                    nightshadeShip.IgnorePlayerShipCollisions(true);
                 }
             }
 

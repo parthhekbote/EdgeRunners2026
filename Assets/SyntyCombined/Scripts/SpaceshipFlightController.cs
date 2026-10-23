@@ -572,7 +572,11 @@ namespace SyntyCombined
 
             CheckGroundDistance();
 
-            if (_exitCooldown > 0f) _exitCooldown -= Time.deltaTime;
+            if (_exitCooldown > 0f)
+            {
+                _exitCooldown -= Time.deltaTime;
+                if (!_isPiloted) EnsurePlayerNotStuck();
+            }
 
             if (_isPiloted)
             {
@@ -778,6 +782,186 @@ namespace SyntyCombined
             Debug.Log("<color=#00FFAA><b>[Starship]</b></color> Boarded Martian Starship. Engines online.");
         }
 
+        /// <summary>
+        /// Prevents PhysX from ever crushing or wedging the player under the ship colliders.
+        /// </summary>
+        public void IgnorePlayerShipCollisions(bool ignore)
+        {
+            if (_player == null) return;
+            var shipCols = GetComponentsInChildren<Collider>();
+            var playerCols = _player.GetComponentsInChildren<Collider>();
+            foreach (var sc in shipCols)
+            {
+                if (sc == null) continue;
+                foreach (var pc in playerCols)
+                {
+                    if (pc == null) continue;
+                    Physics.IgnoreCollision(sc, pc, ignore);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Calculates a guaranteed clear, un-occluded exit position outside the ship's collision volume,
+        /// snapped safely to solid ground / landing pad surface with zero overlap or crushing.
+        /// </summary>
+        public Vector3 CalculateSafeDisembarkPosition(out Quaternion exitRotation)
+        {
+            exitRotation = Quaternion.Euler(0f, transform.eulerAngles.y - 90f, 0f);
+
+            // Compute overall bounding box of the starship colliders
+            Bounds shipBounds = new Bounds(transform.position, Vector3.one * 2f);
+            bool hasCollider = false;
+            foreach (var col in GetComponentsInChildren<Collider>())
+            {
+                if (col == null || col.isTrigger) continue;
+                if (!hasCollider)
+                {
+                    shipBounds = col.bounds;
+                    hasCollider = true;
+                }
+                else
+                {
+                    shipBounds.Encapsulate(col.bounds);
+                }
+            }
+
+            float lateralClearance = Mathf.Max(7.0f, shipBounds.extents.x + 2.0f, shipBounds.extents.z + 2.0f);
+            float longitudinalClearance = Mathf.Max(8.0f, shipBounds.extents.z + 2.5f, shipBounds.extents.x + 2.5f);
+
+            // Candidate vectors in world space (Priority: Right side, Left side, Forward-Right, Forward-Left, Forward, Back)
+            Vector3[] candidateOffsets = new Vector3[]
+            {
+                transform.right * lateralClearance,
+                -transform.right * lateralClearance,
+                (transform.right * 0.7f + transform.forward * 0.7f).normalized * (lateralClearance + 1.0f),
+                (-transform.right * 0.7f + transform.forward * 0.7f).normalized * (lateralClearance + 1.0f),
+                transform.forward * longitudinalClearance,
+                -transform.forward * longitudinalClearance
+            };
+
+            int mask = ~LayerMask.GetMask("Ignore Raycast", "Player");
+            float raycastOriginY = Mathf.Max(transform.position.y + 6.0f, shipBounds.max.y + 3.0f);
+
+            Vector3 bestPos = Vector3.zero;
+            bool foundValid = false;
+
+            for (int i = 0; i < candidateOffsets.Length; i++)
+            {
+                Vector3 probeWorld = transform.position + candidateOffsets[i];
+                Vector3 rayOrigin = new Vector3(probeWorld.x, raycastOriginY, probeWorld.z);
+
+                var hits = Physics.RaycastAll(rayOrigin, Vector3.down, 50f, mask, QueryTriggerInteraction.Ignore);
+                float highestY = float.NegativeInfinity;
+                Collider hitGroundCol = null;
+
+                foreach (var h in hits)
+                {
+                    if (h.transform.root == transform.root || h.transform.IsChildOf(transform)) continue;
+                    if (h.collider.isTrigger) continue;
+
+                    if (h.point.y > highestY)
+                    {
+                        highestY = h.point.y;
+                        hitGroundCol = h.collider;
+                    }
+                }
+
+                if (hitGroundCol != null)
+                {
+                    Vector3 testFeet = new Vector3(probeWorld.x, highestY + 0.12f, probeWorld.z);
+                    Vector3 capsuleBottom = testFeet + Vector3.up * 0.35f;
+                    Vector3 capsuleTop = testFeet + Vector3.up * (1.8f - 0.35f);
+
+                    var overlaps = Physics.OverlapCapsule(capsuleBottom, capsuleTop, 0.35f, mask, QueryTriggerInteraction.Ignore);
+                    bool overlapsShip = false;
+                    foreach (var o in overlaps)
+                    {
+                        if (o.transform.root == transform.root || o.transform.IsChildOf(transform))
+                        {
+                            overlapsShip = true;
+                            break;
+                        }
+                    }
+
+                    if (!overlapsShip)
+                    {
+                        bestPos = testFeet;
+                        Vector3 away = (bestPos - transform.position);
+                        away.y = 0f;
+                        if (away.sqrMagnitude > 0.01f)
+                        {
+                            exitRotation = Quaternion.LookRotation(away.normalized, Vector3.up);
+                        }
+                        foundValid = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!foundValid)
+            {
+                Vector3 fallbackOffset = transform.right * lateralClearance;
+                bestPos = transform.position + fallbackOffset;
+                var hits = Physics.RaycastAll(new Vector3(bestPos.x, raycastOriginY, bestPos.z), Vector3.down, 50f, mask, QueryTriggerInteraction.Ignore);
+                float highestY = float.NegativeInfinity;
+                foreach (var h in hits)
+                {
+                    if (h.transform.root == transform.root || h.transform.IsChildOf(transform)) continue;
+                    if (h.point.y > highestY) highestY = h.point.y;
+                }
+                if (!float.IsNegativeInfinity(highestY))
+                {
+                    bestPos.y = highestY + 0.15f;
+                }
+            }
+
+            return bestPos;
+        }
+
+        private void EnsurePlayerNotStuck()
+        {
+            if (_player == null || !_player.activeInHierarchy) return;
+
+            Vector3 playerPos = _player.transform.position;
+            Vector3 bottom = playerPos + Vector3.up * 0.35f;
+            Vector3 top = playerPos + Vector3.up * 1.45f;
+            var overlaps = Physics.OverlapCapsule(bottom, top, 0.35f, ~0, QueryTriggerInteraction.Ignore);
+            bool overlappingShip = false;
+            foreach (var o in overlaps)
+            {
+                if (o.transform.root == transform.root || o.transform.IsChildOf(transform))
+                {
+                    overlappingShip = true;
+                    break;
+                }
+            }
+
+            int mask = ~LayerMask.GetMask("Ignore Raycast", "Player");
+            var hits = Physics.RaycastAll(new Vector3(playerPos.x, playerPos.y + 10f, playerPos.z), Vector3.down, 25f, mask, QueryTriggerInteraction.Ignore);
+            float highestGroundY = float.NegativeInfinity;
+            foreach (var h in hits)
+            {
+                if (h.transform.root == transform.root || h.transform.IsChildOf(transform)) continue;
+                if (h.collider.isTrigger) continue;
+                if (h.point.y > highestGroundY) highestGroundY = h.point.y;
+            }
+
+            bool belowGround = (!float.IsNegativeInfinity(highestGroundY) && playerPos.y < (highestGroundY - 0.25f));
+
+            if (overlappingShip || belowGround)
+            {
+                Vector3 safePos = CalculateSafeDisembarkPosition(out Quaternion safeRot);
+                if (_playerCC != null) _playerCC.enabled = false;
+                _player.transform.position = safePos;
+                _player.transform.rotation = safeRot;
+                Physics.SyncTransforms();
+                if (_playerCC != null) _playerCC.enabled = true;
+                IgnorePlayerShipCollisions(true);
+                Debug.LogWarning($"<color=#00FFAA><b>[Starship]</b></color> Auto-unstuck player to safe position {safePos} (was overlapping ship: {overlappingShip}, was below ground: {belowGround}).");
+            }
+        }
+
         public void DisembarkPlayer()
         {
             if (_player == null) return;
@@ -785,20 +969,21 @@ namespace SyntyCombined
             _isPiloted = false;
             _glideThrusterOverride = -1f;
             if (ActiveShip == this) ActiveShip = null;
+            _exitCooldown = 1.5f;
 
-            // Calculate safe ground exit position to the left of the starship
-            Vector3 exitPos = transform.position - transform.right * 4.5f;
-            RaycastHit hit;
-            int mask = ~LayerMask.GetMask("Ignore Raycast", "Player");
-            if (Physics.Raycast(exitPos + Vector3.up * 4.0f, Vector3.down, out hit, 25f, mask))
-            {
-                exitPos = hit.point + Vector3.up * 0.08f;
-            }
+            // Calculate safe ground exit position completely clear of starship hull & wings
+            Quaternion exitRot;
+            Vector3 exitPos = CalculateSafeDisembarkPosition(out exitRot);
 
-            // Restore player position, rotation & active state
+            // Crucial: Ignore physics collision between player and ship so the player is NEVER crushed/trapped
+            IgnorePlayerShipCollisions(true);
+
+            // Restore player position, rotation & active state cleanly
+            if (_playerCC != null) _playerCC.enabled = false;
             _player.transform.position = exitPos;
-            _player.transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y - 90f, 0f);
+            _player.transform.rotation = exitRot;
             _player.SetActive(true);
+            Physics.SyncTransforms();
 
             if (_playerCC != null) _playerCC.enabled = true;
             if (_playerSwordCtrl != null) _playerSwordCtrl.enabled = true;
@@ -835,7 +1020,7 @@ namespace SyntyCombined
                 _engineAudio.volume = 0.15f;
             }
 
-            Debug.Log("<color=#00FFAA><b>[Starship]</b></color> Disembarked Martian Starship.");
+            Debug.Log($"<color=#00FFAA><b>[Starship]</b></color> Disembarked Martian Starship safely at {exitPos}.");
         }
 
         public void SetBoardingCooldown(float duration)
