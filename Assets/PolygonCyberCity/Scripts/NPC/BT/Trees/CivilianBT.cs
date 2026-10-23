@@ -16,6 +16,18 @@ namespace PolygonCyberCity.NPC.BT.Trees
     {
         public static BTNode Build(GameObject owner, NavMeshAgent agent, Animator animator, CyberNPCController controller)
         {
+            // --- BRANCH 0: FIGHT ALITA (hostile locals / civilians who fight back) ---
+            var fightBranch = new ConditionNode(
+                bb => bb.Get<bool>("FightPlayer") && bb.CurrentState == NPCMacroState.Aggressive && bb.Health >= 35f,
+                new Selector(
+                    new Sequence(
+                        new ConditionNode(bb => bb.DistanceToPlayer <= 2.6f),
+                        new Cooldown(1.8f, new TaskExecuteAttack(agent, animator, controller, range: 2.2f, duration: 1.2f, damage: controller.civilianAttackDamage))
+                    ),
+                    new TaskTacticalReposition(agent, animator, preferredDist: 1.8f)
+                )
+            );
+
             // --- BRANCH 1: PANIC & THREAT RESPONSE ---
             var panicBranch = new Selector(
                 // Sub-branch A: Cower if cornered or low HP
@@ -59,6 +71,7 @@ namespace PolygonCyberCity.NPC.BT.Trees
 
             // --- ROOT SELECTOR ---
             var root = new Selector(
+                fightBranch,
                 panicBranch,
                 perceptionBranch,
                 conversationBranch,

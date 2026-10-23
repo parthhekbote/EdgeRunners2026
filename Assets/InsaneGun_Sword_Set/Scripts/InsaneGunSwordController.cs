@@ -405,6 +405,8 @@ namespace InsaneGun.Combat
                 {
                     enemyLayers = (eLayer != -1 ? (1 << eLayer) : 0) | (1 << 0);
                 }
+                // City NPCs live on the Default layer; the player must always be able to strike them.
+                enemyLayers |= (1 << 0);
             }
             else
             {

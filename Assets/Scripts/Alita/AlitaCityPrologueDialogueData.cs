@@ -14,6 +14,8 @@ namespace Alita
         public Sprite customPortrait;
         public AudioClip voiceClip;
         public string animTrigger = "";
+        [Tooltip("When this line finishes, the city's NPCs may start attacking Alita (Ido's warning).")]
+        public bool givesCityWarning = false;
 
         public DialogueLine() { }
 

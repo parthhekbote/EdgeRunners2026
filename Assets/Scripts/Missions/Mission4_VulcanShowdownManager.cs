@@ -378,6 +378,28 @@ namespace Cyberpunk.Missions
             _hijackTimelineRoutine = StartCoroutine(VulcanHijackTimelineRoutine());
         }
 
+        private static Alita.UI.CyberpunkDialogueHUD.DialogueLineData CutsceneLine(string speaker, string title, string text)
+        {
+            float auto = Mathf.Clamp(text.Length * 0.055f + 1.6f, 3.0f, 9.0f);
+            return new Alita.UI.CyberpunkDialogueHUD.DialogueLineData(speaker, text, null, title, auto);
+        }
+
+        /// <summary>Runs a dialogue conversation and waits for it to finish (with a safety timeout).</summary>
+        private IEnumerator PlayCutsceneConversation(List<Alita.UI.CyberpunkDialogueHUD.DialogueLineData> lines)
+        {
+            bool done = false;
+            float budget = 4f;
+            foreach (var l in lines) budget += l.autoAdvanceTime + 2f;
+            Alita.UI.CyberpunkDialogueHUD.GetOrCreate().StartConversation(lines, () => done = true);
+            float t = 0f;
+            while (!done && t < budget)
+            {
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            yield return new WaitForSeconds(0.3f);
+        }
+
         private IEnumerator VulcanHijackTimelineRoutine()
         {
             currentPhase = ShowdownPhase.CinematicHijack;
@@ -539,15 +561,21 @@ namespace Cyberpunk.Missions
             Quaternion shot5EndRot = Quaternion.LookRotation((ringCenterPos + Vector3.up * 1.30f) - shot5EndPos);
             StartCameraTransition(shot5EndPos, shot5EndRot, 46f, 8.2f);
 
-            // Play Vulcan's neural dialogue with crystal clarity while ominous music plays amplified throughout his dialogue!
-            PlayVulcanVoiceLine(
-                voiceIntro,
-                "You broke my toys on the bridge. Stole my pass. Shamed my Pit before five hundred witnesses. I sent troops. You sent back scrap. So now... the Forge comes himself. Alita... I will unmake you.",
-                8.0f,
-                duckBgm: false // User requested: "use the omnious music throughout his dialog amplify it louder a bit"
-            );
-
-            yield return new WaitForSeconds(8.2f);
+            // Vulcan's full monologue plays as a line-by-line conversation (voice audio runs underneath).
+            Cyberpunk.Audio.PitCrowdAudioManager.Instance?.CutDrumsAndAmbience();
+            if (voiceIntro != null && voiceSource != null)
+            {
+                voiceSource.clip = voiceIntro;
+                voiceSource.priority = 0;
+                voiceSource.volume = 1.0f;
+                voiceSource.Play();
+            }
+            yield return PlayCutsceneConversation(new List<Alita.UI.CyberpunkDialogueHUD.DialogueLineData>
+            {
+                CutsceneLine("FORGE-LORD VULCAN", "ARENA MASTER", "You broke my toys on the bridge. Stole my pass. Shamed my Pit before five hundred witnesses."),
+                CutsceneLine("FORGE-LORD VULCAN", "ARENA MASTER", "I sent troops. You sent back scrap. So now... the Forge comes himself."),
+                CutsceneLine("FORGE-LORD VULCAN", "ARENA MASTER", "Alita... I will unmake you."),
+            });
 
             // [Shot 5B: 23.5s - 27.2s] Alita's Low-Angle Defiance Profile Shot (3.7s)
             Vector3 shot5bPos = alitaStandoffPos + new Vector3(-0.95f, 0.85f, 1.45f);
@@ -630,7 +658,13 @@ namespace Cyberpunk.Missions
             Quaternion shot6Rot = Quaternion.LookRotation((ringCenterPos + Vector3.up * 1.30f) - shot6Pos);
             StartCameraTransition(shot6Pos, shot6Rot, 44f, 2.2f);
 
-            yield return new WaitForSeconds(3.5f);
+            // Alita answers Vulcan; the duel begins only after her last line.
+            yield return PlayCutsceneConversation(new List<Alita.UI.CyberpunkDialogueHUD.DialogueLineData>
+            {
+                CutsceneLine("ALITA", "MARTIAN CYBORG", "Your toys came for me first. I only fought back. The pass was my way to you, nothing more."),
+                CutsceneLine("ALITA", "MARTIAN CYBORG", "I don't remember who I was before, Vulcan. But I know I won't be anyone's trophy."),
+                CutsceneLine("ALITA", "MARTIAN CYBORG", "No more speeches. Let's finish this."),
+            });
 
             // [Shot 7: 38.7s] Fight Start & Seamless Camera Handoff
             currentPhase = ShowdownPhase.Phase1_TheDuelist;
@@ -1505,6 +1539,8 @@ namespace Cyberpunk.Missions
             }
             Alita.UI.CyberpunkDialogueHUD.Instance?.CloseDialogue();
 
+            StartCoroutine(IdoReputationAnnouncementRoutine());
+
             Debug.Log("<color=#00FFAA><b>[Mission 4]</b></color> Vulcan defeated! Press [E] to execute finisher.");
         }
 
@@ -1514,7 +1550,10 @@ namespace Cyberpunk.Missions
 
             float dist = Vector3.Distance(player != null ? player.transform.position : Vector3.zero, vulcanBoss.transform.position);
 
-            if (dist <= 3.8f && Input.GetKeyDown(KeyCode.E))
+            // E also advances dialogue; don't let it fire the finisher while Ido is talking.
+            bool dialogueOpen = Alita.UI.CyberpunkDialogueHUD.Instance != null &&
+                                Alita.UI.CyberpunkDialogueHUD.Instance.isDialogueActive;
+            if (!dialogueOpen && dist <= 3.8f && Input.GetKeyDown(KeyCode.E))
             {
                 ExecuteFinisher();
             }
@@ -1584,6 +1623,17 @@ namespace Cyberpunk.Missions
             // Re-arm Pit Arena so it seamlessly transitions back into normal championship mode
             currentPhase = ShowdownPhase.Inactive;
             Mission3_PitFightManager.Instance?.OnVulcanShowdownCompleted();
+        }
+
+        private IEnumerator IdoReputationAnnouncementRoutine()
+        {
+            yield return new WaitForSeconds(2.5f);
+            yield return PlayCutsceneConversation(new List<Alita.UI.CyberpunkDialogueHUD.DialogueLineData>
+            {
+                CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "Alita... you did it. The whole district just watched you take down Vulcan."),
+                CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "You've earned a reputation in this city now. People respect you for what you did in the Pit, so no one will attack you anymore, even if you attack them."),
+                CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "They'll only run from you now. Use that respect wisely."),
+            });
         }
 
         private IEnumerator FadeOutMusic(AudioSource src, float duration)

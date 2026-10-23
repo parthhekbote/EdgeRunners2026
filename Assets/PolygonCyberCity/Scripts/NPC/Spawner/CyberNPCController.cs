@@ -28,6 +28,10 @@ namespace PolygonCyberCity.NPC.Spawner
         public NPCFaction faction = NPCFaction.Civilians;
         public ThreatRating threatRating = ThreatRating.Low;
         public float maxHealth = 100f;
+        [Tooltip("Damage dealt to Alita by a civilian-class NPC punch (kept low on purpose).")]
+        public float civilianAttackDamage = 6f;
+        [Tooltip("Distance at which a hostile NPC notices Alita and starts the fight.")]
+        public float hostileAggroRange = 14f;
         public float walkSpeed = 1.35f;
         public float runSpeed = 4.5f;
 
@@ -306,6 +310,13 @@ namespace PolygonCyberCity.NPC.Spawner
             _currentHealth = maxHealth;
             _lifeState = NPCState.Alive;
 
+            if (animator != null)
+            {
+                // Layer weights default to 0 in the controller; the hit-reaction layer must be live.
+                int reactionLayer = animator.GetLayerIndex("Reaction");
+                if (reactionLayer >= 0) animator.SetLayerWeight(reactionLayer, 1f);
+            }
+
             if (animator != null && animationProfile != null)
             {
                 animator.speed = Random.Range(animationProfile.animSpeedVariationMin, animationProfile.animSpeedVariationMax);
@@ -341,7 +352,82 @@ namespace PolygonCyberCity.NPC.Spawner
                 hitCollider.enabled = true;
             }
 
+            RollReputationBehaviour();
             BuildBehaviorTree();
+        }
+
+        private bool _hostileToAlita;
+        private bool _provoked;
+
+        private bool CanFightAlita =>
+            npcType == NPCType.Civilian || npcType == NPCType.RichCitizen ||
+            npcType == NPCType.Cyborg || npcType == NPCType.StreetThug;
+
+        /// <summary>Decides, once per spawn, whether this NPC distrusts Alita (see AlitaReputation).</summary>
+        private void RollReputationBehaviour()
+        {
+            _hostileToAlita = CanFightAlita && AlitaReputation.RollHostile();
+            _provoked = false;
+            _blackboard.Set("FightPlayer", false);
+        }
+
+        /// <summary>Makes this NPC attack Alita right now (used for the post-warning street scuffle).</summary>
+        public void ForceAttackAlita()
+        {
+            if (_lifeState != NPCState.Alive || _blackboard == null || !CanFightAlita) return;
+            _hostileToAlita = true;
+            _blackboard.Set("FightPlayer", true);
+            _blackboard.WasAttacked = false;
+            _blackboard.CurrentState = NPCMacroState.Aggressive;
+            PlayRandomAudio(warningSounds, 0.9f);
+            if (btRunner != null)
+            {
+                btRunner.ResetTree();
+                btRunner.ForceTick();
+            }
+        }
+
+        private void UpdateReputationBehaviour()
+        {
+            if (!CanFightAlita) return;
+
+            if (AlitaReputation.IsKnownHero)
+            {
+                // Vulcan is down: the city respects Alita. Nobody attacks her, even when hit;
+                // anyone still fighting backs off and runs.
+                _hostileToAlita = false;
+                _provoked = false;
+                if (_blackboard.Get<bool>("FightPlayer"))
+                {
+                    _blackboard.Set("FightPlayer", false);
+                    _blackboard.WasAttacked = true;
+                    _blackboard.CurrentState = NPCMacroState.Fleeing;
+                    if (btRunner != null) btRunner.ResetTree();
+                }
+                return;
+            }
+
+            if (!_hostileToAlita) return;
+
+            if (!AlitaReputation.CityWarningGiven)
+            {
+                // Ido hasn't warned Alita yet: hostile locals stay calm until he does.
+                return;
+            }
+
+            bool fighting = _blackboard.Get<bool>("FightPlayer");
+            if (!fighting && _blackboard.CurrentState == NPCMacroState.Normal && _blackboard.DistanceToPlayer < hostileAggroRange)
+            {
+                // Unprovoked: this one jumps the newcomer before she touches anyone.
+                _blackboard.Set("FightPlayer", true);
+                _blackboard.CurrentState = NPCMacroState.Aggressive;
+                PlayRandomAudio(warningSounds, 0.9f);
+            }
+            else if (fighting && _blackboard.DistanceToPlayer > 35f)
+            {
+                _blackboard.Set("FightPlayer", false);
+                _blackboard.CurrentState = NPCMacroState.Normal;
+            }
         }
 
         private void BuildBehaviorTree()
@@ -481,6 +567,8 @@ namespace PolygonCyberCity.NPC.Spawner
                     }
                 }
             }
+
+            UpdateReputationBehaviour();
 
             // Smooth Locomotion Animation Synchronization
             UpdateSmoothLocomotion();
@@ -698,16 +786,41 @@ namespace PolygonCyberCity.NPC.Spawner
             }
             else
             {
-                if (npcType == NPCType.Civilian || npcType == NPCType.RichCitizen || npcType == NPCType.Cyborg || npcType == NPCType.HelperBot)
+                // Once hit, each civilian-class NPC either fights back or runs (about half and half).
+                // Before Ido's warning, and after Vulcan's defeat, nobody fights back.
+                bool alreadyFighting = _blackboard != null && _blackboard.Get<bool>("FightPlayer");
+                bool fightBack = CanFightAlita && AlitaReputation.CityWarningGiven && !AlitaReputation.IsKnownHero &&
+                                 (alreadyFighting || Random.value < AlitaReputation.FightBackFraction);
+                if (fightBack)
                 {
-                    if (_blackboard != null) _blackboard.CurrentState = NPCMacroState.Fleeing;
+                    // Fights back instead of running.
+                    _provoked = true;
+                    if (_blackboard != null)
+                    {
+                        _blackboard.Set("FightPlayer", true);
+                        _blackboard.CurrentState = NPCMacroState.Aggressive;
+                    }
+                }
+                else if (npcType == NPCType.Civilian || npcType == NPCType.RichCitizen || npcType == NPCType.Cyborg || npcType == NPCType.HelperBot)
+                {
+                    if (_blackboard != null)
+                    {
+                        _blackboard.Set("FightPlayer", false);
+                        _blackboard.CurrentState = NPCMacroState.Fleeing;
+                        _blackboard.WasAttacked = true;
+                    }
+                    if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = false;
                 }
                 else
                 {
                     if (_blackboard != null) _blackboard.CurrentState = NPCMacroState.Aggressive;
                 }
 
-                if (btRunner != null) btRunner.ForceTick();
+                if (btRunner != null)
+                {
+                    btRunner.ResetTree();
+                    btRunner.ForceTick();
+                }
             }
         }
 

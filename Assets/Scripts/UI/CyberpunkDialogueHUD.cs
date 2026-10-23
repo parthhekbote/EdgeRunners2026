@@ -210,6 +210,13 @@ namespace Alita.UI
                 headerFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/UI/Shared/Fonts/Orbitron/Orbitron-ExtraBold SDF.asset");
             if (bodyFont == null)
                 bodyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/UI/Shared/Fonts/Orbitron/Orbitron-ExtraBold SDF.asset");
+
+            var fallbackFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Examples & Extras/Resources/Fonts & Materials/Roboto-Bold SDF.asset");
+            if (bodyFont != null && fallbackFont != null)
+            {
+                if (bodyFont.fallbackFontAssetTable == null) bodyFont.fallbackFontAssetTable = new List<TMP_FontAsset>();
+                if (!bodyFont.fallbackFontAssetTable.Contains(fallbackFont)) bodyFont.fallbackFontAssetTable.Add(fallbackFont);
+            }
 #endif
         }
 
@@ -474,7 +481,7 @@ namespace Alita.UI
             }
 
             _conversationQueue.Clear();
-            _conversationQueue.Add(new DialogueLineData(speaker, text, customPortrait, speakerTitle, autoAdvanceDuration, null));
+            _conversationQueue.Add(new DialogueLineData(speaker, text, customPortrait, speakerTitle, autoAdvanceDuration, onComplete));
             _currentQueueIndex = 0;
             _onLineCompleteCallback = onComplete;
             _onConversationCompleteCallback = null;
@@ -540,7 +547,10 @@ namespace Alita.UI
             }
 
             var line = _conversationQueue[index];
-            _onLineCompleteCallback = line.onFinished;
+            if (line.onFinished != null)
+            {
+                _onLineCompleteCallback = line.onFinished;
+            }
             _targetFullText = line.dialogueText;
 
             // Apply Theme
@@ -799,24 +809,25 @@ namespace Alita.UI
                 return;
             }
 
-            // Case 2: End of queue (single-line ShowDialogue or final line of StartConversation)
-            var currentCb = _onLineCompleteCallback ?? _onConversationCompleteCallback;
+            // Case 2: End of queue (single-line ShowDialogue or final line of StartConversation).
+            // Fire BOTH the last line's callback and the conversation-complete callback;
+            // a per-line callback must never swallow the conversation-complete one.
+            var lineDoneCb = _onLineCompleteCallback;
+            var convDoneCb = _onConversationCompleteCallback;
             _onLineCompleteCallback = null;
             _onConversationCompleteCallback = null;
 
-            if (currentCb != null)
+            var queueBefore = _conversationQueue;
+            int queueIndexBefore = _currentQueueIndex;
+
+            lineDoneCb?.Invoke();
+            convDoneCb?.Invoke();
+
+            // If a callback loaded a new dialogue line (e.g. ShowDialogue) or started another
+            // conversation, keep the dialogue HUD active and do not close it!
+            if (isDialogueActive && (!ReferenceEquals(_conversationQueue, queueBefore) || _currentQueueIndex != queueIndexBefore))
             {
-                int queueCountBefore = _conversationQueue.Count;
-                int queueIndexBefore = _currentQueueIndex;
-
-                currentCb.Invoke();
-
-                // If the callback loaded a new dialogue line (e.g. ShowDialogue called in callback),
-                // keep the dialogue HUD active and do not close it!
-                if (isDialogueActive && (_conversationQueue.Count != queueCountBefore || _currentQueueIndex != queueIndexBefore))
-                {
-                    return;
-                }
+                return;
             }
 
             // No further lines were queued by the callback: close cleanly

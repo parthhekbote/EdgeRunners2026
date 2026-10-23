@@ -23,17 +23,6 @@ namespace Cyberpunk.Missions.Editor
             window.Show();
         }
 
-        [MenuItem("Tools/Missions/🎬 Play Ido Murder Cutscene (Bridge)", priority = 20)]
-        public static void PlayIdoMurderCutsceneMenu()
-        {
-            if (!Application.isPlaying)
-            {
-                EditorUtility.DisplayDialog("Play Mode Required", "Please enter Play Mode in Demo_City to play the Ido Murder Cutscene.", "OK");
-                return;
-            }
-            IdoBridgeExecutionDirector.EnsureInCity().TriggerExecutionCutscene(null, force: true);
-        }
-
         private void OnGUI()
         {
             _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
@@ -282,12 +271,6 @@ namespace Cyberpunk.Missions.Editor
                 }
                 EditorGUILayout.EndHorizontal();
 
-                EditorGUILayout.Space(4);
-                GUI.backgroundColor = new Color(1f, 0.35f, 0.2f);
-                if (GUILayout.Button("🎬 Play Ido Murder Cutscene (Robot Boss Stabbing)", GUILayout.Height(30)))
-                {
-                    IdoBridgeExecutionDirector.EnsureInCity().TriggerExecutionCutscene(null, force: true);
-                }
                 GUI.backgroundColor = Color.white;
             }
             else

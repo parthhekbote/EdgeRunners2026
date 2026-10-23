@@ -92,6 +92,7 @@ namespace Cyberpunk.World
                 {
                     Debug.Log("[ClinicDoorTrigger] Fresh boot in Demo_City -> Booting into Dr. Ido's Clinic Lab (Demo_Interior) for awakening sequence.");
                     PlayerPrefs.DeleteKey("Prologue_Beat0_Completed");
+                    PlayerPrefs.DeleteKey("Prologue_CityIntro_Completed");
                     PlayerPrefs.Save();
                     SceneManager.LoadScene(InteriorSceneName);
                     return;
@@ -141,6 +142,7 @@ namespace Cyberpunk.World
                 {
                     Debug.Log("[ClinicDoorTrigger] Fresh boot in Demo_City (AfterSceneLoad) -> Booting into Dr. Ido's Clinic Lab (Demo_Interior).");
                     PlayerPrefs.DeleteKey("Prologue_Beat0_Completed");
+                    PlayerPrefs.DeleteKey("Prologue_CityIntro_Completed");
                     PlayerPrefs.Save();
                     SceneManager.LoadScene(InteriorSceneName);
                     return;
@@ -442,6 +444,12 @@ namespace Cyberpunk.World
 
             if (_isPlayerInRange && !IsInTransit && keyTriggered)
             {
+                // Guard: Do NOT open clinic door if dialogue is currently being read / advanced!
+                if (Alita.UI.CyberpunkDialogueHUD.Instance != null && Alita.UI.CyberpunkDialogueHUD.Instance.isDialogueActive)
+                {
+                    return;
+                }
+
                 StartClinicTransit();
             }
         }

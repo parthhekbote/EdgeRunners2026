@@ -213,58 +213,71 @@ namespace Alita
 
             // 4. Start Beat (Dialogue in Lab or Plaza)
             bool isInterior = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name.IndexOf("Interior", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            bool enteredFromCityDoor = Cyberpunk.World.ClinicDoorTrigger.PendingSpawnPos.HasValue;
             bool beat0Done = PlayerPrefs.GetInt("Prologue_Beat0_Completed", 0) == 1;
 
-            if (isInterior && beat0Done)
+            if (isInterior)
             {
-                // Awakening sequence already completed! Do not restart prologue dialogue when re-entering lab.
-                currentPhase = ProloguePhase.Completed;
-                _activeDialogueLine = null;
-                _activeBeat = null;
-                HideFollowPill();
-
-                if (doctorTransform != null)
+                if (enteredFromCityDoor && beat0Done)
                 {
-                    doctorTransform.position = new Vector3(-24.50f, 0.08f, 2.30f);
-                    doctorTransform.rotation = Quaternion.Euler(0f, 315f, 0f);
-                    SetDoctorAnimatorState(false, 0f);
+                    // Re-entering lab after awakening sequence: free exploration mode
+                    currentPhase = ProloguePhase.Completed;
+                    _activeDialogueLine = null;
+                    _activeBeat = null;
+                    HideFollowPill();
+
+                    if (doctorTransform != null)
+                    {
+                        doctorTransform.position = new Vector3(-24.50f, 0.08f, 2.30f);
+                        doctorTransform.rotation = Quaternion.Euler(0f, 315f, 0f);
+                        SetDoctorAnimatorState(false, 0f);
+                    }
+
+                    Debug.Log("[Prologue] Awakening sequence already completed. Re-entered Dr. Ido's lab in free exploration mode.");
+                    yield break;
                 }
 
-                Debug.Log("[Prologue] Awakening sequence already completed. Re-entered Dr. Ido's lab in free exploration mode.");
-                yield break;
-            }
-
-            int startBeat = 0;
-            if (!isInterior && beat0Done)
-            {
-                startBeat = 1; // Already completed clinic lab awakening; proceed straight to Sector 4 Plaza!
-                currentWaypointIndex = 1;
-            }
-
-            Debug.Log($"[Prologue] isInterior={isInterior}, startBeat={startBeat}, starting prologue.");
-            if (isInterior || startBeat == 0)
-            {
-                currentPhase = isInterior ? ProloguePhase.InsideClinicLab : ProloguePhase.DialogueAtWaypoint;
+                // Fresh awakening inside Dr. Ido's cyber clinic lab
+                currentPhase = ProloguePhase.InsideClinicLab;
+                currentWaypointIndex = 0;
+                Debug.Log("[Prologue] Starting Dr. Ido's Clinic Lab Awakening Dialogue (Beat 0).");
                 if (narrativeBeats.Count > 0)
                 {
                     TriggerDialogueBeat(narrativeBeats[0], () =>
                     {
-                        if (isInterior)
-                        {
-                            PlayerPrefs.SetInt("Prologue_Beat0_Completed", 1);
-                            PlayerPrefs.Save();
-                            StartCoroutine(LeadAlitaToClinicExitRoutine());
-                        }
-                        else
-                        {
-                            StartCoroutine(TransitionToCityWalkRoutine());
-                        }
+                        PlayerPrefs.SetInt("Prologue_Beat0_Completed", 1);
+                        // Lab dialogue already covered the intro; don't replay it on the plaza after exiting
+                        PlayerPrefs.SetInt("Prologue_CityIntro_Completed", 1);
+                        PlayerPrefs.Save();
+                        StartCoroutine(LeadAlitaToClinicExitRoutine());
+                    });
+                }
+                yield break;
+            }
+
+            // Outside in Demo_City
+            bool cityIntroDone = PlayerPrefs.GetInt("Prologue_CityIntro_Completed", 0) == 1;
+            Debug.Log($"[Prologue] Demo_City active. cityIntroDone={cityIntroDone}");
+
+            if (!cityIntroDone)
+            {
+                currentPhase = ProloguePhase.DialogueAtWaypoint;
+                currentWaypointIndex = 0;
+                Debug.Log("[Prologue] Starting Sector 4 Plaza Storefront Dialogue outside clinic (Beat 0).");
+                if (narrativeBeats.Count > 0)
+                {
+                    TriggerDialogueBeat(narrativeBeats[0], () =>
+                    {
+                        PlayerPrefs.SetInt("Prologue_CityIntro_Completed", 1);
+                        PlayerPrefs.Save();
+                        StartCoroutine(TransitionToCityWalkRoutine());
                     });
                 }
             }
             else
             {
                 currentPhase = ProloguePhase.WalkingToWaypoint;
+                currentWaypointIndex = 1;
                 StartCoroutine(TransitionToCityWalkRoutine());
             }
         }
@@ -972,65 +985,57 @@ namespace Alita
 
         // ─────────────────────────────────────────────────────────────────────
         // 3. DIALOGUE SYSTEM & CUTSCENE-STYLE OnGUI SUBTITLES
-        // ─────────────────────────────────────────────────────────────────────
         private void TriggerDialogueBeat(PrologueDialogueBeat beat, Action onComplete)
         {
-            if (beat == null || beat.dialogueLines.Count == 0)
+            if (beat == null || beat.dialogueLines == null || beat.dialogueLines.Count == 0)
             {
                 onComplete?.Invoke();
                 return;
             }
 
             _activeBeat = beat;
-            _currentBeatLineIndex = 0;
             _onBeatCompletedCallback = onComplete;
-            ShowDialogueLine(_activeBeat.dialogueLines[0]);
-        }
 
-        private void ShowDialogueLine(DialogueLine line)
-        {
-            _activeDialogueLine = line;
-            _lineTimer = 0f;
-            _lineDuration = Mathf.Max(5.0f, line.text.Length * 0.055f);
-
-            if (!string.IsNullOrEmpty(line.animTrigger))
+            if (!string.IsNullOrEmpty(beat.idoAnimTrigger))
             {
-                TriggerDoctorGesture(line.animTrigger);
+                TriggerDoctorGesture(beat.idoAnimTrigger);
             }
 
-            // Route to AAA CyberpunkDialogueHUD
-            Alita.UI.CyberpunkDialogueHUD.GetOrCreate().ShowDialogue(
-                line.speakerName,
-                line.text,
-                line.customPortrait,
-                line.speakerTitle,
-                () => AdvanceToNextDialogueLine()
-            );
-        }
-
-        private void AdvanceToNextDialogueLine()
-        {
-            if (_activeBeat == null)
+            var hudLines = new List<Alita.UI.CyberpunkDialogueHUD.DialogueLineData>();
+            foreach (var l in beat.dialogueLines)
             {
+                var lineData = new Alita.UI.CyberpunkDialogueHUD.DialogueLineData(
+                    l.speakerName,
+                    l.text,
+                    l.customPortrait,
+                    l.speakerTitle,
+                    autoAdvance: 0f,
+                    onFinish: () =>
+                    {
+                        if (l.givesCityWarning)
+                        {
+                            PolygonCyberCity.NPC.Spawner.AlitaReputation.CityWarningGiven = true;
+                            StartCoroutine(StreetScuffleRoutine());
+                        }
+                        if (!string.IsNullOrEmpty(l.animTrigger))
+                        {
+                            TriggerDoctorGesture(l.animTrigger);
+                        }
+                    }
+                );
+                hudLines.Add(lineData);
+            }
+
+            Debug.Log($"[Prologue] TriggerDialogueBeat: starting '{beat.beatTitle}' with {hudLines.Count} dialogue lines via CyberpunkDialogueHUD.");
+            Alita.UI.CyberpunkDialogueHUD.GetOrCreate().StartConversation(hudLines, () =>
+            {
+                Debug.Log($"[Prologue] Completed dialogue beat '{beat.beatTitle}'.");
                 _activeDialogueLine = null;
-                Alita.UI.CyberpunkDialogueHUD.Instance?.CloseDialogue();
-                return;
-            }
-
-            _currentBeatLineIndex++;
-            if (_currentBeatLineIndex < _activeBeat.dialogueLines.Count)
-            {
-                ShowDialogueLine(_activeBeat.dialogueLines[_currentBeatLineIndex]);
-            }
-            else
-            {
-                _activeDialogueLine = null;
-                Alita.UI.CyberpunkDialogueHUD.Instance?.CloseDialogue();
-                var callback = _onBeatCompletedCallback;
-                _onBeatCompletedCallback = null;
                 _activeBeat = null;
-                callback?.Invoke();
-            }
+                var cb = _onBeatCompletedCallback;
+                _onBeatCompletedCallback = null;
+                cb?.Invoke();
+            });
         }
 
         private void OnGUI()
@@ -1127,6 +1132,45 @@ namespace Alita
             StartCoroutine(HandoffMessageRoutine());
         }
 
+        /// <summary>
+        /// A few seconds after Ido's warning, two locals jump Alita so the warning
+        /// is felt immediately. Far-away NPCs are brought in near the player.
+        /// </summary>
+        private IEnumerator StreetScuffleRoutine()
+        {
+            yield return new WaitForSeconds(5.0f);
+
+            if (playerObject == null) yield break;
+            Vector3 center = playerObject.transform.position;
+
+            var candidates = new List<PolygonCyberCity.NPC.Spawner.CyberNPCController>();
+            foreach (var n in FindObjectsByType<PolygonCyberCity.NPC.Spawner.CyberNPCController>(FindObjectsSortMode.None))
+            {
+                if (n == null || !n.IsAlive || !n.gameObject.activeInHierarchy) continue;
+                if (n.npcType == PolygonCyberCity.NPC.Spawner.NPCType.HelperBot ||
+                    n.npcType == PolygonCyberCity.NPC.Spawner.NPCType.Mercenary) continue;
+                candidates.Add(n);
+            }
+            candidates.Sort((a, b) =>
+                (a.transform.position - center).sqrMagnitude.CompareTo((b.transform.position - center).sqrMagnitude));
+
+            int sent = 0;
+            for (int i = 0; i < candidates.Count && sent < 2; i++)
+            {
+                var npc = candidates[i];
+                if ((npc.transform.position - center).magnitude > 25f && npc.agent != null)
+                {
+                    float ang = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+                    Vector3 spot = center + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * 14f;
+                    if (NavMesh.SamplePosition(spot, out NavMeshHit hit, 8f, NavMesh.AllAreas))
+                        npc.agent.Warp(hit.position);
+                }
+                npc.ForceAttackAlita();
+                sent++;
+            }
+            Debug.Log($"[Prologue] Street scuffle: {sent} locals attack Alita after Ido's warning.");
+        }
+
         private IEnumerator HandoffMessageRoutine()
         {
             // Stage ambush bots on the bridge
@@ -1140,24 +1184,49 @@ namespace Alita
                 Debug.LogError($"[Prologue] Ambush staging exception: {ex}");
             }
 
-            // Trigger the cinematic murder of Dr. Ido by the Mission 4 Robot Boss on the bridge!
-            var executionDir = IdoBridgeExecutionDirector.EnsureInCity();
-            bool cutsceneFinished = false;
-
-            executionDir.TriggerExecutionCutscene(() =>
+            // Standoff: the rogue bots demand Alita's surrender and Ido pleads,
+            // then the ambush springs and Alita takes over mid-fight.
+            var hud = Alita.UI.CyberpunkDialogueHUD.GetOrCreate();
+            LockPlayerMovement(true);
+            bool standoffDone = false;
+            var standoff = new List<Alita.UI.CyberpunkDialogueHUD.DialogueLineData>
             {
-                cutsceneFinished = true;
-            });
+                new Alita.UI.CyberpunkDialogueHUD.DialogueLineData(
+                    "ROGUE ENFORCER",
+                    "Halt! Target locked: unregistered chassis, no serial, no owner. Surrender the unknown cyborg, Doctor, or you will face the consequences.",
+                    title: "Corporate Bounty Unit"),
+                new Alita.UI.CyberpunkDialogueHUD.DialogueLineData(
+                    "DR. DYSON IDO",
+                    "Please... don't. She's just a girl, she's done nothing to you. Take what you want from my clinic, but leave us alone!",
+                    title: "Cyber-Surgeon & Hunter-Warrior"),
+                new Alita.UI.CyberpunkDialogueHUD.DialogueLineData(
+                    "ROGUE ENFORCER",
+                    "The core is worth more than your whole district. Seal the bridge. Take the chassis. Terminate anything that interferes.",
+                    title: "Corporate Bounty Unit"),
+            };
+            hud.StartConversation(standoff, () => standoffDone = true);
+            while (!standoffDone) yield return null;
 
-            while (!cutsceneFinished)
+            LockPlayerMovement(false);
+
+            // Ambush springs: bots go hostile on Alita.
+            try
             {
-                yield return null;
+                var mission1 = FindAnyObjectByType<Mission1_StreetTrialManager>();
+                if (mission1 != null) mission1.BeginBridgeFight(fromPrologueEscort: true);
             }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[Prologue] BeginBridgeFight exception: {ex}");
+            }
+
+            yield return new WaitForSecondsRealtime(0.8f);
+            hud.ShowSubtitle("ALITA", "Stay behind me, Ido. I've got this handled.", 4.0f);
 
             try
             {
                 PrologueHandoffEvent?.Invoke();
-                Debug.Log("[Prologue] HandoffToCombat: static event fired after Ido execution.");
+                Debug.Log("[Prologue] HandoffToCombat: static event fired.");
             }
             catch (System.Exception ex)
             {
@@ -1166,6 +1235,7 @@ namespace Alita
 
             currentPhase = ProloguePhase.Completed;
             Debug.Log("[Prologue] Phase=Completed.");
+            yield break;
         }
 
         private void SetDoctorAnimatorState(bool isWalking, float speed)
@@ -1243,6 +1313,12 @@ namespace Alita
             beat1.dialogueLines.Add(new DialogueLine("DR. DYSON IDO", "CYBER-SURGEON & HUNTER-WARRIOR", "Take a look up. That shadow hanging over us is Zalem—the floating city. Everything down here is what they discard and cast into the dirt."));
             beat1.dialogueLines.Add(new DialogueLine("ALITA", "MARTIAN CYBORG", "The air smells like burned copper and ozone. It feels... strangely familiar."));
             beat1.dialogueLines.Add(new DialogueLine("DR. DYSON IDO", "CYBER-SURGEON & HUNTER-WARRIOR", "Keep your guard up. The Factory controls the district through bounty hunter Hunter-Warriors. Out here, unregistered tech like yours is a target."));
+            beat1.dialogueLines.Add(new DialogueLine("DR. DYSON IDO", "CYBER-SURGEON & HUNTER-WARRIOR", "Before we go further, take a moment to explore the city. Walk the plaza, get a feel for the streets, and talk to the locals. Learn how people live down here."));
+            beat1.dialogueLines.Add(new DialogueLine("ALITA", "MARTIAN CYBORG", "Is there something I should be careful about?"));
+            beat1.dialogueLines.Add(new DialogueLine("DR. DYSON IDO", "CYBER-SURGEON & HUNTER-WARRIOR", "Be warned: this city is messed up. You're a stranger with no registry tag, and people here are paranoid. Some of them will take a swing at you just for being new. Not everyone will be hostile, but don't be surprised if you get hit."));
+            beat1.dialogueLines[beat1.dialogueLines.Count - 1].givesCityWarning = true;
+            beat1.dialogueLines.Add(new DialogueLine("ALITA", "MARTIAN CYBORG", "I'll keep my guard up. And if they come at me?"));
+            beat1.dialogueLines.Add(new DialogueLine("DR. DYSON IDO", "CYBER-SURGEON & HUNTER-WARRIOR", "Handle it, but remember they're mostly scared people, not soldiers. Once the city learns what you are, and what you can do, that will change."));
             narrativeBeats.Add(beat1);
 
             // Beat 2: Lower Bazaar & Industrial Strip (The Scrapyard Economy)

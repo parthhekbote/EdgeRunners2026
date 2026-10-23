@@ -60,6 +60,8 @@ namespace PolygonCyberCity.NPC.BT.Tasks
                 if (_animator != null)
                 {
                     int attackId = Random.Range(1, 8); // 1-7 (Light Combos, Heavy Cleaves, Stabs, Leaping, Flourish)
+                    int combatLayer = _animator.GetLayerIndex("Combat");
+                    if (combatLayer >= 0) _animator.SetLayerWeight(combatLayer, 1f);
                     _animator.SetInteger("AttackID", attackId);
                     _animator.SetTrigger("Attack");
                 }
@@ -104,6 +106,7 @@ namespace PolygonCyberCity.NPC.BT.Tasks
             {
                 _attackTimer = 0f;
                 _damageApplied = false;
+                ReleaseCombatLayer();
                 if (_agent != null && _agent.isOnNavMesh)
                 {
                     _agent.isStopped = false;
@@ -116,9 +119,17 @@ namespace PolygonCyberCity.NPC.BT.Tasks
             return NodeState.Running;
         }
 
+        private void ReleaseCombatLayer()
+        {
+            if (_animator == null) return;
+            int combatLayer = _animator.GetLayerIndex("Combat");
+            if (combatLayer >= 0) _animator.SetLayerWeight(combatLayer, 0f);
+        }
+
         public override void ResetNode()
         {
             base.ResetNode();
+            ReleaseCombatLayer();
             _attackTimer = 0f;
             _damageApplied = false;
             if (_agent != null && _agent.isOnNavMesh)

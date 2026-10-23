@@ -1218,6 +1218,8 @@ namespace Cyberpunk.World
             _holoTextMesh = tm;
         }
 
+        private float _lastDialogueSeenTime = -10f;
+
         private void Update()
         {
             if (PitArenaDoorTrigger.IsInTransit) return;
@@ -1267,6 +1269,15 @@ namespace Cyberpunk.World
 
             // Auto-trigger if player walks all the way through the exit doorway (z <= -11.0f)
             bool walkThroughExit = (_playerTransform.position.z <= -10.8f && Mathf.Abs(_playerTransform.position.x) <= 3.5f);
+
+            // No leaving mid-cutscene or while any dialogue box is open (E also advances dialogue).
+            var showdown = Cyberpunk.Missions.Mission4_VulcanShowdownManager.Instance;
+            bool cutsceneActive = showdown != null &&
+                showdown.currentPhase == Cyberpunk.Missions.Mission4_VulcanShowdownManager.ShowdownPhase.CinematicHijack;
+            bool dialogueOpen = Alita.UI.CyberpunkDialogueHUD.Instance != null &&
+                Alita.UI.CyberpunkDialogueHUD.Instance.isDialogueActive;
+            if (dialogueOpen) _lastDialogueSeenTime = Time.unscaledTime;
+            if (cutsceneActive || dialogueOpen || Time.unscaledTime - _lastDialogueSeenTime < 0.5f) return;
 
             if (_isPlayerInRange && (ePressed || walkThroughExit))
             {
