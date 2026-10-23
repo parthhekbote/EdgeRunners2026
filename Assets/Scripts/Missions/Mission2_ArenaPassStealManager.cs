@@ -177,6 +177,8 @@ namespace Cyberpunk.Missions
         {
             if (Instance == this) Instance = null;
             UnbindFighterEvents();
+            // Never leave the city silent if the manager goes away mid-mission.
+            Cyberpunk.Audio.CyberBackgroundMusic.Instance?.ResumeAfterMission();
         }
 
         private void Start()
@@ -246,6 +248,8 @@ namespace Cyberpunk.Missions
         private IEnumerator BriefingRoutine()
         {
             state = M2State.Briefing;
+            // Mission 2 has its own soundtrack: silence the city BGM until the mission ends.
+            Cyberpunk.Audio.CyberBackgroundMusic.Instance?.SuspendForMission(1.5f);
             yield return new WaitForSecondsRealtime(3.0f);
             if (state != M2State.Briefing) yield break;
 
@@ -906,6 +910,7 @@ namespace Cyberpunk.Missions
             yield return new WaitForSecondsRealtime(delay);
             if (state != M2State.LootPass) yield break;
             state = M2State.Completed;
+            Cyberpunk.Audio.CyberBackgroundMusic.Instance?.ResumeAfterMission();
 
             // Activate Mission 3 navigation trail and radar marker
             Cyberpunk.World.PitSkyLiftSystem.ActivateMission3();

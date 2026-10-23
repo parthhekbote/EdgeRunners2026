@@ -1183,13 +1183,24 @@ namespace Cyberpunk.Missions
             _hasTriggeredIntro = true;
             state = MissionState.BriefingAtSpawn;
 
-            Debug.Log("[Mission1] Starting Mission 1 at spawn (holo-call removed)...");
+            Debug.Log("[Mission1] Starting Mission 1 at spawn with Dr. Ido dialogue box...");
 
             // Freeze player locomotion during briefing transmission
             LockPlayerInput(true);
 
-            // Holo-call removed: accept the gig immediately.
-            OnGigAcceptedAtSpawn();
+            if (uiManager == null)
+            {
+                uiManager = GetComponentInChildren<Mission1_UIManager>() ?? UnityEngine.Object.FindAnyObjectByType<Mission1_UIManager>();
+            }
+
+            if (uiManager != null)
+            {
+                uiManager.ShowIntroPopup(OnGigAcceptedAtSpawn);
+            }
+            else
+            {
+                OnGigAcceptedAtSpawn();
+            }
         }
 
         public void OnGigAcceptedAtSpawn()

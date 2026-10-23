@@ -78,6 +78,9 @@ namespace PolygonCyberCity.NPC.Spawner
         private static readonly Collider[] AlertBuffer = new Collider[16];
 
         private float _combatLayerWeight = 0f;
+
+        /// <summary>Set by TaskExecuteAttack while a punch/kick/swing clip should be visible (Combat layer).</summary>
+        public bool IsAttackAnimPlaying { get; set; }
         private float _upperBodyWeight = 0f;
         private bool _wasMovingLastFrame = false;
         private float _startedTimer = 0f;
@@ -642,8 +645,11 @@ namespace PolygonCyberCity.NPC.Spawner
             // Combat layer weight blending (Layer 2)
             if (animator.layerCount > 2)
             {
-                float targetCombatWeight = (_blackboard != null && _blackboard.WeaponDrawn) ? 1.0f : 0.0f;
-                _combatLayerWeight = Mathf.MoveTowards(_combatLayerWeight, targetCombatWeight, Time.deltaTime * 5f);
+                float targetCombatWeight = ((_blackboard != null && _blackboard.WeaponDrawn) || IsAttackAnimPlaying) ? 1.0f : 0.0f;
+                // Attack animations snap in; they blend out smoothly afterwards.
+                _combatLayerWeight = IsAttackAnimPlaying
+                    ? 1.0f
+                    : Mathf.MoveTowards(_combatLayerWeight, targetCombatWeight, Time.deltaTime * 5f);
                 animator.SetLayerWeight(2, _combatLayerWeight);
             }
         }

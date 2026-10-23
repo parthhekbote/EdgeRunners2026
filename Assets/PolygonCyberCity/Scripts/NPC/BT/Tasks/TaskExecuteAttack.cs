@@ -59,9 +59,12 @@ namespace PolygonCyberCity.NPC.BT.Tasks
 
                 if (_animator != null)
                 {
-                    int attackId = Random.Range(1, 8); // 1-7 (Light Combos, Heavy Cleaves, Stabs, Leaping, Flourish)
-                    int combatLayer = _animator.GetLayerIndex("Combat");
-                    if (combatLayer >= 0) _animator.SetLayerWeight(combatLayer, 1f);
+                    // 1 = punch, 2 = kick (unarmed city folk); 3-4 = sword swings (gang fighters)
+                    bool unarmed = _controller == null ||
+                        _controller.npcType == NPCType.Civilian || _controller.npcType == NPCType.RichCitizen ||
+                        _controller.npcType == NPCType.Cyborg || _controller.npcType == NPCType.HelperBot;
+                    int attackId = unarmed ? Random.Range(1, 3) : Random.Range(1, 5);
+                    if (_controller != null) _controller.IsAttackAnimPlaying = true;
                     _animator.SetInteger("AttackID", attackId);
                     _animator.SetTrigger("Attack");
                 }
@@ -121,9 +124,7 @@ namespace PolygonCyberCity.NPC.BT.Tasks
 
         private void ReleaseCombatLayer()
         {
-            if (_animator == null) return;
-            int combatLayer = _animator.GetLayerIndex("Combat");
-            if (combatLayer >= 0) _animator.SetLayerWeight(combatLayer, 0f);
+            if (_controller != null) _controller.IsAttackAnimPlaying = false;
         }
 
         public override void ResetNode()

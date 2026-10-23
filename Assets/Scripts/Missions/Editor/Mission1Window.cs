@@ -227,7 +227,7 @@ namespace Cyberpunk.Missions.Editor
                 EditorGUILayout.Space(4);
 
                 EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button("📞 Trigger Dr. Ido Call"))
+                if (GUILayout.Button("💬 Trigger Dr. Ido Dialogue"))
                 {
                     if (mgr.uiManager != null)
                     {

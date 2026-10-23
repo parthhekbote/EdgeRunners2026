@@ -39,6 +39,8 @@ namespace Cyberpunk.Audio
         private bool _isFadingIn = true;
         private float _fadeTimer = 0f;
         private bool _isMuted = false;
+        private bool _suspended = false;
+        private Coroutine _suspendRoutine;
 
         private void Awake()
         {
@@ -67,6 +69,8 @@ namespace Cyberpunk.Audio
             {
                 ToggleMute();
             }
+
+            if (_suspended) return;
 
             if (_isFadingIn && !_isMuted && _audioSource != null && _audioSource.isPlaying)
             {
@@ -121,6 +125,46 @@ namespace Cyberpunk.Audio
             _isFadingIn = true;
             _fadeTimer = 0f;
             _audioSource.volume = 0f;
+        }
+
+        /// <summary>Fades the city music out and pauses it (a mission supplies its own soundtrack).</summary>
+        public void SuspendForMission(float fadeOut = 1.5f)
+        {
+            if (_suspended) return;
+            _suspended = true;
+            if (_suspendRoutine != null) StopCoroutine(_suspendRoutine);
+            _suspendRoutine = StartCoroutine(FadeOutAndPause(fadeOut));
+        }
+
+        /// <summary>Brings the city music back with a fade-in after a mission ends.</summary>
+        public void ResumeAfterMission()
+        {
+            if (!_suspended) return;
+            _suspended = false;
+            if (_suspendRoutine != null) { StopCoroutine(_suspendRoutine); _suspendRoutine = null; }
+            if (_audioSource == null) return;
+            if (_audioSource.clip != null && !_audioSource.isPlaying) _audioSource.UnPause();
+            if (!_audioSource.isPlaying) _audioSource.Play();
+            _isFadingIn = true;
+            _fadeTimer = 0f;
+        }
+
+        private System.Collections.IEnumerator FadeOutAndPause(float duration)
+        {
+            if (_audioSource != null)
+            {
+                float start = _audioSource.volume;
+                float t = 0f;
+                while (t < duration)
+                {
+                    t += Time.unscaledDeltaTime;
+                    _audioSource.volume = Mathf.Lerp(start, 0f, t / Mathf.Max(0.01f, duration));
+                    yield return null;
+                }
+                _audioSource.volume = 0f;
+                _audioSource.Pause();
+            }
+            _suspendRoutine = null;
         }
 
         public void StopMusic()

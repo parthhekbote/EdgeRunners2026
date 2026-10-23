@@ -105,6 +105,12 @@ namespace Cyberpunk.Missions
             LoadFontsAndSprites();
             EnsureAudioSource();
             BuildMissionCanvas();
+
+            // Destroy any legacy holo-call objects that may exist in the scene
+            var lingeringCall = GameObject.Find("Panel_ModernGlass_DrIdoCall");
+            if (lingeringCall != null) Destroy(lingeringCall);
+            var lingeringDim = GameObject.Find("Backdrop_DimBlur");
+            if (lingeringDim != null) Destroy(lingeringDim);
         }
 
         private void OnDestroy()
@@ -114,7 +120,8 @@ namespace Cyberpunk.Missions
 
         public bool IsPopupOpen()
         {
-            return _popupPanel != null && _popupPanel.activeSelf;
+            return (Alita.UI.CyberpunkDialogueHUD.Instance != null && Alita.UI.CyberpunkDialogueHUD.Instance.isDialogueActive) ||
+                   (_popupPanel != null && _popupPanel.activeSelf);
         }
 
         private void LoadFontsAndSprites()
@@ -287,17 +294,9 @@ namespace Cyberpunk.Missions
             _targetFullText = body;
             _onPopupConfirmed = onConfirmed;
 
-            if (_dimBackdrop != null) _dimBackdrop.SetActive(true);
-            if (_popupPanel != null) _popupPanel.SetActive(true);
-
-            if (_popupSpeakerNameText != null) _popupSpeakerNameText.text = speakerName;
-            if (_popupButtonText != null) _popupButtonText.text = buttonText;
-            if (_popupShortcutHintText != null) _popupShortcutHintText.text = shortcutHint;
-
-            // Unlock and reveal mouse cursor
-            SmoothOrbitCamera.cursorLockOverride = true;
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            // Ensure legacy holo-call modal is deactivated and hidden
+            if (_dimBackdrop != null) _dimBackdrop.SetActive(false);
+            if (_popupPanel != null) _popupPanel.SetActive(false);
 
             // Audio: incoming ring + Ido voice line + duck background music
             Mission1_AudioManager.Instance?.DuckBGM(true);
@@ -310,54 +309,58 @@ namespace Cyberpunk.Missions
             else
                 Mission1_AudioManager.Instance?.PlayRingOnly();
 
-            // Glitch-in animation on portrait
-            if (_portraitGlitchCoroutine != null) StopCoroutine(_portraitGlitchCoroutine);
-            _portraitGlitchCoroutine = StartCoroutine(PortraitGlitchInRoutine());
-
-            // Start typewriter
-            if (_typewriterCoroutine != null) StopCoroutine(_typewriterCoroutine);
-            _typewriterCoroutine = StartCoroutine(TypewriterRoutine(body));
-        }
-
-        private IEnumerator PortraitGlitchInRoutine()
-        {
-            if (_portraitImage == null) yield break;
-
-            float elapsed = 0f;
-            const float duration = 0.40f;
-            Vector3 originalScale = Vector3.one;
-
-            while (elapsed < duration)
+            string spk = string.IsNullOrEmpty(speakerName) ? "DR. DYSON IDO" : speakerName;
+            string title = "CYBER-SURGEON // COMMS";
+            if (!spk.Contains("Ido") && !spk.Contains("IDO") && !spk.Contains("Doctor") && !spk.Contains("DOCTOR"))
             {
-                elapsed += Time.unscaledDeltaTime;
-                float flicker = (UnityEngine.Random.value > 0.35f) ? 1.0f : 0.25f;
-                _portraitImage.color = new Color(0.2f, 1f, 1f, flicker); // Cyan holographic tint
-
-                // Slight RGB scale stutter
-                float jitter = UnityEngine.Random.Range(-0.04f, 0.04f);
-                _portraitImage.transform.localScale = originalScale + new Vector3(jitter, -jitter, 0f);
-
-                yield return new WaitForSecondsRealtime(0.04f);
+                title = spk.ToUpperInvariant();
             }
 
-            _portraitImage.color = new Color(0.85f, 1f, 1f, 1.0f);
-            _portraitImage.transform.localScale = originalScale;
-            _portraitGlitchCoroutine = null;
+            // Break up multi-paragraph body text into clean sequential dialogue lines
+            var hudLines = new List<Alita.UI.CyberpunkDialogueHUD.DialogueLineData>();
+            string[] rawParagraphs = body.Split(new string[] { "\n\n", "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (rawParagraphs.Length == 0)
+            {
+                hudLines.Add(new Alita.UI.CyberpunkDialogueHUD.DialogueLineData(
+                    speaker: spk,
+                    text: body.Trim(),
+                    portrait: idoPortraitSprite,
+                    title: title
+                ));
+            }
+            else
+            {
+                foreach (var p in rawParagraphs)
+                {
+                    string trimmed = p.Trim();
+                    if (!string.IsNullOrEmpty(trimmed))
+                    {
+                        hudLines.Add(new Alita.UI.CyberpunkDialogueHUD.DialogueLineData(
+                            speaker: spk,
+                            text: trimmed,
+                            portrait: idoPortraitSprite,
+                            title: title
+                        ));
+                    }
+                }
+            }
+
+            Debug.Log($"[Mission1_UIManager] Presenting Dr. Ido dialogue box ({hudLines.Count} lines) via CyberpunkDialogueHUD instead of holo-call.");
+
+            Alita.UI.CyberpunkDialogueHUD.GetOrCreate().StartConversation(hudLines, () =>
+            {
+                Mission1_AudioManager.Instance?.PlayUIConfirm();
+                Mission1_AudioManager.Instance?.DuckBGM(false);
+                var cb = _onPopupConfirmed;
+                _onPopupConfirmed = null;
+                cb?.Invoke();
+            });
         }
 
         private void OnPopupAdvancePressed()
         {
-            if (_isTyping)
-            {
-                // Fast-forward / complete typing instantly
-                if (_typewriterCoroutine != null) StopCoroutine(_typewriterCoroutine);
-                if (_popupBodyText != null) _popupBodyText.text = _targetFullText;
-                _isTyping = false;
-            }
-            else
-            {
-                DismissPopup();
-            }
+            DismissPopup();
         }
 
         public void DismissPopup()
@@ -369,15 +372,14 @@ namespace Cyberpunk.Missions
             }
             _isTyping = false;
 
+            if (Alita.UI.CyberpunkDialogueHUD.Instance != null && Alita.UI.CyberpunkDialogueHUD.Instance.isDialogueActive)
+            {
+                Alita.UI.CyberpunkDialogueHUD.Instance.CloseDialogue();
+            }
+
             if (_popupPanel != null) _popupPanel.SetActive(false);
             if (_dimBackdrop != null) _dimBackdrop.SetActive(false);
 
-            // Restore mouse cursor lock
-            SmoothOrbitCamera.cursorLockOverride = false;
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-
-            // Audio: glitch whoosh + restore BGM
             Mission1_AudioManager.Instance?.PlayUIConfirm();
             Mission1_AudioManager.Instance?.DuckBGM(false);
 
@@ -687,7 +689,7 @@ namespace Cyberpunk.Missions
             BuildWaypointHUD(canvasObj);
             BuildFollowIdoPill(canvasObj);
             BuildTrackerHUD(canvasObj);
-            BuildModernGlassCallModal(canvasObj);
+            // BuildModernGlassCallModal(canvasObj); // Holographic call modal removed in favor of CyberpunkDialogueHUD
         }
 
         private void BuildDamageVignette(GameObject root)
