@@ -74,6 +74,7 @@ namespace Cyberpunk.Missions
 
         private AudioSource _music;
         private AudioSource _sfx;
+        private AudioSource _impactSrc; // dedicated source so impact is always audible, even in slow-mo
         private AudioClip _musicClip, _thrustClip, _thunderClip, _dashClip;
         // Bridge-battle audio (Assets/Audio/switchblade_bridge_battle/)
         private AudioClip _bridgeBgmClip, _stabSoundClip, _impactSoundClip;
@@ -234,6 +235,14 @@ namespace Cyberpunk.Missions
             _music.spatialBlend = 0f; _music.loop = true; _music.playOnAwake = false; _music.volume = 0.8f;
             _sfx = gameObject.AddComponent<AudioSource>();
             _sfx.spatialBlend = 0f; _sfx.playOnAwake = false;
+
+            // Dedicated source for impact SFX: bypasses listener pause so it cuts through slow-mo
+            _impactSrc = gameObject.AddComponent<AudioSource>();
+            _impactSrc.spatialBlend = 0f;
+            _impactSrc.playOnAwake = false;
+            _impactSrc.ignoreListenerPause = true;
+            _impactSrc.volume = 1f;
+
             LoadAssets();
         }
 
@@ -735,9 +744,15 @@ namespace Cyberpunk.Missions
             StartCoroutine(BystanderSweepRoutine());
             GotGTitleCardUI.GetOrCreate().SetLetterboxOnly(true, 0.45f);
 
-            // Use bridge BGM if available, fall back to the generic mission music
+            // Pre-load BGM silently so there's no seek delay when it slams in at SwitchBlade's landing.
+            // Volume stays at 0 until Shot 4 (entrance impact).
             AudioClip openingMusic = _bridgeBgmClip != null ? _bridgeBgmClip : _musicClip;
-            if (openingMusic != null) { _music.clip = openingMusic; _music.volume = 0.0f; _music.Play(); StartCoroutine(FadeMusic(0.7f, 3f)); }
+            if (openingMusic != null)
+            {
+                _music.clip = openingMusic;
+                _music.volume = 0f;
+                _music.Play(); // buffered silently – will fade in at the landing
+            }
 
             Quaternion faceWest = Quaternion.Euler(0f, -90f, 0f);
             Quaternion faceEast = Quaternion.Euler(0f, 90f, 0f);
@@ -808,6 +823,8 @@ namespace Cyberpunk.Missions
             SpawnElectricBurst(beamBase + Vector3.up * 0.2f);
             StartCoroutine(ImpactShakeRoutine());
             StartCoroutine(DarknessPulse());
+            // ── BGM sync: slam the bridge BGM in hard on the landing impact ──
+            StartCoroutine(FadeMusic(0.85f, 0.35f));
             Time.timeScale = 0.15f;
             yield return new WaitForSecondsRealtime(0.28f);
             Time.timeScale = 1f;
@@ -843,6 +860,7 @@ namespace Cyberpunk.Missions
             StartCoroutine(LightningFlash(0.7f, false));
             if (_sfx != null && _thunderClip != null) _sfx.PlayOneShot(_thunderClip, 0.9f);
             TriggerShake(0.5f, 0.6f);
+            // Duck BGM under the title card so music breathes; restore after
             StartCoroutine(FadeMusic(1.0f, 1.0f));
             GotGTitleCardUI.GetOrCreate().ShowTitleCard(
                 title: "SWITCHBLADE",
@@ -851,10 +869,10 @@ namespace Cyberpunk.Missions
                 duration: 6.0f);
             yield return new WaitForSecondsRealtime(5.0f);
 
-            // The spotlight is over: light returns while he speaks (same framing, his face stays on screen)
+            // Spotlight over: music ducks under dialogue
             StartCoroutine(FadeDarkness(0f, 1.5f));
             StartCoroutine(RestoreSceneLighting(1.5f));
-            StartCoroutine(FadeMusic(0.7f, 1.5f));
+            StartCoroutine(FadeMusic(0.45f, 1.5f)); // duck under dialogue
             yield return Say("SWITCHBLADE", "CYBORG OVERLORD", "Doctor Ido. You hid her well. Not well enough.", 4.2f);
 
             // [Shot 5] The dash: SwitchBlade crosses the bridge in a blink with cyber electricity trail
@@ -881,6 +899,8 @@ namespace Cyberpunk.Missions
                 if (_stabSoundClip != null) _sfx.PlayOneShot(_stabSoundClip, 1f);
                 else if (_thrustClip != null) _sfx.PlayOneShot(_thrustClip, 1f);
             }
+            // BGM sync: swell the music back up as the blade goes in
+            StartCoroutine(FadeMusic(0.8f, 0.3f));
             yield return new WaitForSecondsRealtime(0.45f);
 
             const float slowScale = 0.22f;
@@ -893,8 +913,11 @@ namespace Cyberpunk.Missions
             SpawnStabEffects(chest);
             SpawnShockwave(new Vector3(IdoPos.x, BridgeY, BridgeZ));
             TriggerShake(1.2f, 1.2f);
-            // Impact sound (bridge-battle) plays the moment the shockwave rolls toward Alita
-            if (_sfx != null && _impactSoundClip != null) _sfx.PlayOneShot(_impactSoundClip, 0.9f);
+            // Impact sound on dedicated source so it cuts through slow-mo (ignoreListenerPause)
+            if (_impactSoundClip != null)
+                _impactSrc.PlayOneShot(_impactSoundClip, 1.0f);
+            else if (_sfx != null && _thunderClip != null)
+                _sfx.PlayOneShot(_thunderClip, 0.6f); // minimal fallback
             yield return new WaitForSecondsRealtime(0.7f);
 
             // [Shot 7] The shockwave hits Alita: she is thrown to the deck, still in slow motion, time recovering as she falls
@@ -903,6 +926,8 @@ namespace Cyberpunk.Missions
             MoveCam(new Vector3(-2.1f, 2.1f, -6.7f), LookAt(new Vector3(-2.1f, 2.1f, -6.7f), new Vector3(-2.6f, 0.5f, BridgeZ)), 32f, 2.2f);
             if (_playerAnim != null) _playerAnim.CrossFadeInFixedTime("KnockDown", 0.05f, 0);
             SpawnElectricBurst(AlitaPos + Vector3.up * 1.0f);
+            // Music ducks low during Ido's dying words
+            StartCoroutine(FadeMusic(0.25f, 0.6f));
             TriggerShake(0.7f, 0.7f);
             StartCoroutine(TimeScaleRamp(slowScale, 1f, 1.4f));
             yield return new WaitForSecondsRealtime(1.6f);
@@ -973,6 +998,7 @@ namespace Cyberpunk.Missions
             RestorePlayer();
             if (_orbitCam != null) { _orbitCam.enabled = true; _orbitCam.SnapToTarget(); }
             StartCoroutine(FadeMusic(0f, 3f));
+            if (_impactSrc != null) _impactSrc.Stop();
             var hud = CyberpunkHUDController.Instance;
             if (hud != null)
             {
