@@ -805,6 +805,8 @@ namespace Cyberpunk.Missions
             StartCoroutine(GrowBeam(beam, 1.0f, 1.4f));
             StartCoroutine(LightningFlash(0.4f, false));
             if (_sfx != null && _thunderClip != null) _sfx.PlayOneShot(_thunderClip, 0.7f);
+            // ── Music starts exactly here, as the spotlight pierces down and darkness creeps in ──
+            StartCoroutine(FadeMusic(0.75f, 1.6f));
             MoveCam(c4, LookAt(c4, new Vector3(beamBase.x, 1.4f, BridgeZ)), 42f, 3.6f);
             TriggerShake(0.3f, 1.4f);
             yield return new WaitForSecondsRealtime(2.4f);
@@ -823,8 +825,8 @@ namespace Cyberpunk.Missions
             SpawnElectricBurst(beamBase + Vector3.up * 0.2f);
             StartCoroutine(ImpactShakeRoutine());
             StartCoroutine(DarknessPulse());
-            // ── BGM sync: slam the bridge BGM in hard on the landing impact ──
-            StartCoroutine(FadeMusic(0.85f, 0.35f));
+            // Swell music hard on landing to punctuate the hit
+            StartCoroutine(FadeMusic(1.0f, 0.2f));
             Time.timeScale = 0.15f;
             yield return new WaitForSecondsRealtime(0.28f);
             Time.timeScale = 1f;
@@ -913,11 +915,8 @@ namespace Cyberpunk.Missions
             SpawnStabEffects(chest);
             SpawnShockwave(new Vector3(IdoPos.x, BridgeY, BridgeZ));
             TriggerShake(1.2f, 1.2f);
-            // Impact sound on dedicated source so it cuts through slow-mo (ignoreListenerPause)
-            if (_impactSoundClip != null)
-                _impactSrc.PlayOneShot(_impactSoundClip, 1.0f);
-            else if (_sfx != null && _thunderClip != null)
-                _sfx.PlayOneShot(_thunderClip, 0.6f); // minimal fallback
+            // Fire-and-forget temporary AudioSource: bypasses timeScale, shared-source state, and AudioListener
+            PlayImpactOnce(_impactSoundClip != null ? _impactSoundClip : _thunderClip);
             yield return new WaitForSecondsRealtime(0.7f);
 
             // [Shot 7] The shockwave hits Alita: she is thrown to the deck, still in slow motion, time recovering as she falls
@@ -1022,6 +1021,29 @@ namespace Cyberpunk.Missions
         // ─────────────────────────────────────────────────────────────────────
         // HELPERS
         // ─────────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Spawns a completely isolated AudioSource for the impact clip.
+        /// Using a fresh GameObject guarantees the clip is heard regardless of
+        /// Time.timeScale, AudioListener.pause, or the state of any shared source.
+        /// The object self-destructs after the clip length (+ 0.3s headroom).
+        /// </summary>
+        private void PlayImpactOnce(AudioClip clip)
+        {
+            if (clip == null) return;
+            var go = new GameObject("_ImpactOneShot");
+            DontDestroyOnLoad(go); // survive scene reloads mid-cutscene
+            var src = go.AddComponent<AudioSource>();
+            src.spatialBlend = 0f;
+            src.volume = 1f;
+            src.priority = 0;               // highest priority in Unity's mixer
+            src.ignoreListenerPause = true;  // not silenced by AudioListener.pause
+            src.ignoreListenerVolume = false;
+            src.velocityUpdateMode = AudioVelocityUpdateMode.Fixed; // immune to timeScale
+            src.clip = clip;
+            src.Play();
+            Destroy(go, clip.length + 0.3f);
+        }
         /// <summary>The in-game HUD canvas keeps resetting its CanvasGroup alpha, so toggle the root Canvas itself.</summary>
         private static void SetGameplayHudVisible(bool visible)
         {
