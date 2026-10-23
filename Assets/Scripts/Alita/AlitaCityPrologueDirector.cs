@@ -1158,13 +1158,9 @@ namespace Alita
             for (int i = 0; i < candidates.Count && sent < 2; i++)
             {
                 var npc = candidates[i];
-                if ((npc.transform.position - center).magnitude > 25f && npc.agent != null)
-                {
-                    float ang = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-                    Vector3 spot = center + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * 14f;
-                    if (NavMesh.SamplePosition(spot, out NavMeshHit hit, 8f, NavMesh.AllAreas))
-                        npc.agent.Warp(hit.position);
-                }
+                if (npc == null) continue;
+                float d = (npc.transform.position - center).magnitude;
+                if (d > 22f) continue; // Only engage nearby locals; never warp or teleport distant NPCs!
                 npc.ForceAttackAlita();
                 sent++;
             }
@@ -1173,11 +1169,14 @@ namespace Alita
 
         private IEnumerator HandoffMessageRoutine()
         {
-            // Stage ambush bots on the bridge
+            // Walk ambush bots smoothly into standoff formation along the bridge (never teleport!)
             try
             {
                 var stage = FindAnyObjectByType<Mission1_StreetTrialManager>();
-                if (stage != null) stage.StageAmbushOnIdo();
+                if (stage != null)
+                {
+                    yield return stage.WalkAmbushBotsToStandoffRoutine();
+                }
             }
             catch (System.Exception ex)
             {

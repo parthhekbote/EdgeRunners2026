@@ -63,6 +63,7 @@ namespace Cyberpunk.Missions
 
         // Coroutine & Aggression tracking
         private Coroutine _delayedActivationCoroutine;
+        private Coroutine _walkToStandoffCoroutine;
         private float _lastSoloAttackTime = 0f;
 
         private void Awake()
@@ -203,6 +204,93 @@ namespace Cyberpunk.Missions
             }
         }
 
+        /// <summary>
+        /// Starts the cinematic standoff advance on foot towards targetPos.
+        /// Draws weapon and physically walks with CharacterController and MoveSpeed = 1.0f animation.
+        /// </summary>
+        public Coroutine StartWalkToStandoff(Vector3 targetPos, Quaternion finalRot, float walkSpeed = 2.3f)
+        {
+            if (_walkToStandoffCoroutine != null) StopCoroutine(_walkToStandoffCoroutine);
+            _walkToStandoffCoroutine = StartCoroutine(WalkToStandoffRoutine(targetPos, finalRot, walkSpeed));
+            return _walkToStandoffCoroutine;
+        }
+
+        public IEnumerator WalkToStandoffRoutine(Vector3 targetPos, Quaternion finalRot, float walkSpeed = 2.3f)
+        {
+            if (combatController != null)
+            {
+                combatController.inputLocked = true;
+                combatController.isInvincible = true;
+                combatController.DrawSword();
+            }
+            if (_animator == null) _animator = GetComponent<Animator>() ?? GetComponentInChildren<Animator>();
+            var cc = _characterController != null ? _characterController : GetComponent<CharacterController>();
+
+            float timeout = 4.5f;
+            float elapsed = 0f;
+
+            while (elapsed < timeout)
+            {
+                elapsed += Time.deltaTime;
+                Vector3 toTarget = targetPos - transform.position;
+                toTarget.y = 0f;
+                float dist = toTarget.magnitude;
+
+                if (dist <= 0.35f) break;
+
+                Vector3 moveDir = toTarget.normalized;
+                if (cc != null && cc.enabled)
+                {
+                    Vector3 delta = moveDir * (walkSpeed * Time.deltaTime);
+                    delta.y = -9.81f * Time.deltaTime;
+                    cc.Move(delta);
+                }
+                else
+                {
+                    transform.position += moveDir * (walkSpeed * Time.deltaTime);
+                }
+
+                if (moveDir.sqrMagnitude > 0.01f)
+                {
+                    transform.rotation = Quaternion.RotateTowards(
+                        transform.rotation,
+                        Quaternion.LookRotation(moveDir),
+                        280f * Time.deltaTime
+                    );
+                }
+
+                if (_animator != null)
+                {
+                    _animator.SetFloat(HashMoveSpeed, 1.0f);
+                }
+
+                yield return null;
+            }
+
+            // Arrived at standoff spot: smoothly face final rotation (Ido/Alita) and stop walking
+            float alignTimer = 0f;
+            while (alignTimer < 0.45f)
+            {
+                alignTimer += Time.deltaTime;
+                transform.rotation = Quaternion.RotateTowards(
+                    transform.rotation,
+                    finalRot,
+                    360f * Time.deltaTime
+                );
+                if (_animator != null)
+                {
+                    _animator.SetFloat(HashMoveSpeed, 0f);
+                }
+                yield return null;
+            }
+
+            if (_animator != null)
+            {
+                _animator.SetFloat(HashMoveSpeed, 0f);
+            }
+            _walkToStandoffCoroutine = null;
+        }
+
         public void ActivateCombatAI()
         {
             isCombatActivated = true;
@@ -235,6 +323,11 @@ namespace Cyberpunk.Missions
             {
                 StopCoroutine(_delayedActivationCoroutine);
                 _delayedActivationCoroutine = null;
+            }
+            if (_walkToStandoffCoroutine != null)
+            {
+                StopCoroutine(_walkToStandoffCoroutine);
+                _walkToStandoffCoroutine = null;
             }
 
             if (combatController != null && !combatController.IsDead)
@@ -400,14 +493,7 @@ namespace Cyberpunk.Missions
                 }
                 _lastSoloAttackTime = Time.time;
             }
-            else if (dist > 3.2f && dist <= 7.0f && !combatController.IsAttacking && !combatController.IsComboRunning)
-            {
-                if (Random.value < 0.20f)
-                {
-                    combatController.StartAIGunSwordCombo(InsaneGunSwordController.AIGunSwordComboType.StalkerLunge);
-                    _lastSoloAttackTime = Time.time;
-                }
-            }
+            // Mid-range gap closing is handled purely on foot by AICirclingEnemy (running/walking on foot, no teleport lunges)
         }
 
         /// <summary>
@@ -525,6 +611,11 @@ namespace Cyberpunk.Missions
 
         public void ResetToInitial(Vector3 pos, Quaternion rot)
         {
+            if (_walkToStandoffCoroutine != null)
+            {
+                StopCoroutine(_walkToStandoffCoroutine);
+                _walkToStandoffCoroutine = null;
+            }
             _initialSpawnPos = pos;
             _initialSpawnRot = rot;
             isAggroed = false;

@@ -1399,38 +1399,134 @@ namespace Cyberpunk.Missions
         /// activation happens in BeginBridgeFight(true) after the scare dialogue.
         /// Ido is never targeted (bots aggro Alita on activation).
         /// </summary>
+        /// <summary>
+        /// Smoothly marches the 3 rogue bots forward along the skybridge into a tight
+        /// standoff formation (~3.8m - 4.4m) in front of Dr. Ido and Alita.
+        /// Bots physically walk on foot with walking animations and drawn weapons,
+        /// NEVER snapping or teleporting.
+        /// </summary>
         public void StageAmbushOnIdo()
+        {
+            StartCoroutine(WalkAmbushBotsToStandoffRoutine());
+        }
+
+        public IEnumerator WalkAmbushBotsToStandoffRoutine()
         {
             var prologue = Alita.AlitaCityPrologueDirector.Instance;
             Transform ido = (prologue != null) ? prologue.doctorTransform : null;
-            if (ido == null)
-            {
-                Debug.LogWarning("[Mission1] StageAmbushOnIdo: no Ido transform; bots hold arena positions.");
-                return;
-            }
-            if (playerTransform == null && playerGameObject != null) playerTransform = playerGameObject.transform;
+            Transform player = playerTransform != null ? playerTransform : (playerGameObject != null ? playerGameObject.transform : null);
+
+            Vector3 targetCenter = ido != null ? ido.position : (player != null ? player.position : zoneCenterPosition);
+
             if (enemyTrackers.Count == 0)
             {
-                Debug.LogWarning("[Mission1] StageAmbushOnIdo: no bot trackers; ambush has no teeth.");
-                return;
+                Debug.LogWarning("[Mission1] WalkAmbushBotsToStandoff: no bot trackers; ambush skipped.");
+                yield break;
             }
-            float[] ringAngles = { 20f, 140f, 260f };
-            int placed = 0;
-            for (int i = 0; i < enemyTrackers.Count && i < ringAngles.Length; i++)
+
+            // Determine bridge direction pointing forward from Ido/Alita towards the bridge deck
+            Vector3 bridgeDir = Vector3.forward;
+            if (ido != null)
+            {
+                Vector3 toArena = zoneCenterPosition - ido.position;
+                toArena.y = 0f;
+                if (toArena.sqrMagnitude > 1.0f)
+                {
+                    bridgeDir = toArena.normalized;
+                }
+                else
+                {
+                    bridgeDir = ido.forward;
+                    bridgeDir.y = 0f;
+                    if (bridgeDir.sqrMagnitude < 0.01f) bridgeDir = Vector3.forward;
+                    else bridgeDir.Normalize();
+                }
+            }
+            Vector3 bridgeRight = Vector3.Cross(Vector3.up, bridgeDir).normalized;
+
+            // Standoff offsets in front of Ido & Alita (leader in front at 3.8m, flankers left/right at 4.4m)
+            Vector3[] standoffOffsets = new Vector3[]
+            {
+                bridgeDir * 3.8f,
+                bridgeDir * 4.4f - bridgeRight * 2.2f,
+                bridgeDir * 4.4f + bridgeRight * 2.2f
+            };
+
+            // Advance staging start positions down the bridge (~9.5m - 12m ahead)
+            Vector3[] advanceStartOffsets = new Vector3[]
+            {
+                bridgeDir * 10.5f,
+                bridgeDir * 11.5f - bridgeRight * 2.4f,
+                bridgeDir * 11.5f + bridgeRight * 2.4f
+            };
+
+            var walkCoroutines = new List<Coroutine>();
+
+            for (int i = 0; i < enemyTrackers.Count && i < standoffOffsets.Length; i++)
             {
                 var tr = enemyTrackers[i];
                 if (tr == null) continue;
-                float rad = ringAngles[i] * Mathf.Deg2Rad;
-                Vector3 raw = ido.position + new Vector3(Mathf.Cos(rad) * 1.7f, 0f, Mathf.Sin(rad) * 1.7f);
-                Vector3 rPos = raw;
-                if (NavMesh.SamplePosition(raw, out NavMeshHit hit, 4f, NavMesh.AllAreas)) rPos = hit.position;
-                Vector3 faceIdo = ido.position - rPos;
+
+                // Ensure bot starts at a clean position ahead on the bridge if out of bounds or too close
+                float currentDistToTarget = Vector3.Distance(tr.transform.position, targetCenter);
+                if (currentDistToTarget < 6.0f || currentDistToTarget > 18.0f)
+                {
+                    Vector3 startPos = targetCenter + advanceStartOffsets[i];
+                    if (NavMesh.SamplePosition(startPos, out NavMeshHit sHit, 4f, NavMesh.AllAreas)) startPos = sHit.position;
+                    if (Physics.Raycast(startPos + Vector3.up * 2f, Vector3.down, out RaycastHit gHit, 4f)) startPos.y = gHit.point.y + 0.05f;
+
+                    Vector3 toTarget = targetCenter - startPos;
+                    toTarget.y = 0f;
+                    Quaternion startRot = toTarget.sqrMagnitude > 0.01f ? Quaternion.LookRotation(toTarget.normalized) : Quaternion.LookRotation(-bridgeDir);
+
+                    var cc = tr.GetComponent<CharacterController>();
+                    if (cc != null) cc.enabled = false;
+                    tr.transform.position = startPos;
+                    tr.transform.rotation = startRot;
+                    Physics.SyncTransforms();
+                    if (cc != null) cc.enabled = true;
+                }
+
+                // Standoff destination
+                Vector3 rawDest = targetCenter + standoffOffsets[i];
+                Vector3 finalDest = rawDest;
+                if (NavMesh.SamplePosition(rawDest, out NavMeshHit dHit, 4f, NavMesh.AllAreas)) finalDest = dHit.position;
+                if (Physics.Raycast(finalDest + Vector3.up * 2f, Vector3.down, out RaycastHit dgHit, 4f)) finalDest.y = dgHit.point.y + 0.05f;
+
+                Vector3 faceIdo = targetCenter - finalDest;
                 faceIdo.y = 0f;
-                Quaternion rot = faceIdo.sqrMagnitude > 0.01f ? Quaternion.LookRotation(faceIdo.normalized) : Quaternion.Euler(0f, 90f, 0f);
-                tr.ResetToInitial(rPos, rot);
-                placed++;
+                Quaternion finalRot = faceIdo.sqrMagnitude > 0.01f ? Quaternion.LookRotation(faceIdo.normalized) : Quaternion.LookRotation(-bridgeDir);
+
+                // Start physical on-foot walk towards Ido/Alita
+                var co = tr.StartWalkToStandoff(finalDest, finalRot, walkSpeed: 2.3f);
+                if (co != null) walkCoroutines.Add(co);
             }
-            Debug.Log($"[Mission1] Ambush staged: {placed}/{enemyTrackers.Count} bots ringed on Ido at {ido.position} (dormant until the scare lands).");
+
+            Debug.Log($"[Mission1] Ambush walk initiated: {walkCoroutines.Count} bots walking into formation towards Ido & Alita.");
+
+            // Wait for all bots to finish walking into formation (max 4.2 seconds safety)
+            float timer = 0f;
+            while (timer < 4.2f)
+            {
+                timer += Time.deltaTime;
+                bool allArrived = true;
+                for (int i = 0; i < enemyTrackers.Count && i < standoffOffsets.Length; i++)
+                {
+                    var tr = enemyTrackers[i];
+                    if (tr == null) continue;
+                    Vector3 dest = targetCenter + standoffOffsets[i];
+                    dest.y = tr.transform.position.y;
+                    if (Vector3.Distance(tr.transform.position, dest) > 0.60f)
+                    {
+                        allArrived = false;
+                        break;
+                    }
+                }
+                if (allArrived) break;
+                yield return null;
+            }
+
+            Debug.Log($"[Mission1] Ambush bots arrived at standoff positions in front of Ido & Alita in {timer:F2}s.");
         }
 
         /// <summary>
@@ -1588,26 +1684,19 @@ namespace Cyberpunk.Missions
             if (NavMesh.SamplePosition(target, out NavMeshHit navHit, 6f, NavMesh.AllAreas)) target = navHit.position;
             if (Physics.Raycast(target + Vector3.up * 3f, Vector3.down, out RaycastHit gHit, 6f)) target.y = gHit.point.y + 0.10f;
             else target.y += 0.10f;
-            Debug.LogWarning($"[Mission1] Arena mismatch: zone {distToArena:F1}m from player (prologue endpoint). Recentering {zoneCenterPosition} -> {target}; repositioning {enemyTrackers.Count} bots.");
+            Debug.Log($"[Mission1] Arena coordinate updated to player ({distToArena:F1}m delta). No bot teleportation (bots advance on foot).");
             zoneCenterPosition = target;
             if (mission1Zone != null) mission1Zone.transform.position = zoneCenterPosition;
-            Vector3[] bridgeOffsets = new Vector3[]
+
+            // Live combatants physically walk/run to the player; NEVER snap or teleport!
+            for (int i = 0; i < activeEnemies.Count; i++)
             {
-                new Vector3(-3.5f, 0f, 0f),
-                new Vector3(3.5f, 0f, 0f),
-                new Vector3(0f, 0f, 4.5f)
-            };
-            int moved = 0;
-            for (int i = 0; i < enemyTrackers.Count; i++)
-            {
-                var tr = enemyTrackers[i];
-                if (tr == null) { Debug.LogWarning($"[Mission1] Recenter: enemyTrackers[{i}] null; skipped."); continue; }
-                Vector3 rPos = zoneCenterPosition + bridgeOffsets[Mathf.Min(i, bridgeOffsets.Length - 1)];
-                if (NavMesh.SamplePosition(rPos, out NavMeshHit bHit, 6f, NavMesh.AllAreas)) rPos = bHit.position;
-                tr.ResetToInitial(rPos, Quaternion.Euler(0f, 90f, 0f));
-                moved++;
+                var ctrl = activeEnemies[i];
+                if (ctrl != null && !ctrl.IsDead)
+                {
+                    ctrl.targetEnemy = playerTransform;
+                }
             }
-            Debug.Log($"[Mission1] Recenter done: repositioned {moved}/{enemyTrackers.Count} bots around {zoneCenterPosition}.");
         }
 
         public void TriggerCombatArenaDirect()
@@ -1724,16 +1813,8 @@ namespace Cyberpunk.Missions
                     _lastGroupAttackTime = Time.time;
                     break;
                 }
-                // If enemy is mid-range (3.2m to 7.0m) and not attacking, trigger gap closer
-                else if (dist > 3.2f && dist <= 7.0f && !ctrl.IsAttacking && !ctrl.IsComboRunning)
-                {
-                    if (Random.value < 0.20f)
-                    {
-                        ctrl.StartAIGunSwordCombo(InsaneGunSwordController.AIGunSwordComboType.StalkerLunge);
-                        _lastGroupAttackTime = Time.time;
-                        break;
-                    }
-                }
+                // Mid-range approach handled purely on foot by AICirclingEnemy (smooth running/walking, no teleport lunges)
+
             }
         }
 

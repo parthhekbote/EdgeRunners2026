@@ -19,6 +19,7 @@ namespace PolygonMech
         private static AudioClip _thrusterLoop;
         private static AudioClip[] _missileLaunches;
         private static AudioClip[] _seismicSlams;
+        private static AudioClip[] _impactHeavies;
         private static AudioClip[] _titanBladeCleaves;
         private static AudioClip[] _gatlingShots;
         private static AudioClip _overdriveAlarm;
@@ -108,6 +109,12 @@ namespace PolygonMech
         {
             if (_seismicSlams == null) GenerateSeismicSlams();
             return _seismicSlams[Random.Range(0, _seismicSlams.Length)];
+        }
+
+        public static AudioClip GetImpactHeavy()
+        {
+            if (_impactHeavies == null) GenerateImpactHeavies();
+            return _impactHeavies[Random.Range(0, _impactHeavies.Length)];
         }
 
         public static AudioClip GetTitanBladeCleave()
@@ -350,6 +357,34 @@ namespace PolygonMech
 
                 _missileLaunches[i] = AudioClip.Create($"Mech_MissileLaunch_{i}", count, 1, SampleRate, false);
                 _missileLaunches[i].SetData(data, 0);
+            }
+        }
+
+        // Heavy steel-on-steel impact: dull body thud, crunch of debris and a short ringing plate
+        private static void GenerateImpactHeavies()
+        {
+            _impactHeavies = new AudioClip[2];
+            for (int i = 0; i < 2; i++)
+            {
+                float duration = 0.85f;
+                int count = Mathf.FloorToInt(SampleRate * duration);
+                float[] data = new float[count];
+                float ringFreq = i == 0 ? 210f : 165f;
+
+                for (int s = 0; s < count; s++)
+                {
+                    float t = (float)s / SampleRate;
+                    float progress = (float)s / count;
+
+                    float body = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(95f, 38f, Mathf.Min(1f, progress * 3f)) * t) * Mathf.Exp(-t * 7f);
+                    float crunch = (Random.value * 2f - 1f) * Mathf.Exp(-t * 20f) * 0.8f;
+                    float plate = (Mathf.Sin(2f * Mathf.PI * ringFreq * t) + 0.5f * Mathf.Sin(2f * Mathf.PI * ringFreq * 2.76f * t)) * Mathf.Exp(-t * 9f) * 0.30f;
+
+                    data[s] = Mathf.Clamp((body * 1.1f + crunch + plate) * 0.95f, -0.99f, 0.99f);
+                }
+
+                _impactHeavies[i] = AudioClip.Create($"Mech_ImpactHeavy_{i}", count, 1, SampleRate, false);
+                _impactHeavies[i].SetData(data, 0);
             }
         }
 
