@@ -1539,7 +1539,7 @@ namespace Cyberpunk.Missions
             }
             Alita.UI.CyberpunkDialogueHUD.Instance?.CloseDialogue();
 
-            StartCoroutine(IdoReputationAnnouncementRoutine());
+            PendingIdoReputationMessage = true;
 
             Debug.Log("<color=#00FFAA><b>[Mission 4]</b></color> Vulcan defeated! Press [E] to execute finisher.");
         }
@@ -1625,15 +1625,47 @@ namespace Cyberpunk.Missions
             Mission3_PitFightManager.Instance?.OnVulcanShowdownCompleted();
         }
 
-        private IEnumerator IdoReputationAnnouncementRoutine()
+        /// <summary>Set when Vulcan falls; Ido's reputation message plays once Alita is back in the city.</summary>
+        public static bool PendingIdoReputationMessage;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void HookIdoReputationMessage()
         {
-            yield return new WaitForSeconds(2.5f);
-            yield return PlayCutsceneConversation(new List<Alita.UI.CyberpunkDialogueHUD.DialogueLineData>
+            PendingIdoReputationMessage = false;
+            SceneManager.sceneLoaded -= OnSceneLoadedForIdoMessage;
+            SceneManager.sceneLoaded += OnSceneLoadedForIdoMessage;
+        }
+
+        private static void OnSceneLoadedForIdoMessage(Scene scene, LoadSceneMode mode)
+        {
+            if (!PendingIdoReputationMessage || scene.name != "Demo_City") return;
+            PendingIdoReputationMessage = false;
+            new GameObject("IdoReputationMessenger").AddComponent<IdoReputationMessenger>();
+        }
+
+        private class IdoReputationMessenger : MonoBehaviour
+        {
+            private IEnumerator Start()
             {
-                CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "Alita... you did it. The whole district just watched you take down Vulcan."),
-                CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "You've earned a reputation in this city now. People respect you for what you did in the Pit, so no one will attack you anymore, even if you attack them."),
-                CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "They'll only run from you now. Use that respect wisely."),
-            });
+                // Let the loading screen finish and the player settle outside the arena doors.
+                yield return new WaitForSecondsRealtime(4.0f);
+
+                var lines = new List<Alita.UI.CyberpunkDialogueHUD.DialogueLineData>
+                {
+                    CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "Alita... you did it. The whole district just watched you take down Vulcan."),
+                    CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "You've earned a reputation in this city now. People respect you for what you did in the Pit, so no one will attack you anymore, even if you attack them."),
+                    CutsceneLine("DR. DYSON IDO", "CYBER-SURGEON // COMMS", "They'll only run from you now. Use that respect wisely."),
+                };
+                bool done = false;
+                Alita.UI.CyberpunkDialogueHUD.GetOrCreate().StartConversation(lines, () => done = true);
+                float t = 0f;
+                while (!done && t < 40f)
+                {
+                    t += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                Destroy(gameObject);
+            }
         }
 
         private IEnumerator FadeOutMusic(AudioSource src, float duration)

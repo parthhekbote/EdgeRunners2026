@@ -18,13 +18,13 @@ namespace PolygonCyberCity.NPC.BT.Trees
         {
             // --- BRANCH 1: MORALE BREAK / RETREAT ON CRITICAL HEALTH ---
             var retreatBranch = new ConditionNode(
-                bb => bb.Health < 25f && bb.WasAttacked,
+                bb => (bb.Health < 25f || AlitaReputation.IsKnownHero) && bb.WasAttacked,
                 new TaskPanicFlee(agent, animator, controller, fleeDist: 25f, sprintSpeed: 5.5f)
             );
 
             // --- BRANCH 2: AGGRESSIVE COMBAT ENGAGEMENT ---
             var combatBranch = new ConditionNode(
-                bb => bb.CurrentState == NPCMacroState.Aggressive || bb.WasAttacked,
+                bb => !AlitaReputation.IsKnownHero && (bb.CurrentState == NPCMacroState.Aggressive || bb.WasAttacked),
                 new Selector(
                     // 2A: Strike player if in close range with cooldown
                     new Sequence(

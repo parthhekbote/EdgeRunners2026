@@ -811,6 +811,16 @@ namespace PolygonCyberCity.NPC.Spawner
                     }
                     if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = false;
                 }
+                else if (AlitaReputation.IsKnownHero)
+                {
+                    // Gang members respect the Pit champion too: they run instead of hitting back.
+                    if (_blackboard != null)
+                    {
+                        _blackboard.CurrentState = NPCMacroState.Fleeing;
+                        _blackboard.WasAttacked = true;
+                    }
+                    if (agent != null && agent.enabled && agent.isOnNavMesh) agent.isStopped = false;
+                }
                 else
                 {
                     if (_blackboard != null) _blackboard.CurrentState = NPCMacroState.Aggressive;
@@ -872,7 +882,7 @@ namespace PolygonCyberCity.NPC.Spawner
                 _blackboard.CurrentState = NPCMacroState.Fleeing;
                 _blackboard.WasAttacked = true;
             }
-            else if (npcType == NPCType.Mercenary || npcType == NPCType.StreetThug)
+            else if ((npcType == NPCType.Mercenary || npcType == NPCType.StreetThug) && !AlitaReputation.IsKnownHero)
             {
                 _blackboard.CurrentState = NPCMacroState.Aggressive;
             }
