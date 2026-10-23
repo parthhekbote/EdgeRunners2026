@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using SyntyCombined.BlackMarket;
 using SyntyCombined.Cutscene;
+using SyntyCombined.World;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -76,6 +77,7 @@ namespace SyntyCombined.BlackMarket
         public BlackMarketNPC fixerVossNPC;
         public RefineryDataTerminal refineryTerminal;
         public BlackMarketCatwalkFallTrigger catwalkFallTrigger;
+        public SyndicateHoverTankAI siegeTankAI;
 
         // Runtime state
         private readonly HashSet<string> _leadsFound = new HashSet<string>();
@@ -92,11 +94,31 @@ namespace SyntyCombined.BlackMarket
             {
                 Instance = this;
             }
+            else if (Instance != this)
+            {
+                Destroy(this);
+                return;
+            }
+
+            // Cleanly deactivate any legacy conflicting missions in scene
+            var legacyMission = Object.FindAnyObjectByType<SyntyCombined.World.BlackMarketCoreRetrievalMission>();
+            if (legacyMission != null)
+            {
+                legacyMission.gameObject.SetActive(false);
+                Debug.Log("<color=#38BDF8>[Story Director]</color> Deactivated legacy BlackMarketCoreRetrievalMission to ensure linear narrative.");
+            }
+            var legacyBetrayal = Object.FindAnyObjectByType<SyntyCombined.World.CollectorBetrayalManager>();
+            if (legacyBetrayal != null)
+            {
+                legacyBetrayal.gameObject.SetActive(false);
+                Debug.Log("<color=#38BDF8>[Story Director]</color> Deactivated legacy CollectorBetrayalManager.");
+            }
         }
 
         private void Start()
         {
             FindPlayer();
+            AutoBindSceneReferences();
             SetupEmergencyLight();
             LoadAudioClipsIfMissing();
 
@@ -104,6 +126,78 @@ namespace SyntyCombined.BlackMarket
             SetStoryState(BlackMarketStoryState.InvestigateMarket);
 
             StartCoroutine(IntroStoryBeats());
+        }
+
+        private void AutoBindSceneReferences()
+        {
+            if (fixerVossNPC == null)
+            {
+                var all = Object.FindObjectsByType<BlackMarketNPC>(FindObjectsSortMode.None);
+                foreach (var n in all)
+                {
+                    if (n.isStoryObjectiveNPC || n.characterName.Contains("Voss") || n.name.Contains("Voss"))
+                    {
+                        fixerVossNPC = n;
+                        break;
+                    }
+                }
+            }
+            if (refineryTerminal == null)
+            {
+                refineryTerminal = Object.FindAnyObjectByType<RefineryDataTerminal>();
+            }
+            if (catwalkFallTrigger == null)
+            {
+                catwalkFallTrigger = Object.FindAnyObjectByType<BlackMarketCatwalkFallTrigger>();
+            }
+            if (landingPadCenter == null)
+            {
+                var pad = GameObject.Find("SM_Bld_Corp_LandingPad_02") ?? GameObject.Find("LandingPad_B04") ?? GameObject.Find("Pad_B04");
+                if (pad != null) landingPadCenter = pad.transform;
+            }
+            if (starshipTransform == null)
+            {
+                var ship = GameObject.Find("Nightshade_Striker") ?? GameObject.Find("SS04_Nightshade_Striker") ?? GameObject.FindGameObjectWithTag("Vehicle");
+                if (ship != null) starshipTransform = ship.transform;
+            }
+            if (siegeTankAI == null)
+            {
+                siegeTankAI = Object.FindAnyObjectByType<SyndicateHoverTankAI>();
+                if (siegeTankAI == null)
+                {
+                    siegeTankAI = EnsureSiegeTank();
+                }
+            }
+        }
+
+        public SyndicateHoverTankAI EnsureSiegeTank()
+        {
+            var existing = GameObject.Find("SM_Veh_HoverTank_03");
+            if (existing != null)
+            {
+                var ai = existing.GetComponent<SyndicateHoverTankAI>() ?? existing.AddComponent<SyndicateHoverTankAI>();
+                return ai;
+            }
+
+            GameObject prefab = null;
+#if UNITY_EDITOR
+            prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Synty/PolygonSciFiWorlds/Prefabs/Props/Vehicles/SM_Veh_HoverTank_03.prefab");
+#endif
+            if (prefab == null) prefab = Resources.Load<GameObject>("SM_Veh_HoverTank_03");
+
+            if (prefab != null)
+            {
+                Vector3 parkPos = new Vector3(-4.75f, -0.58f, -30.0f);
+                Quaternion parkRot = Quaternion.Euler(0f, 0f, 0f);
+                var tankGo = Instantiate(prefab, parkPos, parkRot);
+                tankGo.name = "SM_Veh_HoverTank_03";
+                var ai = tankGo.AddComponent<SyndicateHoverTankAI>();
+                ai.garageParkedPos = parkPos;
+                ai.combatDeployPos = new Vector3(-4.87f, -0.58f, -22.50f);
+                ai.FindReferences();
+                return ai;
+            }
+            return null;
         }
 
         // ==================== Investigation Leads ====================
@@ -318,7 +412,11 @@ namespace SyntyCombined.BlackMarket
                     break;
 
                 case BlackMarketStoryState.CatwalkCollapse_Fall:
-                    // Handled by BlackMarketCatwalkFallTrigger
+                    // Handled by BlackMarketCatwalkFallTrigger; shut down upper-street tank laser
+                    if (siegeTankAI != null && siegeTankAI.targetingLaser != null)
+                    {
+                        siegeTankAI.targetingLaser.enabled = false;
+                    }
                     break;
 
                 case BlackMarketStoryState.LowerTrenchCombat:
@@ -389,12 +487,30 @@ namespace SyntyCombined.BlackMarket
                 CyberpunkHUDController.Instance.ShowToast("ALARM: 10M CREDIT BOUNTY // TERMINATE ALITA", 3.5f);
             }
 
-            yield return new WaitForSeconds(1.2f);
+            // 2. Activate Syndicate Heavy Hover Tank & start shooting!
+            if (siegeTankAI != null)
+            {
+                if (_playerTransform == null) FindPlayer();
+                siegeTankAI.targetPlayer = _playerTransform;
+                siegeTankAI.ActivateTank();
+            }
+            else
+            {
+                var tank = SyndicateHoverTankAI.Instance ?? Object.FindAnyObjectByType<SyndicateHoverTankAI>();
+                if (tank != null)
+                {
+                    if (_playerTransform == null) FindPlayer();
+                    tank.targetPlayer = _playerTransform;
+                    tank.ActivateTank();
+                }
+            }
 
-            // 2. Spawn Alley Hunters
+            yield return new WaitForSeconds(1.0f);
+
+            // 3. Spawn Alley Hunters
             SpawnAlleyAmbushSquad();
 
-            // 3. Switch to Chase State
+            // 4. Switch to Chase State
             SetStoryState(BlackMarketStoryState.FleeAcrossCatwalk);
 
             // 4. Voss's confession lands while the hunters close in
@@ -424,6 +540,7 @@ namespace SyntyCombined.BlackMarket
             for (int i = 0; i < alleyAmbushPoints.Length; i++)
             {
                 Vector3 spawnPos = alleyAmbushPoints[i];
+                spawnPos.y = BlackMarketRuntimeSpawner.GetFloorY(spawnPos);
                 Quaternion spawnRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
 
                 GameObject enemy = null;
@@ -480,6 +597,7 @@ namespace SyntyCombined.BlackMarket
             for (int i = 0; i < lowerTrenchAmbushPoints.Length; i++)
             {
                 Vector3 spawnPos = lowerTrenchAmbushPoints[i];
+                spawnPos.y = BlackMarketRuntimeSpawner.GetFloorY(spawnPos);
                 Quaternion spawnRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
 
                 GameObject enemy = null;

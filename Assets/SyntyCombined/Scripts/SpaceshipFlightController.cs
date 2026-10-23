@@ -577,6 +577,33 @@ namespace SyntyCombined
                 // Exit ship on [F] or [E]
                 if (_exitCooldown <= 0f && (Input.GetKeyDown(boardKey) || Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.F)))
                 {
+                    // Check if Black Market mission is active and returning to Pad B-04
+                    if (SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance != null &&
+                        (SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance.currentStage == SyntyCombined.World.CoreRetrievalStage.ReturnToLandingPad ||
+                         (SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance.tractorBeam != null && SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance.tractorBeam.HeldCoreCount >= 4)))
+                    {
+                        var mission = SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance;
+                        float horizDist = Vector2.Distance(new Vector2(transform.position.x, transform.position.z),
+                                                           new Vector2(mission.landingPadPos.x, mission.landingPadPos.z));
+                        float vertDist = Mathf.Abs(transform.position.y - mission.landingPadPos.y);
+
+                        if (horizDist <= 22f && vertDist <= 30f)
+                        {
+                            mission.ExecuteLandingOnPad();
+                            return;
+                        }
+                    }
+
+                    // Altitude safety check: Don't disembark if flying high in space with no ground below
+                    if (_groundDistance > 12f)
+                    {
+                        if (CyberpunkHUDController.Instance != null)
+                        {
+                            CyberpunkHUDController.Instance.ShowToast("CANNOT DISEMBARK AT CURRENT ALTITUDE // RETURN TO LANDING PAD", 3.0f);
+                        }
+                        return;
+                    }
+
                     DisembarkPlayer();
                 }
 
@@ -771,9 +798,15 @@ namespace SyntyCombined
             Cursor.visible = false;
 
             // Settle ship down safely
-            _rb.linearVelocity = Vector3.zero;
-            _rb.angularVelocity = Vector3.zero;
-            _rb.isKinematic = true;
+            if (_rb != null)
+            {
+                if (!_rb.isKinematic)
+                {
+                    _rb.linearVelocity = Vector3.zero;
+                    _rb.angularVelocity = Vector3.zero;
+                }
+                _rb.isKinematic = true;
+            }
 
             if (_engineAudio != null)
             {

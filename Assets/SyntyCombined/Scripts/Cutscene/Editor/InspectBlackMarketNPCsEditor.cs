@@ -9,7 +9,6 @@ namespace SyntyCombined.Editor
 {
     public static class InspectBlackMarketNPCsEditor
     {
-        [InitializeOnLoadMethod]
         [MenuItem("Tools/Inspect Black Market NPCs")]
         public static void Inspect()
         {

@@ -37,7 +37,8 @@ namespace SyntyCombined.BlackMarket
             {
                 if (existing.transform.childCount > 0)
                 {
-                    // Ecosystem already baked and populated in scene
+                    // Ecosystem already baked and populated in scene - ensure story director and infrastructure
+                    EnsureEcosystemStoryInfrastructure(existing);
                     return existing;
                 }
                 Object.DestroyImmediate(existing);
@@ -289,25 +290,29 @@ namespace SyntyCombined.BlackMarket
 
             // 10. The Collector (Stationed inside SM_Bld_Pod_Hab_Small_04 (1) Trophy Den)
             GameObject vossGo = SpawnNPC(
-                root.transform, "The Collector (Kaelen Voss)", NPCRoleType.StoryFixer, "THE COLLECTOR // ALIEN RELIC OVERLORD",
+                root.transform, "The Collector (Kaelen Voss)", NPCRoleType.StoryFixer, "THE COLLECTOR // FIXER",
                 new Color(0.95f, 0.75f, 0.15f), new Vector3(4.8f, 0.28f, -7.8f), Quaternion.Euler(0f, -125f, 0f),
                 SCI_FI_CHR_PATH + "SM_Chr_ScifiWorlds_AlienArmor_01.prefab", animLeanM, phoneChatter,
-                isStoryObjective: true, unlockObjectiveText: "MISSION ACTIVE: Head to Western Flight Deck, Board Starship & Retrieve 4 Core Matrices [0/4]",
+                isStoryObjective: true, unlockObjectiveText: "OBJECTIVE: Infiltrate Refinery Depot & Hack Secure Terminal",
                 dialogue: new string[]
                 {
-                    "Well, well... Alita. The legendary Martian Berserker standing inside my trophy sanctuary. Word reached my antennae before your ship's thrusters even cooled.",
-                    "You're looking for your URM-004 Antimatter Core, aren't you? My salvage informants intercepted the Omni-Corp encrypted dispatch: the core was transferred off this station hours ago, bound for the ancient Cydonia War-Vault on Mars.",
-                    "I have the orbital hyperspace jump vector to Mars locked in my terminal. But on Sector 4, nothing is free. When the Corporation raided our ring, four critical Antimatter Core Matrices were blown out into space through the broken dome.",
-                    "Without those four matrices, this station's central reactor dies, and my hyperspace gate stays offline. That's where you come in.",
-                    "Take the SS-04 Nightshade Striker docked on the Western Flight Deck—she's fitted with an electromagnetic ventral tractor beam [T]. Fly out through the fractured dome, lock onto all 4 scattered core matrices, and dock them into Engine-01's central reactor.",
-                    "Restore station power, and I'll transmit the Mars hyperspace jump vector straight to your ship's nav-computer. Go get those cores, hunter."
+                    "Alita: \"Voss. I need the Mars coordinates.\"",
+                    "Voss: \"Steal the encrypted Data Core from the upper refinery, and they're yours.\""
                 }
             );
 
             if (vossGo != null)
             {
                 var vossNpc = vossGo.GetComponent<BlackMarketNPC>();
-                vossNpc.waitingDialogueText = "The 4 Core Matrices are still drifting out in space. Board the Nightshade on Pad 02 and engage your ventral tractor beam [T]!";
+                vossNpc.waitingDialogueText = "Refinery terminal is on the upper catwalk. Bring me that Data Core.";
+                vossNpc.returnDialogueEntries = new List<DialogueEntry>
+                {
+                    new DialogueEntry { dialogueText = "Alita: \"I've got your core, Voss. Now give me the jump coordinates.\"", speakerMood = "Determined" },
+                    new DialogueEntry { dialogueText = "Voss: \"You actually pulled it off. Telemetry, vault keys... all of it. Impressive, kid.\"", speakerMood = "Sinister" },
+                    new DialogueEntry { dialogueText = "Voss: \"Which makes this almost hurt. Omni-Corp put ten million on your head, Alita. And that kind of money buys a lot of silence.\"", speakerMood = "Sinister" },
+                    new DialogueEntry { dialogueText = "Voss: \"Lock down the alley! Don't let her leave this sector breathing!\"", speakerMood = "Aggressive" },
+                    new DialogueEntry { dialogueText = "Alita: \"You son of a bitch. You just made the biggest mistake of your life.\"", speakerMood = "Defiant" }
+                };
                 combatDirector.fixerVossNPC = vossNpc;
             }
 
@@ -1040,7 +1045,8 @@ namespace SyntyCombined.BlackMarket
             RuntimeAnimatorController idleController = null,
             string leadId = null,
             string leadTitle = null,
-            string leadInsight = null)
+            string leadInsight = null,
+            string completedDialogue = null)
         {
             // Precision ground snap: get true floor Y
             position.y = GetFloorY(position);
@@ -1098,6 +1104,8 @@ namespace SyntyCombined.BlackMarket
             npcComp.leadId = leadId ?? "";
             npcComp.leadTitle = leadTitle ?? "";
             npcComp.leadInsight = leadInsight ?? "";
+            npcComp.canTalk = (dialogue != null && dialogue.Length > 0) || isStoryObjective || !string.IsNullOrEmpty(leadId);
+            npcComp.completedDialogueText = completedDialogue ?? "";
 
             npcComp.dialogueEntries.Clear();
             if (dialogue != null)
@@ -1122,6 +1130,171 @@ namespace SyntyCombined.BlackMarket
             }
 
             return instance;
+        }
+
+        public static void EnsureEcosystemStoryInfrastructure(GameObject root)
+        {
+            if (root == null) return;
+
+            // 1. Ensure HUD & Story Combat Director
+            BlackMarketNPCDialogueHUD.GetOrCreate();
+            var combatDirector = root.GetComponent<BlackMarketStoryCombatDirector>() ?? root.AddComponent<BlackMarketStoryCombatDirector>();
+
+#if UNITY_EDITOR
+            if (combatDirector.alarmSirenSFX == null)
+                combatDirector.alarmSirenSFX = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Blackwall/cyberpunk-2077-blackwall-ghost-attack.mp3");
+            if (combatDirector.explosionSFX == null)
+                combatDirector.explosionSFX = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Music/dragon-studio-dry-thunder-364468.mp3");
+            if (combatDirector.fallLandingSFX == null)
+                combatDirector.fallLandingSFX = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Jump_Landing_Boots_01.wav");
+            if (combatDirector.warpDriveSFX == null)
+                combatDirector.warpDriveSFX = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/SciFi_Starship_Flyby_Pass.mp3");
+#endif
+
+            // 2. Ensure Refinery Terminal & Catwalk Trigger
+            SpawnRefineryTerminal(root.transform, combatDirector);
+            SpawnCatwalkFallTrigger(root.transform, combatDirector);
+
+            // 3. Deactivate legacy competing missions
+            var legacyMission = Object.FindAnyObjectByType<SyntyCombined.World.BlackMarketCoreRetrievalMission>();
+            if (legacyMission != null) legacyMission.gameObject.SetActive(false);
+            var legacyBetrayal = Object.FindAnyObjectByType<SyntyCombined.World.CollectorBetrayalManager>();
+            if (legacyBetrayal != null) legacyBetrayal.gameObject.SetActive(false);
+
+            // 4. Synchronize key story NPCs
+            ConfigureStoryNPCs(root, combatDirector);
+        }
+
+        public static void ConfigureStoryNPCs(GameObject root, BlackMarketStoryCombatDirector combatDirector)
+        {
+            // --- 1. Voss (The Collector) ---
+            var vossObj = GameObject.Find("NPC_The_Collector_Kaelen_Voss") ?? GameObject.Find("The Collector (Kaelen Voss)");
+            if (vossObj != null)
+            {
+                var voss = vossObj.GetComponent<BlackMarketNPC>() ?? vossObj.AddComponent<BlackMarketNPC>();
+                voss.characterName = "Kaelen Voss";
+                voss.roleType = NPCRoleType.StoryFixer;
+                voss.roleBadgeTitle = "THE COLLECTOR // FIXER";
+                voss.badgeColor = new Color(0.95f, 0.75f, 0.15f);
+                voss.isStoryObjectiveNPC = true;
+                voss.canTalk = true;
+                voss.waitingDialogueText = "Refinery terminal is on the upper catwalk. Bring me that Data Core.";
+                voss.completedDialogueText = "";
+
+                voss.dialogueEntries = new List<DialogueEntry>
+                {
+                    new DialogueEntry { dialogueText = "Alita: \"Voss. I need the Mars coordinates.\"", speakerMood = "Determined" },
+                    new DialogueEntry { dialogueText = "Voss: \"Steal the encrypted Data Core from the upper refinery, and they're yours.\"", speakerMood = "Neutral" }
+                };
+
+                voss.returnDialogueEntries = new List<DialogueEntry>
+                {
+                    new DialogueEntry { dialogueText = "Alita: \"I've got your core, Voss. Now give me the jump coordinates.\"", speakerMood = "Determined" },
+                    new DialogueEntry { dialogueText = "Voss: \"You actually pulled it off. Telemetry, vault keys... all of it. Impressive, kid.\"", speakerMood = "Sinister" },
+                    new DialogueEntry { dialogueText = "Voss: \"Which makes this almost hurt. Omni-Corp put ten million on your head, Alita. And that kind of money buys a lot of silence.\"", speakerMood = "Sinister" },
+                    new DialogueEntry { dialogueText = "Voss: \"Lock down the alley! Don't let her leave this sector breathing!\"", speakerMood = "Aggressive" },
+                    new DialogueEntry { dialogueText = "Alita: \"You son of a bitch. You just made the biggest mistake of your life.\"", speakerMood = "Defiant" }
+                };
+
+                if (combatDirector != null) combatDirector.fixerVossNPC = voss;
+            }
+
+            // --- 2. Deck Tech Silas (Dockmaster by Landing Pad B-04) ---
+            var silasObj = GameObject.Find("NPC_Dockmaster_Silas");
+            if (silasObj != null)
+            {
+                var silas = silasObj.GetComponent<BlackMarketNPC>() ?? silasObj.AddComponent<BlackMarketNPC>();
+                silas.characterName = "Deck Tech Silas";
+                silas.roleType = NPCRoleType.ShipMechanic;
+                silas.roleBadgeTitle = "DOCK // DECK TECH";
+                silas.badgeColor = new Color(0.2f, 0.85f, 0.95f);
+                silas.isStoryObjectiveNPC = false;
+                silas.canTalk = true;
+                silas.leadId = "silas";
+                silas.leadTitle = "VOSS IS HIDING IN THE LOWER GANTRY";
+                silas.leadInsight = "NEW LEAD: VOSS RESIDES IN THE LOWER GANTRY POD";
+                silas.completedDialogueText = "I told you—Voss is down in the lower gantry pod with the skull banner. Talk to the stall merchants first so he knows you're serious.";
+
+                silas.dialogueEntries = new List<DialogueEntry>
+                {
+                    new DialogueEntry { dialogueText = "Alita: \"Hey. Where do I find the guy who brokered the URM core?\"", speakerMood = "Neutral" },
+                    new DialogueEntry { dialogueText = "Silas: \"Looking for Voss? He runs his salvage rackets from the lower gantry pod beneath the market stalls. But fair warning—Voss won't deal with strangers unless someone vouches for you. Talk to Vex at the gun shop or Dr. Thorne at the clinic first.\"", speakerMood = "Neutral" },
+                    new DialogueEntry { dialogueText = "Alita: \"Understood. I'll get the market talking.\"", speakerMood = "Determined" },
+                    new DialogueEntry { dialogueText = "Silas: \"Watch your back down there. Nobody leaves Voss's den without losing something.\"", speakerMood = "Guarded" }
+                };
+            }
+
+            // --- 3. Vex 'Trigger' Malakor (Arms Broker) ---
+            var vexObj = GameObject.Find("NPC_Vex_Trigger_Malakor");
+            if (vexObj != null)
+            {
+                var vex = vexObj.GetComponent<BlackMarketNPC>() ?? vexObj.AddComponent<BlackMarketNPC>();
+                vex.characterName = "Vex 'Trigger' Malakor";
+                vex.roleType = NPCRoleType.WeaponsMerchant;
+                vex.roleBadgeTitle = "WEAPONS // ARMS BROKER";
+                vex.badgeColor = new Color(0.95f, 0.25f, 0.25f);
+                vex.isStoryObjectiveNPC = false;
+                vex.canTalk = true;
+                vex.leadId = "vex";
+                vex.leadTitle = "VOSS BOUGHT A DEAD-MAN'S SWITCH";
+                vex.leadInsight = "NEW LEAD: VOSS BOUGHT A DEAD-MAN'S SWITCH";
+                vex.completedDialogueText = "I've told you what I know about Voss, Alita. Keep moving before corporate eyes spot us talking.";
+
+                vex.dialogueEntries = new List<DialogueEntry>
+                {
+                    new DialogueEntry { dialogueText = "Vex: \"Buy something or back off. ... Huh. Damascus plate, URM joints. You're not a customer. You're a war somebody dug up.\"", speakerMood = "Neutral" },
+                    new DialogueEntry { dialogueText = "Vex: \"Voss? He came through two nights ago and paid me for a dead-man's switch — cheap transmitter wired to his own heartbeat. Man planning to die on his own terms.\"", speakerMood = "Neutral" },
+                    new DialogueEntry { dialogueText = "Vex: \"He was shipping something out of the refinery, not the other way around. Whatever's in that terminal, he's already sold it once.\"", speakerMood = "Neutral" }
+                };
+            }
+
+            // --- 4. Dr. Aris Thorne (Ripperdoc Clinic) ---
+            var thorneObj = GameObject.Find("NPC_Dr._Aris_Thorne");
+            if (thorneObj != null)
+            {
+                var thorne = thorneObj.GetComponent<BlackMarketNPC>() ?? thorneObj.AddComponent<BlackMarketNPC>();
+                thorne.characterName = "Dr. Aris Thorne";
+                thorne.roleType = NPCRoleType.Ripperdoc;
+                thorne.roleBadgeTitle = "MED // RIPPERDOC";
+                thorne.badgeColor = new Color(0.2f, 0.85f, 0.5f);
+                thorne.isStoryObjectiveNPC = false;
+                thorne.canTalk = true;
+                thorne.leadId = "thorne";
+                thorne.leadTitle = "OMNI-CORP BOUGHT VOSS A CURE";
+                thorne.leadInsight = "NEW LEAD: OMNI-CORP BOUGHT VOSS A CURE";
+                thorne.completedDialogueText = "Get going, Alita. The fewer people who see you lingering in my clinic, the longer we both stay alive.";
+
+                thorne.dialogueEntries = new List<DialogueEntry>
+                {
+                    new DialogueEntry { dialogueText = "Thorne: \"Sit. No — stand. I've seen Cydonia rot before, and it doesn't sit.\"", speakerMood = "Neutral" },
+                    new DialogueEntry { dialogueText = "Thorne: \"Voss has it. Salvage crews came back from the Fall with Martian dust in their marrow. He's got maybe six weeks. Then Omni-Corp walked in with a clean stem-cell contract and a price.\"", speakerMood = "Neutral" },
+                    new DialogueEntry { dialogueText = "Thorne: \"He took it. Didn't ask what they wanted. On the way out I heard him say one thing: 'She won't even know she's the payment.' Watch your back, hunter.\"", speakerMood = "Guarded" }
+                };
+            }
+
+            // --- 5. Nyx 'Shadow' (Contraband Dealer) ---
+            var nyxObj = GameObject.Find("NPC_Nyx_Shadow");
+            if (nyxObj != null)
+            {
+                var nyx = nyxObj.GetComponent<BlackMarketNPC>() ?? nyxObj.AddComponent<BlackMarketNPC>();
+                nyx.characterName = "Nyx 'Shadow'";
+                nyx.roleType = NPCRoleType.ContrabandDealer;
+                nyx.roleBadgeTitle = "OUTLAW // CONTRABAND";
+                nyx.badgeColor = new Color(0.6f, 0.35f, 0.95f);
+                nyx.isStoryObjectiveNPC = false;
+                nyx.canTalk = true;
+                nyx.leadId = "nyx";
+                nyx.leadTitle = "THE BOUNTY WAS ISSUED BEFORE YOU LANDED";
+                nyx.leadInsight = "NEW LEAD: THE 10M BOUNTY WAS ISSUED FOR YOUR CHASSIS";
+                nyx.completedDialogueText = "The subnet's buzzing with hunter chatter. Don't linger here, Alita.";
+
+                nyx.dialogueEntries = new List<DialogueEntry>
+                {
+                    new DialogueEntry { dialogueText = "Nyx: \"Don't drip on the deck. The mesh is wet today.\"", speakerMood = "Neutral" },
+                    new DialogueEntry { dialogueText = "Nyx: \"The kill order isn't keyed to a crime. It's keyed to a signature — URM-004, Berserker-class. It went live four minutes after your ship touched Pad B-04. You didn't get made, hunter. You got scanned.\"", speakerMood = "Guarded" },
+                    new DialogueEntry { dialogueText = "Nyx: \"Voss brokered the contract. But the buyer wrote it before you ever landed. Think about that.\"", speakerMood = "Sinister" }
+                };
+            }
         }
     }
 }

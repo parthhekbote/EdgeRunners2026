@@ -86,7 +86,6 @@ namespace SyntyCombined.World
         private float _lastCannonFireTime = 0f;
         private float _lastPulseBurstTime = 0f;
         private bool _isChargingCannon = false;
-        private float _cannonChargeTimer = 0f;
         private const float CANNON_CHARGE_DURATION = 0.85f;
         private AudioSource _audioSource;
         private List<Light> _hoverThrusterLights = new List<Light>();
@@ -166,7 +165,7 @@ namespace SyntyCombined.World
         {
             if (targetPlayer == null)
             {
-                var p = GameObject.Find("Alita_BattleAngel_Hero") ?? GameObject.FindWithTag("Player");
+                var p = GameObject.FindGameObjectWithTag("Player") ?? GameObject.Find("Alita") ?? GameObject.Find("Alita_Hero") ?? GameObject.Find("Alita_BattleAngel_Hero");
                 if (p != null) targetPlayer = p.transform;
             }
 
@@ -305,7 +304,8 @@ namespace SyntyCombined.World
 
             currentState = TankCombatState.CombatActive;
             if (targetingLaser != null) targetingLaser.enabled = true;
-            _lastCannonFireTime = Time.time + 0.5f; // First cannon shot shortly after deploy
+            _lastCannonFireTime = Time.time;
+            StartCoroutine(FireCannonRoutine()); // Start shooting immediately!
         }
 
         private void Update()

@@ -844,6 +844,7 @@ namespace SyntyCombined
         public static GameObject BuildPauseMenu(InGamePauseManager pauseMgr, SettingsManager settingsMgr, ControlsMenuDisplay controlsDisplay)
         {
             if (pauseMgr == null) return null;
+            Cyberpunk.UI.UGUISelectableFix.Repair();
 
             // 1. Root Canvas
             GameObject canvasObj = new GameObject("Canvas_PauseMenu");

@@ -65,7 +65,15 @@ namespace SyntyCombined.BlackMarket
 
         [Header("Waiting Dialogue (While Task In Progress)")]
         [TextArea(2, 4)]
-        public string waitingDialogueText = "Retrieve all 4 Antimatter Cores from the orbital space debris outside the dome first, Alita. No cores, no Mars coordinates.";
+        public string waitingDialogueText = "Refinery terminal is on the upper catwalk. Bring me that Data Core.";
+
+        [Header("Post-Conversation Follow-up")]
+        [Tooltip("Line spoken after initial dialogue/lead is completed, avoiding repetitive loops.")]
+        [TextArea(2, 4)]
+        public string completedDialogueText = "";
+
+        [Tooltip("True once the initial dialogue or lead has been delivered to prevent repeating the full sequence.")]
+        public bool hasCompletedInitialDialogue = false;
 
         [Header("Interaction Radius")]
         public float interactionRange = 4.8f;
@@ -348,6 +356,16 @@ namespace SyntyCombined.BlackMarket
         {
             if (!canTalk && !isStoryObjectiveNPC) return;
 
+            // Block talking to Voss once betrayal/combat has begun
+            if (isStoryObjectiveNPC && BlackMarketStoryCombatDirector.Instance != null)
+            {
+                var state = BlackMarketStoryCombatDirector.Instance.currentState;
+                if (state >= BlackMarketStoryState.BetrayalAmbush)
+                {
+                    return;
+                }
+            }
+
             _isConversing = true;
             _currentDialogueIndex = 0;
 
@@ -362,114 +380,99 @@ namespace SyntyCombined.BlackMarket
                 AudioSource.PlayClipAtPoint(interactionSFX, transform.position, 0.8f);
             }
 
-            // Select appropriate dialogue list based on director state
+            // STORY OBJECTIVE NPC (KAELEN VOSS)
             if (isStoryObjectiveNPC && BlackMarketStoryCombatDirector.Instance != null)
             {
-                var state = BlackMarketStoryCombatDirector.Instance.currentState;
-                if (state == BlackMarketStoryState.InvestigateMarket && !BlackMarketStoryCombatDirector.Instance.HasEnoughLeads)
-                {
-                    // Voss stonewalls until the market corroborates his name
-                    _activeDialogueList = new List<DialogueEntry>
-                    {
-                        new DialogueEntry { dialogueText = "Easy, blade. Word is you've been asking the whole market about me. Ask two people who'll actually say my name out loud, then we'll talk.", speakerMood = "Guarded" }
-                    };
-                }
-                else if (state == BlackMarketStoryState.ReturnToVoss && returnDialogueEntries.Count > 0)
-                {
-                    _activeDialogueList = returnDialogueEntries;
-                }
-                else if (state == BlackMarketStoryState.InfiltrateRefineryTask)
-                {
-                    // Single waiting reminder
-                    _activeDialogueList = new List<DialogueEntry>
-                    {
-                        new DialogueEntry { dialogueText = waitingDialogueText, speakerMood = "Impatient" }
-                    };
-                }
-                else
-                {
-                    _activeDialogueList = dialogueEntries;
-                }
-            }
-            else if (isStoryObjectiveNPC && SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance != null)
-            {
-                var mission = SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance;
-                if (mission.currentStage == SyntyCombined.World.CoreRetrievalStage.Briefing)
-                {
-                    _activeDialogueList = dialogueEntries;
-                }
-                else if (mission.currentStage == SyntyCombined.World.CoreRetrievalStage.CollectingMatrices)
-                {
-                    int held = mission.tractorBeam != null ? mission.tractorBeam.HeldCoreCount : 0;
-                    _activeDialogueList = new List<DialogueEntry>
-                    {
-                        new DialogueEntry
-                        {
-                            dialogueText = $"What are you waiting for, Alita? The 4 Core Matrices are still drifting outside the broken dome. Take the Nightshade Striker on the Western Flight Deck and engage your ventral tractor beam [T]! [{held}/4 Secured]",
-                            speakerMood = "Impatient"
-                        }
-                    };
-                }
-                else if (mission.currentStage == SyntyCombined.World.CoreRetrievalStage.ReturnToCoreEngine ||
-                         mission.currentStage == SyntyCombined.World.CoreRetrievalStage.InsertingCores ||
-                         mission.currentStage == SyntyCombined.World.CoreRetrievalStage.ReactorIgnited ||
-                         mission.currentStage == SyntyCombined.World.CoreRetrievalStage.HyperspaceWarpUnlocked ||
-                         (mission.tractorBeam != null && mission.tractorBeam.HeldCoreCount >= 4) ||
-                         (CollectorBetrayalManager.Instance != null && (CollectorBetrayalManager.Instance.currentPhase == BetrayalPhase.WaitingForCoreReturn || CollectorBetrayalManager.Instance.currentPhase == BetrayalPhase.ConfrontingCollector)))
-                {
-                    if (CollectorBetrayalManager.Instance != null)
-                    {
-                        CollectorBetrayalManager.Instance.currentPhase = BetrayalPhase.ConfrontingCollector;
-                    }
+                var director = BlackMarketStoryCombatDirector.Instance;
+                var state = director.currentState;
 
-                    if (returnDialogueEntries != null && returnDialogueEntries.Count > 0)
+                if (state == BlackMarketStoryState.InvestigateMarket)
+                {
+                    if (!director.HasEnoughLeads)
                     {
-                        _activeDialogueList = returnDialogueEntries;
-                    }
-                    else
-                    {
+                        // Voss stonewalls until 2 leads are found
                         _activeDialogueList = new List<DialogueEntry>
                         {
                             new DialogueEntry
                             {
-                                dialogueText = "Alita: \"I brought all 4 antimatter cores from orbit, Voss. Every single matrix accounted for. Now hand over the Mars jump coordinates like you promised.\"",
-                                speakerMood = "Neutral"
-                            },
-                            new DialogueEntry
-                            {
-                                dialogueText = "Voss: \"All four intact URM cores... Transferring them into my vault right now. You really came through, Alita. The Syndicate owes you a great debt.\"",
-                                speakerMood = "Sinister"
-                            },
-                            new DialogueEntry
-                            {
-                                dialogueText = "Voss: \"Which is why it's a real shame I have to break our deal. See, Omni-Corp offered 100,000 credits for your intact Berserker chassis. And I don't leave money on the table.\"",
-                                speakerMood = "Sinister"
-                            },
-                            new DialogueEntry
-                            {
-                                dialogueText = "Voss: \"Did you honestly think I was going to let you fly off to Mars? You're worth far more to me dead! Syndicate Enforcers, lock down the concourse! Roll out the Heavy Siege Tank from the garage and blast her to scrap metal!\"",
-                                speakerMood = "Aggressive"
-                            },
-                            new DialogueEntry
-                            {
-                                dialogueText = "Alita: \"You cowardly traitor, Voss! You used me to retrieve your cores and sold me out to Omni-Corp! I'm taking these coordinates, and when I'm done with your tank, I'm coming back for you!\"",
-                                speakerMood = "Defiant"
+                                dialogueText = "Voss: \"Get two market vendors to vouch for you first, then we'll talk.\"",
+                                speakerMood = "Guarded"
                             }
                         };
                     }
+                    else
+                    {
+                        // Alita has enough leads -> Voss offers the Refinery Data Core task (concise 2-line briefing)
+                        _activeDialogueList = (dialogueEntries != null && dialogueEntries.Count > 0 && !dialogueEntries[0].dialogueText.Contains("Antimatter Cores") && dialogueEntries.Count <= 2)
+                            ? dialogueEntries
+                            : GetDefaultVossBriefingDialogue();
+                    }
+                }
+                else if (state == BlackMarketStoryState.InfiltrateRefineryTask)
+                {
+                    // Single waiting reminder
+                    string waitText = !string.IsNullOrEmpty(waitingDialogueText) && !waitingDialogueText.Contains("Antimatter Cores")
+                        ? waitingDialogueText
+                        : "Voss: \"Refinery terminal is on the upper catwalk. Bring me that Data Core.\"";
+
+                    _activeDialogueList = new List<DialogueEntry>
+                    {
+                        new DialogueEntry { dialogueText = waitText, speakerMood = "Impatient" }
+                    };
+                }
+                else if (state == BlackMarketStoryState.ReturnToVoss)
+                {
+                    // Betrayal conversation
+                    _activeDialogueList = (returnDialogueEntries != null && returnDialogueEntries.Count > 0 && !returnDialogueEntries[0].dialogueText.Contains("Antimatter Cores") && !returnDialogueEntries[0].dialogueText.Contains("refinery mainframe"))
+                        ? returnDialogueEntries
+                        : GetDefaultVossBetrayalDialogue();
+                }
+                else
+                {
+                    CloseConversation();
+                    return;
+                }
+            }
+            // REGULAR NPC OR INFORMANT
+            else
+            {
+                if (hasCompletedInitialDialogue && !string.IsNullOrEmpty(completedDialogueText))
+                {
+                    // Play short follow-up line, avoiding repeating full multi-line discovery conversation!
+                    _activeDialogueList = new List<DialogueEntry>
+                    {
+                        new DialogueEntry { dialogueText = completedDialogueText, speakerMood = "Neutral" }
+                    };
                 }
                 else
                 {
                     _activeDialogueList = dialogueEntries;
                 }
             }
-            else
-            {
-                _activeDialogueList = dialogueEntries;
-            }
 
             PlayRandomChatter();
             ShowCurrentDialogue();
+        }
+
+        private List<DialogueEntry> GetDefaultVossBriefingDialogue()
+        {
+            return new List<DialogueEntry>
+            {
+                new DialogueEntry { dialogueText = "Alita: \"Voss. I need the Mars coordinates.\"", speakerMood = "Determined" },
+                new DialogueEntry { dialogueText = "Voss: \"Steal the encrypted Data Core from the upper refinery, and they're yours.\"", speakerMood = "Neutral" }
+            };
+        }
+
+        private List<DialogueEntry> GetDefaultVossBetrayalDialogue()
+        {
+            return new List<DialogueEntry>
+            {
+                new DialogueEntry { dialogueText = "Alita: \"I've got your core, Voss. Now give me the jump coordinates.\"", speakerMood = "Determined" },
+                new DialogueEntry { dialogueText = "Voss: \"You actually pulled it off. Telemetry, vault keys... all of it. Impressive, kid.\"", speakerMood = "Sinister" },
+                new DialogueEntry { dialogueText = "Voss: \"Which makes this almost hurt. Omni-Corp put ten million on your head, Alita. And that kind of money buys a lot of silence.\"", speakerMood = "Sinister" },
+                new DialogueEntry { dialogueText = "Voss: \"Lock down the alley! Don't let her leave this sector breathing!\"", speakerMood = "Aggressive" },
+                new DialogueEntry { dialogueText = "Alita: \"You son of a bitch. You just made the biggest mistake of your life.\"", speakerMood = "Defiant" }
+            };
         }
 
         private float _lastAdvanceTime = 0f;
@@ -524,85 +527,42 @@ namespace SyntyCombined.BlackMarket
                 ApplyIdlePosture(defaultIdleID);
             }
 
+            hasCompletedInitialDialogue = true;
+
             if (isStoryObjectiveNPC && BlackMarketStoryCombatDirector.Instance != null)
             {
-                var state = BlackMarketStoryCombatDirector.Instance.currentState;
+                var director = BlackMarketStoryCombatDirector.Instance;
+                var state = director.currentState;
 
                 if (state == BlackMarketStoryState.InvestigateMarket)
                 {
-                    if (BlackMarketStoryCombatDirector.Instance.HasEnoughLeads)
+                    if (director.HasEnoughLeads)
                     {
                         // Task assigned!
-                        BlackMarketStoryCombatDirector.Instance.OnVossTaskAssigned();
+                        director.OnVossTaskAssigned();
                     }
                     else
                     {
-                        hud.ShowMissionBanner("VOSS ISN'T TALKING YET // CROSS-REFERENCE TWO MARKET LEADS");
+                        hud.ShowMissionBanner($"VOSS ISN'T TALKING YET // CROSS-REFERENCE TWO MARKET LEADS ({director.LeadsFound}/{director.RequiredLeads})");
                     }
                 }
                 else if (state == BlackMarketStoryState.ReturnToVoss)
                 {
                     // Double-cross revealed!
                     MarsCoordinatesUnlocked = true;
-                    BlackMarketStoryCombatDirector.Instance.OnVossBetrayalRevealed();
+                    canTalk = false; // Disable talking once betrayal begins!
+                    director.OnVossBetrayalRevealed();
                 }
-            }
-            else if (isStoryObjectiveNPC && SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance != null)
-            {
-                var mission = SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance;
-                if (mission.currentStage == SyntyCombined.World.CoreRetrievalStage.Briefing)
-                {
-                    mission.currentStage = SyntyCombined.World.CoreRetrievalStage.CollectingMatrices;
-
-                    if (CyberpunkHUDController.Instance != null)
-                    {
-                        CyberpunkHUDController.Instance.SetQuestObjective(
-                            "CORE RETRIEVAL",
-                            "► Head to Flight Deck, Board Starship & Retrieve 4 Core Matrices [0/4]"
-                        );
-                    }
-
-                    hud.ShowMissionBanner("MISSION ACCEPTED: BOARD STARSHIP ON FLIGHT DECK & RETRIEVE 4 CORES");
-                    hud.ShowTransmission(
-                        characterName.ToUpper(),
-                        roleBadgeTitle,
-                        "The SS-04 Nightshade Striker is prepped on Pad 02. Fly out through the broken dome and secure all 4 core matrices!",
-                        badgeColor,
-                        7.0f
-                    );
-                }
-                else if (mission.currentStage == SyntyCombined.World.CoreRetrievalStage.CollectingMatrices && (mission.tractorBeam == null || mission.tractorBeam.HeldCoreCount < 4))
-                {
-                    int held = mission.tractorBeam != null ? mission.tractorBeam.HeldCoreCount : 0;
-                    hud.ShowMissionBanner($"MISSION ACTIVE: RETRIEVE 4 ASTEROID CORE MATRICES [{held}/4]");
-                }
-                else if (mission.currentStage == SyntyCombined.World.CoreRetrievalStage.ReturnToCoreEngine ||
-                         mission.currentStage == SyntyCombined.World.CoreRetrievalStage.InsertingCores ||
-                         mission.currentStage == SyntyCombined.World.CoreRetrievalStage.HyperspaceWarpUnlocked ||
-                         mission.currentStage == SyntyCombined.World.CoreRetrievalStage.ReactorIgnited ||
-                         (mission.tractorBeam != null && mission.tractorBeam.HeldCoreCount >= 4) ||
-                         (CollectorBetrayalManager.Instance != null && (CollectorBetrayalManager.Instance.currentPhase == BetrayalPhase.ConfrontingCollector || CollectorBetrayalManager.Instance.currentPhase == BetrayalPhase.WaitingForCoreReturn)))
-                {
-                    if (CollectorBetrayalManager.Instance != null)
-                    {
-                        CollectorBetrayalManager.Instance.OnCollectorBetrayalDialogueFinished();
-                    }
-                    else
-                    {
-                        MarsCoordinatesUnlocked = true;
-                        hud.ShowMissionBanner("MARS COORDINATES UNLOCKED // FLEE THE SANCTUARY POD!");
-                    }
-                }
-            }
-            else if (isStoryObjectiveNPC)
-            {
-                MarsCoordinatesUnlocked = true;
-                hud.ShowMissionBanner(unlockObjectiveText);
             }
             else if (BlackMarketStoryCombatDirector.Instance != null && !string.IsNullOrEmpty(leadId))
             {
                 // Informant conversation cross-references a lead on Voss
                 BlackMarketStoryCombatDirector.Instance.RegisterLead(leadId, leadTitle, leadInsight);
+            }
+            else if (isStoryObjectiveNPC)
+            {
+                MarsCoordinatesUnlocked = true;
+                hud.ShowMissionBanner(unlockObjectiveText);
             }
         }
 
@@ -635,30 +595,33 @@ namespace SyntyCombined.BlackMarket
             if (!canTalk && !isStoryObjectiveNPC) return;
             if (!_isPlayerInRange || _isConversing) return;
 
+            // If betrayal has occurred, no prompts on Voss
+            if (isStoryObjectiveNPC && BlackMarketStoryCombatDirector.Instance != null)
+            {
+                var state = BlackMarketStoryCombatDirector.Instance.currentState;
+                if (state >= BlackMarketStoryState.BetrayalAmbush) return;
+            }
+
             string action = "Talk to " + characterName;
             if (isStoryObjectiveNPC && BlackMarketStoryCombatDirector.Instance != null)
             {
                 var state = BlackMarketStoryCombatDirector.Instance.currentState;
                 if (state == BlackMarketStoryState.ReturnToVoss)
                 {
-                    action = "Deliver 4 Antimatter Cores to Voss";
+                    action = "Deliver Encrypted Data Core to Voss";
                 }
                 else if (state == BlackMarketStoryState.InfiltrateRefineryTask)
                 {
                     action = "Speak with Kaelen Voss";
                 }
-                else if (state == BlackMarketStoryState.InvestigateMarket && !BlackMarketStoryCombatDirector.Instance.HasEnoughLeads)
+                else if (state == BlackMarketStoryState.InvestigateMarket)
                 {
-                    action = "Confront Kaelen Voss";
+                    action = BlackMarketStoryCombatDirector.Instance.HasEnoughLeads ? "Talk to Kaelen Voss" : "Confront Kaelen Voss";
                 }
             }
-            else if (isStoryObjectiveNPC && SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance != null)
+            else if (!string.IsNullOrEmpty(leadId))
             {
-                var mission = SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance;
-                if (mission.tractorBeam != null && mission.tractorBeam.HeldCoreCount >= 4)
-                {
-                    action = "Deliver 4 Antimatter Cores to Voss";
-                }
+                action = hasCompletedInitialDialogue ? ("Talk to " + characterName) : ("Inquire about Voss (" + characterName + ")");
             }
 
             Cyberpunk.UI.CyberpunkInteractionPromptHUD.DrawPromptImmediate("E", action);

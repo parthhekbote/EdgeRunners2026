@@ -1008,6 +1008,10 @@ namespace Cyberpunk.World
 
             CyberpunkLoadingScreen.Hide();
             PitArenaDoorTrigger.PendingSpawnPos = null;
+
+            // Back in the city after beating Vulcan: Ido calls for help from the bridge
+            if (sceneName == PitArenaDoorTrigger.CitySceneName)
+                IdoBridgeAmbushDirector.TryBegin();
             PitArenaDoorTrigger.IsInTransit = false;
             PitArenaDoorTrigger.IsReturningFromPit = false;
 

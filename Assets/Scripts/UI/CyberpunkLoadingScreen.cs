@@ -25,7 +25,6 @@ namespace Alita
     /// - "SYSTEM: BOOTING_" status line with animated blinking cursor
     /// - "LOADING" hero title in bright neon cyan (#38EFD7) with animated pixel block dots (■ ■ ■)
     /// - Neon magenta framed progress bar with smooth cyan fill gauge
-    /// - "INSERT COIN" pulsing arcade footer
     /// - Silk-smooth fade-in and fade-out transitions
     /// - Preserves 100% of existing API: Show(), SetProgress(), SetStatus(), Hide()
     /// </summary>
@@ -62,7 +61,6 @@ namespace Alita
         private Font      _customFont;
         private GUIStyle  _systemBootStyle;
         private GUIStyle  _loadingTitleStyle;
-        private GUIStyle  _insertCoinStyle;
 
         // ─── Public API (Preserved 100%) ──────────────────────────────────────
         public static void Show(string title = "LOADING...", Action onDone = null)
@@ -212,17 +210,6 @@ namespace Alita
             }
             _loadingTitleStyle.fontSize = Mathf.RoundToInt(38f * s);
             if (_customFont != null) _loadingTitleStyle.font = _customFont;
-
-            if (_insertCoinStyle == null)
-            {
-                _insertCoinStyle = new GUIStyle(GUI.skin.label)
-                {
-                    fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter
-                };
-            }
-            _insertCoinStyle.fontSize = Mathf.RoundToInt(15f * s);
-            if (_customFont != null) _insertCoinStyle.font = _customFont;
         }
 
         private void Update()
@@ -284,9 +271,6 @@ namespace Alita
 
             // 6. Progress Bar (Magenta Frame with Smooth Cyan Fill)
             DrawProgressBar(sw, sh);
-
-            // 7. Footer (INSERT COIN)
-            DrawFooter(sw, sh);
 
             GUI.color = oldGUIColor;
         }
@@ -428,16 +412,6 @@ namespace Alita
             GUI.DrawTexture(new Rect(barX, barY, borderThick, barH), _whiteTex);
             // Right border
             GUI.DrawTexture(new Rect(barX + barW - borderThick, barY, borderThick, barH), _whiteTex);
-        }
-
-        private void DrawFooter(int sw, int sh)
-        {
-            float y = sh * 0.785f;
-            float pulse = 0.75f + 0.25f * Mathf.Sin(_time * 4f);
-
-            _insertCoinStyle.normal.textColor = new Color(CyanColor.r, CyanColor.g, CyanColor.b, pulse * _fadeAlpha);
-            GUI.color = new Color(1f, 1f, 1f, _fadeAlpha);
-            GUI.Label(new Rect(0, y, sw, 30f), "INSERT  COIN", _insertCoinStyle);
         }
     }
 }

@@ -12,12 +12,14 @@ namespace SyntyCombined.World
 {
     public enum CoreRetrievalStage
     {
-        Briefing,
-        CollectingMatrices,
-        ReturnToCoreEngine,
-        InsertingCores,
-        ReactorIgnited,
-        HyperspaceWarpUnlocked
+        Briefing = 0,
+        CollectingMatrices = 1,
+        ReturnToLandingPad = 2,
+        ReturnToCoreEngine = 2,
+        LandedReturnToCollector = 3,
+        InsertingCores = 4,
+        ReactorIgnited = 5,
+        HyperspaceWarpUnlocked = 6
     }
 
     /// <summary>
@@ -52,6 +54,18 @@ namespace SyntyCombined.World
         public Transform coreEngineTransform;
         public Vector3 engineInsertionBayPos = new Vector3(-3.18f, 12.0f, -3.39f);
         public float insertionDockRadius = 26f;
+
+        [Header("Landing Pad B-04 Target")]
+        public Vector3 landingPadPos = new Vector3(27.48f, 1.86f, 34.00f);
+        public Quaternion landingPadRot = Quaternion.Euler(0f, 180f, 0f);
+        public float landingApproachRadius = 32f;
+        public float landingPadDockRadius = 6.5f;
+
+        private GameObject _landingPadBeacon;
+        private AudioSource _landingAudioSource;
+        private AudioClip _landingClampClip;
+        private bool _isLandingSequenceRunning = false;
+        private bool _isInLandingZone = false;
 
         [Header("Spaceship Reference")]
         public SpaceshipFlightController nightshadeShip;
@@ -88,6 +102,8 @@ namespace SyntyCombined.World
             FindSceneReferences();
             SpawnCoreMatricesIfNeeded();
             SetupReactorBay();
+            SetupLandingPadVisuals();
+            SetupLandingAudio();
 
             if (nightshadeShip != null)
             {
@@ -303,10 +319,29 @@ namespace SyntyCombined.World
                 ShowIntroBriefing();
             }
 
-            // Check if player is near insertion bay when all 4 cores are secured
-            if (currentStage == CoreRetrievalStage.ReturnToCoreEngine)
+            // Check if player is returning to landing pad with all 4 cores secured
+            if (currentStage == CoreRetrievalStage.ReturnToLandingPad)
             {
-                CheckInsertionBayProximity();
+                CheckLandingPadProximity();
+            }
+
+            // Animate landing beacon light pulse
+            if (_landingPadBeacon != null)
+            {
+                bool showBeacon = (currentStage == CoreRetrievalStage.ReturnToLandingPad);
+                if (_landingPadBeacon.activeSelf != showBeacon)
+                {
+                    _landingPadBeacon.SetActive(showBeacon);
+                }
+
+                if (showBeacon)
+                {
+                    var light = _landingPadBeacon.GetComponent<Light>();
+                    if (light != null)
+                    {
+                        light.intensity = 2.5f + Mathf.PingPong(Time.time * 4f, 3.0f);
+                    }
+                }
             }
         }
 
@@ -337,7 +372,7 @@ namespace SyntyCombined.World
             else
             {
                 // All 4 cores secured!
-                currentStage = CoreRetrievalStage.ReturnToCoreEngine;
+                currentStage = CoreRetrievalStage.ReturnToLandingPad;
                 if (CollectorBetrayalManager.Instance != null)
                 {
                     CollectorBetrayalManager.Instance.currentPhase = BetrayalPhase.WaitingForCoreReturn;
@@ -345,9 +380,9 @@ namespace SyntyCombined.World
 
                 if (BlackMarketNPCDialogueHUD.Instance != null)
                 {
-                    BlackMarketNPCDialogueHUD.Instance.ShowMissionBanner("ALL 4 MATRICES SECURED // RETURN TO THE COLLECTOR'S SANCTUARY POD");
+                    BlackMarketNPCDialogueHUD.Instance.ShowMissionBanner("ALL 4 MATRICES SECURED // RETURN TO FLIGHT DECK PAD B-04");
                     BlackMarketNPCDialogueHUD.Instance.ShowTransmission("VOSS", "DATA FIXER", 
-                        "Outstanding flying, Alita! All 4 matrices are locked in your cargo clamp. Land your starship on Landing Pad B-04 / Flight Deck, and bring them directly to my Sanctuary Pod [E] to claim your Mars coordinates!", 
+                        "Outstanding flying, Alita! All 4 matrices are locked in your cargo clamp. Return through the dome breach and land your starship back on Landing Pad B-04 on the flight deck! Bring them directly to my Sanctuary Pod [E] to claim your Mars coordinates!", 
                         new Color(0.2f, 0.95f, 1f), 8.0f);
                 }
 
@@ -355,10 +390,232 @@ namespace SyntyCombined.World
                 {
                     CyberpunkHUDController.Instance.SetQuestObjective(
                         "MISSION PAYOFF",
-                        "► Land starship on Landing Pad B-04 & deliver cores to The Collector in his Sanctuary Pod [E]"
+                        "► Return through dome breach and land on Landing Pad B-04 [E]"
                     );
-                    CyberpunkHUDController.Instance.ShowToast("MATRICES SECURED: RETURN TO COLLECTOR'S POD [E]", 5.0f);
+                    CyberpunkHUDController.Instance.ShowToast("MATRICES SECURED: RETURN TO LANDING PAD B-04", 5.0f);
                 }
+            }
+        }
+
+        private void SetupLandingAudio()
+        {
+            if (_landingAudioSource != null) return;
+            _landingClampClip = GenerateLandingClampClip();
+            _landingAudioSource = gameObject.AddComponent<AudioSource>();
+            _landingAudioSource.clip = _landingClampClip;
+            _landingAudioSource.playOnAwake = false;
+            _landingAudioSource.spatialBlend = 0.5f;
+            _landingAudioSource.volume = 0.95f;
+        }
+
+        private AudioClip GenerateLandingClampClip()
+        {
+            int sampleRate = 44100;
+            int samples = (int)(sampleRate * 0.95f);
+            float[] data = new float[samples];
+            for (int i = 0; i < samples; i++)
+            {
+                float t = (float)i / sampleRate;
+                float clunk = Mathf.Sin(2f * Mathf.PI * 65f * t) * Mathf.Exp(-t * 12f) * 0.7f;
+                float latch = Mathf.Sin(2f * Mathf.PI * 340f * t) * Mathf.Exp(-t * 22f) * 0.35f;
+                float hiss = (Random.value * 2f - 1f) * Mathf.Clamp01(1f - t / 0.85f) * Mathf.Clamp01(t * 8f) * 0.25f;
+                data[i] = Mathf.Clamp(clunk + latch + hiss, -1f, 1f);
+            }
+            var clip = AudioClip.Create("Landing_Clamp_Lock", samples, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        private void PlayLandingAudio()
+        {
+            if (_landingAudioSource == null) SetupLandingAudio();
+            if (_landingAudioSource != null && _landingClampClip != null)
+            {
+                _landingAudioSource.PlayOneShot(_landingClampClip);
+            }
+        }
+
+        private void SetupLandingPadVisuals()
+        {
+            if (_landingPadBeacon != null) return;
+            var existing = GameObject.Find("Landing_Pad_B04_MissionBeacon");
+            if (existing != null)
+            {
+                _landingPadBeacon = existing;
+                _landingPadBeacon.SetActive(false);
+                return;
+            }
+
+            _landingPadBeacon = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            _landingPadBeacon.name = "Landing_Pad_B04_MissionBeacon";
+            _landingPadBeacon.transform.position = landingPadPos + Vector3.up * 0.08f;
+            _landingPadBeacon.transform.localScale = new Vector3(8.5f, 0.04f, 8.5f);
+
+            var col = _landingPadBeacon.GetComponent<Collider>();
+            if (col != null)
+            {
+                if (Application.isPlaying) Destroy(col);
+                else DestroyImmediate(col);
+            }
+
+            var mr = _landingPadBeacon.GetComponent<MeshRenderer>();
+            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            var mat = new Material(shader);
+            mat.color = new Color(0f, 1f, 0.65f, 0.55f);
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", new Color(0f, 1.8f, 1.1f) * 1.5f);
+            mr.material = mat;
+
+            var light = _landingPadBeacon.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(0f, 1f, 0.65f);
+            light.range = 22f;
+            light.intensity = 3.5f;
+
+            _landingPadBeacon.SetActive(false);
+        }
+
+        private void CheckLandingPadProximity()
+        {
+            if (nightshadeShip == null || _isLandingSequenceRunning) return;
+
+            // If player already disembarked on/near pad
+            if (!nightshadeShip.IsPiloted)
+            {
+                float pDist = Vector3.Distance(nightshadeShip.transform.position, landingPadPos);
+                if (pDist < 14f)
+                {
+                    OnStarshipLandedOnPad();
+                }
+                return;
+            }
+
+            Vector3 shipPos = nightshadeShip.transform.position;
+            float horizDist = Vector2.Distance(new Vector2(shipPos.x, shipPos.z), new Vector2(landingPadPos.x, landingPadPos.z));
+            float vertDist = Mathf.Abs(shipPos.y - landingPadPos.y);
+
+            // Approach zone check
+            if (horizDist <= landingApproachRadius && vertDist <= 35f)
+            {
+                _isInLandingZone = true;
+
+                // Auto-land condition:
+                // 1. Ship touches down or hovers low directly over pad:
+                bool isTouchdown = (horizDist <= landingPadDockRadius && shipPos.y <= (landingPadPos.y + 3.2f));
+                // 2. Player presses [E] or [F] while aligned in the approach zone:
+                bool isLandingKey = (horizDist <= 18f && vertDist <= 22f && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.F)));
+
+                if (isTouchdown || isLandingKey)
+                {
+                    ExecuteLandingOnPad();
+                }
+            }
+            else
+            {
+                _isInLandingZone = false;
+            }
+        }
+
+        public void ExecuteLandingOnPad()
+        {
+            if (_isLandingSequenceRunning) return;
+            StartCoroutine(ExecuteLandingPadTouchdownSequence());
+        }
+
+        private IEnumerator ExecuteLandingPadTouchdownSequence()
+        {
+            _isLandingSequenceRunning = true;
+
+            if (CyberpunkHUDController.Instance != null)
+            {
+                CyberpunkHUDController.Instance.ShowToast("TOUCHDOWN SEQUENCE ENGAGED // PAD B-04", 3.0f);
+            }
+
+            if (nightshadeShip != null)
+            {
+                nightshadeShip.SetBoardingCooldown(2.5f);
+
+                var rb = nightshadeShip.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    if (!rb.isKinematic)
+                    {
+                        rb.linearVelocity = Vector3.zero;
+                        rb.angularVelocity = Vector3.zero;
+                    }
+                    rb.isKinematic = true;
+                }
+
+                Vector3 startPos = nightshadeShip.transform.position;
+                Quaternion startRot = nightshadeShip.transform.rotation;
+                Vector3 targetPos = landingPadPos;
+                Quaternion targetRot = landingPadRot;
+
+                float duration = 1.3f;
+                float elapsed = 0f;
+
+                while (elapsed < duration)
+                {
+                    elapsed += Time.deltaTime;
+                    float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+                    nightshadeShip.transform.position = Vector3.Lerp(startPos, targetPos, t);
+                    nightshadeShip.transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
+                    yield return null;
+                }
+
+                nightshadeShip.transform.position = targetPos;
+                nightshadeShip.transform.rotation = targetRot;
+
+                // Play clamp & landing audio
+                PlayLandingAudio();
+
+                // Disembark Alita safely onto the flight deck landing pad
+                nightshadeShip.DisembarkPlayer();
+
+                // Place Alita cleanly beside cockpit on the pad surface
+                var player = GameObject.FindWithTag("Player");
+                if (player != null)
+                {
+                    Vector3 safeAlitaPos = new Vector3(22.88f, 1.88f, 34.00f);
+                    var cc = player.GetComponent<CharacterController>();
+                    if (cc != null) cc.enabled = false;
+                    player.transform.position = safeAlitaPos;
+                    player.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+                    if (cc != null) cc.enabled = true;
+                    Physics.SyncTransforms();
+                }
+            }
+
+            OnStarshipLandedOnPad();
+            _isLandingSequenceRunning = false;
+        }
+
+        private void OnStarshipLandedOnPad()
+        {
+            if (currentStage == CoreRetrievalStage.LandedReturnToCollector) return;
+
+            currentStage = CoreRetrievalStage.LandedReturnToCollector;
+
+            if (CollectorBetrayalManager.Instance != null)
+            {
+                CollectorBetrayalManager.Instance.currentPhase = BetrayalPhase.WaitingForCoreReturn;
+            }
+
+            if (BlackMarketNPCDialogueHUD.Instance != null)
+            {
+                BlackMarketNPCDialogueHUD.Instance.ShowMissionBanner("TOUCHDOWN CONFIRMED // DELIVER CORES TO VOSS");
+                BlackMarketNPCDialogueHUD.Instance.ShowTransmission("VOSS", "DATA FIXER", 
+                    "Starship touchdown confirmed on Pad B-04. Bring all 4 core matrices into my Sanctuary Pod [E] immediately, Alita!", 
+                    new Color(0.2f, 0.95f, 1f), 7.5f);
+            }
+
+            if (CyberpunkHUDController.Instance != null)
+            {
+                CyberpunkHUDController.Instance.SetQuestObjective(
+                    "DELIVER CORES // DRIFT SECTOR 04",
+                    "► Enter The Collector's Sanctuary Pod and speak with Kaelen Voss [E]"
+                );
+                CyberpunkHUDController.Instance.ShowToast("STARSHIP SECURED: PROCEED TO SANCTUARY POD [E]", 5.0f);
             }
         }
 
@@ -492,11 +749,18 @@ namespace SyntyCombined.World
                     }
                     break;
 
-                case CoreRetrievalStage.ReturnToCoreEngine:
+                case CoreRetrievalStage.ReturnToLandingPad:
+                    objTitle = "MISSION: RETURN TO FLIGHT DECK";
+                    objBody = $">> ALL 4 MATRICES SECURED [{held}/4] <<\nRETURN THROUGH DOME & LAND ON PAD B-04 [E]";
+                    targetWpPos = landingPadPos;
+                    wpLabel = "LANDING PAD B-04 // WESTERN FLIGHT DECK";
+                    break;
+
+                case CoreRetrievalStage.LandedReturnToCollector:
                     objTitle = "MISSION: DELIVER THE 4 CORES";
-                    objBody = $">> ALL 4 MATRICES SECURED <<\nLAND ON PAD B-04 & TALK TO THE COLLECTOR [E]";
-                    targetWpPos = (CollectorBetrayalManager.Instance != null) ? CollectorBetrayalManager.Instance.landingPadPos : new Vector3(22.0f, 1.88f, 33.5f);
-                    wpLabel = "LANDING PAD B-04 // THE COLLECTOR";
+                    objBody = ">> TOUCHDOWN CONFIRMED <<\nENTER SANCTUARY POD & TALK TO KAELEN VOSS [E]";
+                    targetWpPos = new Vector3(4.80f, 0.45f, -7.80f);
+                    wpLabel = "THE COLLECTOR // KAELEN VOSS";
                     break;
 
                 case CoreRetrievalStage.InsertingCores:
@@ -509,6 +773,19 @@ namespace SyntyCombined.World
 
             // Objective text lives in the HUD quest tracker below the minimap
             PushObjectiveToHud(objTitle, objBody);
+
+            // Draw landing alignment guidance HUD when approaching Landing Pad B-04
+            if (currentStage == CoreRetrievalStage.ReturnToLandingPad && isPiloting && nightshadeShip != null)
+            {
+                Vector3 shipPos = nightshadeShip.transform.position;
+                float horizDist = Vector2.Distance(new Vector2(shipPos.x, shipPos.z), new Vector2(landingPadPos.x, landingPadPos.z));
+                float alt = shipPos.y - landingPadPos.y;
+
+                if (horizDist < 45f)
+                {
+                    DrawLandingAlignmentHUD(sw, sh, horizDist, alt);
+                }
+            }
 
             // Draw 3D Waypoint Reticle when target is active
             if (targetWpPos != Vector3.zero && _mainCam != null)
@@ -579,6 +856,59 @@ namespace SyntyCombined.World
             GUIUtility.RotateAroundPivot(angle, p1);
             GUI.DrawTexture(new Rect(p1.x, p1.y - thickness * 0.5f, length, thickness), Texture2D.whiteTexture);
             GUI.matrix = matrix;
+        }
+        private void DrawLandingAlignmentHUD(float sw, float sh, float horizDist, float alt)
+        {
+            float boxW = 420f;
+            float boxH = 78f;
+            float boxX = (sw - boxW) * 0.5f;
+            float boxY = sh - 165f;
+
+            // Background banner
+            GUI.color = new Color(0.02f, 0.05f, 0.10f, 0.88f);
+            GUI.DrawTexture(new Rect(boxX, boxY, boxW, boxH), Texture2D.whiteTexture);
+
+            bool isAligned = (horizDist <= 18f && alt <= 25f);
+            Color accentCol = isAligned ? new Color(0f, 1f, 0.65f) : new Color(0f, 0.85f, 1f);
+            GUI.color = accentCol;
+            DrawBorder(new Rect(boxX, boxY, boxW, boxH), 2);
+
+            var titleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 12,
+                fontStyle = FontStyle.Bold
+            };
+            titleStyle.normal.textColor = accentCol;
+
+            var subStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 11,
+                fontStyle = FontStyle.Normal
+            };
+            subStyle.normal.textColor = Color.white;
+
+            string statusText = isAligned
+                ? "▼ TOUCHDOWN ZONE LOCKED  |  PRESS [E] TO AUTO-LAND ▼"
+                : "▲ FLIGHT DECK ALIGNMENT  |  DESCEND TO PAD B-04 ▲";
+
+            GUI.Label(new Rect(boxX, boxY + 6f, boxW, 20f), statusText, titleStyle);
+            GUI.Label(new Rect(boxX, boxY + 28f, boxW, 20f), $"RANGE: {horizDist:F1}m   |   ALTITUDE: {alt:F1}m   |   DECK: B-04", subStyle);
+
+            if (isAligned)
+            {
+                var promptStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 11,
+                    fontStyle = FontStyle.Bold
+                };
+                promptStyle.normal.textColor = new Color(1f, 0.9f, 0.2f);
+                GUI.Label(new Rect(boxX, boxY + 50f, boxW, 20f), ">> TOUCH DOWN OR HIT [E] / [F] TO DOCK <<", promptStyle);
+            }
+
+            GUI.color = Color.white;
         }
         #endregion
     }

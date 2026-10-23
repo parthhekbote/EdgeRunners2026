@@ -96,11 +96,8 @@ namespace SyntyCombined.Editor
                 unlockObjectiveText: "MISSION ACTIVE: Head to Western Flight Deck, Board Starship & Retrieve 4 Core Matrices [0/4]",
                 dialogue: new string[]
                 {
-                    "Alita: \"You're Voss. I hear you have the jump coordinates to Mars.\"",
-                    "\"Word travels fast. Yeah, I've got the nav-data locked in my terminal. But nothing on Drift is free, hunter.\"",
-                    "Alita: \"What's your price?\"",
-                    "\"Omni-Corp raided my fuel depot and scattered four power cores into the debris field outside. Take the ship on the western pad, use the tractor beam [T], and slot them into the main reactor. Do that, and the coordinates are yours.\"",
-                    "Alita: \"Consider it done.\""
+                    "Alita: \"Voss. I need the Mars coordinates.\"",
+                    "Voss: \"Steal the encrypted Data Core from the upper refinery, and they're yours.\""
                 },
                 patrolWaypoints: null,
                 canTalk: true, // Talkable!

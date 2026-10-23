@@ -270,10 +270,9 @@ namespace Alita.UI
             rootPanel.anchoredPosition = new Vector2(0f, 42f);
             rootPanel.sizeDelta = new Vector2(1200f, 184f);
 
-            // Click interceptor to advance on clicking the dialogue panel
-            var panelButton = panelGO.AddComponent<Button>();
-            panelButton.transition = Selectable.Transition.None;
-            panelButton.onClick.AddListener(OnAdvanceInput);
+            // Click interceptor to advance on clicking the dialogue panel (avoids uGUI Selectable index bug)
+            var clicker = panelGO.AddComponent<DialoguePanelClickInterceptor>();
+            clicker.OnClick = OnAdvanceInput;
 
             // 2. Portrait Image (Sibling 0: sits BEHIND the frame, peeking through the transparent hex window)
             GameObject portraitGO = new GameObject("Portrait_Image");
@@ -976,5 +975,11 @@ namespace Alita.UI
         }
 
         #endregion
+    }
+
+    internal class DialoguePanelClickInterceptor : MonoBehaviour, UnityEngine.EventSystems.IPointerClickHandler
+    {
+        public System.Action OnClick;
+        public void OnPointerClick(UnityEngine.EventSystems.PointerEventData eventData) => OnClick?.Invoke();
     }
 }

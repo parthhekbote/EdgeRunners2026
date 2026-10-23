@@ -63,6 +63,25 @@ namespace SyntyCombined.BlackMarket
             col.size = triggerSize;
         }
 
+        private void Update()
+        {
+            if (_isTriggered) return;
+            if (BlackMarketStoryCombatDirector.Instance == null ||
+                BlackMarketStoryCombatDirector.Instance.currentState != BlackMarketStoryState.FleeAcrossCatwalk)
+            {
+                return;
+            }
+
+            if (_playerTransform == null) FindPlayer();
+            if (_playerTransform == null) return;
+
+            float dist = Vector3.Distance(_playerTransform.position, transform.position);
+            if (dist <= Mathf.Max(triggerSize.x, triggerSize.z) * 0.75f)
+            {
+                TriggerCatwalkCollapse();
+            }
+        }
+
         private void OnTriggerEnter(Collider other)
         {
             if (_isTriggered) return;
@@ -74,7 +93,8 @@ namespace SyntyCombined.BlackMarket
                 return;
             }
 
-            if (other.CompareTag("Player") || other.name.Contains("Alita"))
+            if (other.CompareTag("Player") || other.name.Contains("Alita") ||
+                (other.transform.root != null && (other.transform.root.CompareTag("Player") || other.transform.root.name.Contains("Alita"))))
             {
                 TriggerCatwalkCollapse();
             }

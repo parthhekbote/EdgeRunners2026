@@ -84,7 +84,9 @@ namespace Cyberpunk.World
             string sName = scene.name;
             if (sName == CitySceneName)
             {
-                // Fresh boot check: if player just pressed Play in Demo_City without transit
+                // Fresh boot check: in standalone build, start game at Dr. Ido's Clinic Lab for awakening sequence.
+                // In Unity Editor, allow developer to play directly in Demo_City without being kicked into Demo_Interior.
+#if !UNITY_EDITOR
                 if (!IsInTransit && !PendingSpawnPos.HasValue &&
                     !PitArenaDoorTrigger.IsReturningFromPit &&
                     !PitArenaDoorTrigger.HasVisitedPit &&
@@ -97,6 +99,7 @@ namespace Cyberpunk.World
                     SceneManager.LoadScene(InteriorSceneName);
                     return;
                 }
+#endif
 
                 SetupCityClinicDoor();
             }
@@ -135,6 +138,7 @@ namespace Cyberpunk.World
 
             if (sName == CitySceneName)
             {
+#if !UNITY_EDITOR
                 if (!IsInTransit && !PendingSpawnPos.HasValue &&
                     !PitArenaDoorTrigger.IsReturningFromPit &&
                     !PitArenaDoorTrigger.HasVisitedPit &&
@@ -147,6 +151,7 @@ namespace Cyberpunk.World
                     SceneManager.LoadScene(InteriorSceneName);
                     return;
                 }
+#endif
 
                 SetupCityClinicDoor();
             }
@@ -154,6 +159,14 @@ namespace Cyberpunk.World
             {
                 SetupInteriorClinicDoor();
             }
+        }
+
+        private static bool IsCutsceneTesting()
+        {
+#if UNITY_EDITOR
+            if (UnityEditor.EditorPrefs.GetBool("IdoBridge_AutoPlayCutscene", false)) return true;
+#endif
+            return false;
         }
 
         private static void SetupCityClinicDoor()

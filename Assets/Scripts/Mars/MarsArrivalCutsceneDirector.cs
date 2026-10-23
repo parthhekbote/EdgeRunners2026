@@ -131,16 +131,16 @@ namespace Cyberpunk.Mars
         private float _tacticalAlertTimer = 0f;
 
         // Scene Ground Positions
-        public readonly Vector3 ShipTouchdownPos = new Vector3(0f, 2.20f, 58.00f);
-        public readonly Quaternion ShipTouchdownRot = Quaternion.Euler(0f, 0f, 0f);
+        public Vector3 ShipTouchdownPos = new Vector3(0f, 2.20f, 58.00f);
+        public Quaternion ShipTouchdownRot = Quaternion.Euler(0f, 0f, 0f);
 
-        public readonly Vector3 CorePedestalPos = new Vector3(0f, 0.40f, 103.00f);
+        public Vector3 CorePedestalPos = new Vector3(0f, 0.40f, 103.00f);
 
-        public readonly Vector3 AlitaCombatStartPos = new Vector3(0f, 1.00f, 75.00f);
-        public readonly Quaternion AlitaCombatStartRot = Quaternion.Euler(0f, 0f, 0f);
+        public Vector3 AlitaCombatStartPos = new Vector3(0f, 1.00f, 75.00f);
+        public Quaternion AlitaCombatStartRot = Quaternion.Euler(0f, 0f, 0f);
 
-        public readonly Vector3 BossCombatStartPos = new Vector3(0f, 1.00f, 96.00f);
-        public readonly Quaternion BossCombatStartRot = Quaternion.Euler(0f, 180f, 0f);
+        public Vector3 BossCombatStartPos = new Vector3(0f, 1.00f, 96.00f);
+        public Quaternion BossCombatStartRot = Quaternion.Euler(0f, 180f, 0f);
 
         private void Awake()
         {
@@ -200,10 +200,29 @@ namespace Cyberpunk.Mars
         {
             if (alitaHero == null) alitaHero = GameObject.Find("Alita") ?? GameObject.FindGameObjectWithTag("Player");
             if (bossMech == null) bossMech = GameObject.Find("PF_HammerMechBoss");
+            if (starship == null) starship = GameObject.Find("Alita_Martian_Starship") ?? GameObject.Find("Starship");
             if (mainCamera == null)
             {
                 var camObj = GameObject.FindGameObjectWithTag("MainCamera");
                 if (camObj != null) mainCamera = camObj.GetComponent<Camera>();
+            }
+
+            if (starship != null)
+            {
+                ShipTouchdownPos = starship.transform.position;
+                ShipTouchdownRot = starship.transform.rotation;
+            }
+
+            if (alitaHero != null)
+            {
+                AlitaCombatStartPos = alitaHero.transform.position;
+                AlitaCombatStartRot = alitaHero.transform.rotation;
+            }
+
+            if (bossMech != null)
+            {
+                BossCombatStartPos = bossMech.transform.position;
+                BossCombatStartRot = bossMech.transform.rotation;
             }
 
             if (mainCamera != null)
@@ -240,6 +259,11 @@ namespace Cyberpunk.Mars
                     pGO.transform.position = CorePedestalPos;
                     corePedestal = pGO.AddComponent<MarsAntimatterCorePedestal>();
                 }
+            }
+
+            if (corePedestal != null)
+            {
+                CorePedestalPos = corePedestal.transform.position;
             }
 
             if (starDestroyerFleet == null)
@@ -571,11 +595,11 @@ namespace Cyberpunk.Mars
             // ════════════════════════════════════════════════════════════════════════
             // SHOT 3: STARSHIP TOUCHDOWN & CORE DISCOVERY (5.0s)
             // ════════════════════════════════════════════════════════════════════════
-            Vector3 shipStart3 = new Vector3(0f, 14f, 58f);
+            Vector3 shipStart3 = ShipTouchdownPos + new Vector3(0f, 12f, 0f);
             Vector3 shipEnd3 = ShipTouchdownPos;
 
-            Vector3 camStart3 = new Vector3(-5.5f, 1.3f, 64f);
-            Vector3 camEnd3 = new Vector3(-1.8f, 1.45f, 70.5f);
+            Vector3 camStart3 = ShipTouchdownPos + new Vector3(-5.5f, 0.5f, 6f);
+            Vector3 camEnd3 = ShipTouchdownPos + new Vector3(-1.8f, 0.65f, 12.5f);
 
             if (_sfxSource != null)
             {
@@ -588,9 +612,12 @@ namespace Cyberpunk.Mars
             bool swordDrawn = false;
 
             // Make Alita visible at starship ramp walking forward towards core
+            Vector3 alitaWalkStart = ShipTouchdownPos + new Vector3(0f, 0.1f, 3f);
+            Vector3 alitaWalkTarget = (corePedestal != null) ? (corePedestal.transform.position - Vector3.forward * 2f) : (ShipTouchdownPos + Vector3.forward * 6f);
+
             if (alitaHero != null)
             {
-                alitaHero.transform.position = new Vector3(0f, 2.2f, 61f);
+                alitaHero.transform.position = alitaWalkStart;
                 alitaHero.transform.rotation = AlitaCombatStartRot;
                 SetActorRenderersActive(alitaHero, true);
                 if (_alitaAnimator != null) _alitaAnimator.Play("Locomotion", 0, 0f);
@@ -623,7 +650,7 @@ namespace Cyberpunk.Mars
                 if (alitaHero != null && t3 > 1.5f)
                 {
                     float walkNorm = Mathf.Clamp01((t3 - 1.5f) / 2.2f);
-                    alitaHero.transform.position = Vector3.Lerp(new Vector3(0f, 2.2f, 61f), new Vector3(0f, 2.35f, 66f), walkNorm);
+                    alitaHero.transform.position = Vector3.Lerp(alitaWalkStart, alitaWalkTarget, walkNorm);
 
                     if (walkNorm >= 1.0f && !swordDrawn)
                     {
@@ -1388,6 +1415,14 @@ namespace Cyberpunk.Mars
             if (_mainCam == null)
             {
                 _mainCam = Camera.main;
+            }
+
+            if (corePedestal != null)
+            {
+                coreBayPos = corePedestal.transform.position;
+                crashedShipPos = corePedestal.transform.position + Vector3.forward * 8f;
+                warshipExitPos = corePedestal.transform.position - Vector3.forward * 12f;
+                warshipExitZ = warshipExitPos.z;
             }
         }
 
