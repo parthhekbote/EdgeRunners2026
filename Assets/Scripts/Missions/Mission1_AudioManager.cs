@@ -87,8 +87,9 @@ namespace Cyberpunk.Missions
                 bgmClip = resBgm;
             }
 
-            // M2 chase theme: Robbery Heist Chase Music by ikoliks_aj (in-Assets drop-in).
-            var resChase = Resources.Load<AudioClip>("Audio/ikoliks_aj-robbery-heist-chase-music-434840");
+            // M2 chase theme: Vector OST - Downtown Theme (Extended); falls back to the old heist chase track.
+            var resChase = Resources.Load<AudioClip>("Audio/Vector_OST_Downtown_Theme_Extended")
+                           ?? Resources.Load<AudioClip>("Audio/ikoliks_aj-robbery-heist-chase-music-434840");
             if (resChase != null)
             {
                 chaseBGMClip = resChase;
@@ -97,7 +98,8 @@ namespace Cyberpunk.Missions
 #if UNITY_EDITOR
             if (chaseBGMClip == null)
             {
-                chaseBGMClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Resources/Audio/ikoliks_aj-robbery-heist-chase-music-434840.mp3");
+                chaseBGMClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Resources/Audio/Vector_OST_Downtown_Theme_Extended.mp3")
+                               ?? UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Resources/Audio/ikoliks_aj-robbery-heist-chase-music-434840.mp3");
             }
             if (bgmClip == null)
             {
@@ -457,7 +459,7 @@ namespace Cyberpunk.Missions
             var allSources = GetComponentsInChildren<AudioSource>(true);
             foreach (var s in allSources)
             {
-                if (s != null && s.clip != null && (s.clip == bgmClip || s.clip == bgmFallbackClip || s.clip == chaseBGMClip || s.clip.name.Contains("ikoliks") || s.clip.name.Contains("heist") || s.clip.name.Contains("chase")))
+                if (s != null && s.clip != null && (s.clip == bgmClip || s.clip == bgmFallbackClip || s.clip == chaseBGMClip || s.clip.name.Contains("Downtown") || s.clip.name.Contains("ikoliks") || s.clip.name.Contains("heist") || s.clip.name.Contains("chase")))
                 {
                     s.Stop();
                     s.time = 0f;

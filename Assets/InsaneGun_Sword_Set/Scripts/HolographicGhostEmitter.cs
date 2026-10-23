@@ -14,19 +14,19 @@ namespace InsaneGun.Combat
     {
         [Header("Ghost Visuals")]
         [Tooltip("Default color of the holographic projection")]
-        public Color defaultGhostColor = new Color(0.0f, 0.95f, 1.0f, 0.85f); // Neon Cyan
+        public Color defaultGhostColor = new Color(0.0f, 1.8f, 2.2f, 0.90f); // Luminous Cyber Cyan
 
         [Tooltip("Color for heavy combo lunges & finishers")]
-        public Color heavyComboColor = new Color(1.0f, 0.10f, 0.45f, 0.90f);  // Neon Magenta
+        public Color heavyComboColor = new Color(2.5f, 0.15f, 1.2f, 0.95f);  // Luminous Neon Magenta
 
         [Tooltip("Color for evasive dodges")]
-        public Color dodgeGhostColor = new Color(0.3f, 1.0f, 0.85f, 0.75f);  // Electric Mint
+        public Color dodgeGhostColor = new Color(0.1f, 2.2f, 1.8f, 0.90f);  // Electric Mint Cyan
 
         [Tooltip("Duration each ghost projection remains visible before fading completely")]
-        public float ghostLifetime = 0.28f;
+        public float ghostLifetime = 0.45f;
 
         [Tooltip("Time between each snapshot during a continuous burst")]
-        public float burstInterval = 0.04f;
+        public float burstInterval = 0.035f;
 
         private SkinnedMeshRenderer[] _skinnedMeshes;
         private Material _ghostMaterial;
@@ -95,6 +95,7 @@ namespace InsaneGun.Combat
 
                 GameObject ghostGo = new GameObject("Ghost_Projection");
                 ghostGo.hideFlags = HideFlags.DontSave;
+                ghostGo.layer = smr.gameObject.layer; // Match player layer for camera culling & sorting
                 ghostGo.transform.position = smr.transform.position;
                 ghostGo.transform.rotation = smr.transform.rotation;
                 ghostGo.transform.localScale = smr.transform.lossyScale;
@@ -130,11 +131,23 @@ namespace InsaneGun.Combat
         private IEnumerator BurstRoutine(float duration, Color? color, float stepInterval, float? overrideLifetime)
         {
             float elapsed = 0f;
+            float timer = stepInterval;
+            float life = overrideLifetime ?? ghostLifetime;
+
+            // Emit instant initial snapshot at start of impulse
+            EmitSnapshot(color, life);
+
             while (elapsed < duration)
             {
-                EmitSnapshot(color, overrideLifetime);
-                yield return new WaitForSeconds(stepInterval);
-                elapsed += stepInterval;
+                yield return null;
+                float dt = Time.deltaTime;
+                elapsed += dt;
+                timer += dt;
+                if (timer >= stepInterval)
+                {
+                    timer = 0f;
+                    EmitSnapshot(color, life);
+                }
             }
             _activeBurstCoroutine = null;
         }
@@ -147,9 +160,9 @@ namespace InsaneGun.Combat
                 if (ghostGo == null) yield break;
 
                 elapsed += Time.deltaTime;
-                float progress = elapsed / lifetime;
-                // Quadratic falloff gives a sharp, neon snap fade
-                float alpha = Mathf.Clamp01(1f - (progress * progress));
+                float progress = Mathf.Clamp01(elapsed / lifetime);
+                // Sharp cybernetic ease-out: lingers vibrant before cleanly dissolving
+                float alpha = Mathf.Clamp01(1f - (progress * progress * progress));
 
                 mpb.SetFloat(PropAlpha, alpha);
                 if (mr != null) mr.SetPropertyBlock(mpb);

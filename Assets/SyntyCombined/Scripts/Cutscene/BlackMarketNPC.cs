@@ -148,7 +148,10 @@ namespace SyntyCombined.BlackMarket
 #endif
                 }
 
-                ApplyIdlePosture(defaultIdleID);
+                if (_wanderer == null)
+                {
+                    ApplyIdlePosture(defaultIdleID);
+                }
             }
 
             _fidgetTimer = Random.Range(fidgetIntervalMin, fidgetIntervalMax);
@@ -167,6 +170,7 @@ namespace SyntyCombined.BlackMarket
         public void ApplyIdlePosture(int idleId)
         {
             if (animator == null) return;
+            if (_wanderer != null && _wanderer.IsMoving) return;
             if (HasParameter("RandomIdle")) animator.SetInteger("RandomIdle", idleId);
             if (HasParameter("IsWalking")) animator.SetBool("IsWalking", false);
             if (HasParameter("Speed")) animator.SetFloat("Speed", 0f);
@@ -291,7 +295,7 @@ namespace SyntyCombined.BlackMarket
         {
             if (animator == null || !playAmbientFidgets) return;
             if (_isConversing) return;
-            if (_wanderer != null && _wanderer.IsMoving) return;
+            if (_wanderer != null) return; // Wanderers manage their own synchronized waypoint idle system
 
             _fidgetTimer -= Time.deltaTime;
             if (_fidgetTimer <= 0f)

@@ -44,8 +44,8 @@ namespace InsaneGun.Combat
         public float walkSpeed     = 2.4f;
         public float runSpeed      = 6.2f;
         public float rotationSpeed = 720f;
-        public float dodgeDistance = 2.8f; // Tight tactical dodge (reduced from 6.5m)
-        public float dodgeDuration = 0.32f;
+        public float dodgeDistance = 6.0f; // High-velocity AAA Cyberpunk dash
+        public float dodgeDuration = 0.30f;
         public float gravity       = 22f;
 
         [Header("Ground Detection")]
@@ -1213,16 +1213,18 @@ namespace InsaneGun.Combat
             SafeSetInteger(HashDodgeDir, di); SafeSetTrigger(HashDodgeTrigger);
             PlaySound(dashSounds != null && dashSounds.Length > 0 ? dashSounds : dodgeSounds);
             AAACyberCombatVFX.SpawnDodgeFX(transform.position, dir);
-            if (_ghostEmitter != null) _ghostEmitter.EmitBurst(dodgeDuration * 0.75f, new Color(0.1f, 0.95f, 0.85f, 0.75f), 0.035f, 0.20f);
+            if (_ghostEmitter != null) _ghostEmitter.EmitBurst(dodgeDuration * 0.90f, new Color(0.0f, 1.8f, 2.2f, 0.90f), 0.035f, 0.45f);
             float elapsed = 0f;
             while (elapsed < dodgeDuration)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / dodgeDuration);
-                // Tight, responsive ease-out curve covering ~2.8m (no flying across the arena)
-                float speed = (dodgeDistance / dodgeDuration) * (1f - t * 0.75f) * 1.35f;
+                // Kinetic, high-velocity Cyberpunk dash curve covering 6 meters cleanly
+                float speed = (dodgeDistance / dodgeDuration) * (1f - t * 0.65f) * 1.30f;
+                Vector3 moveDelta = dir * speed;
+                if (_isGrounded) moveDelta.y = -4.5f; // Ground hugging keeps character grounded over curbs, ramps, and steps
                 if (_cc != null && _cc.enabled && _cc.gameObject.activeInHierarchy)
-                    _cc.Move(dir * speed * Time.deltaTime);
+                    _cc.Move(moveDelta * Time.deltaTime);
                 yield return null;
             }
             _isDodging = false;
@@ -2037,7 +2039,7 @@ namespace InsaneGun.Combat
             }
 
             // STRICT SAFETY: if character is attacking or drawing/sheathing, activeMove is locked to zero
-            Vector3 activeMove = (_isAttacking || _isDrawingOrSheathing) ? Vector3.zero : _moveDirection;
+            Vector3 activeMove = (_isAttacking || _isDrawingOrSheathing || _isDodging) ? Vector3.zero : _moveDirection;
             Vector3 total = activeMove + _knockbackVelocity; total.y = _verticalVelocity;
             if (_cc != null && _cc.enabled && _cc.gameObject.activeInHierarchy)
             {

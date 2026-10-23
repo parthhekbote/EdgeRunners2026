@@ -32,6 +32,12 @@ namespace SyntyCombined.BlackMarket
         public RuntimeAnimatorController walkController;
         public RuntimeAnimatorController idleController;
 
+        [Header("Obstacle Avoidance")]
+        [Tooltip("How far ahead to probe for walls/props")]
+        public float lookAhead = 1.1f;
+        public float probeRadius = 0.3f;
+        public float probeHeight = 0.9f;
+
         [Header("Floor Raycast Layer Mask")]
         public LayerMask floorLayerMask = ~0;
 
@@ -46,6 +52,8 @@ namespace SyntyCombined.BlackMarket
         private int _isWalkingParamHash;
         private Vector3 _lastStuckCheckPos;
         private float _stuckCheckTimer = 0f;
+        private float _avoidSign = 1f;
+        private float _blockedTime = 0f;
 
         public bool IsMoving => !_isWaiting && !_isPaused && waypoints != null && waypoints.Count > 1;
 
@@ -56,16 +64,39 @@ namespace SyntyCombined.BlackMarket
                 animator = GetComponentInChildren<Animator>();
             }
 
-            if (animator != null && animator.runtimeAnimatorController == null)
+            if (animator != null)
             {
+                animator.applyRootMotion = false;
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
+                if (animator.runtimeAnimatorController == null)
+                {
 #if UNITY_EDITOR
-                animator.runtimeAnimatorController = UnityEditor.AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/PolygonCyberCity/Animations/AC_CyberNPC.controller");
+                    animator.runtimeAnimatorController = UnityEditor.AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/PolygonCyberCity/Animations/AC_CyberNPC.controller");
 #endif
+                }
             }
+
+            CleanupConflictingComponents();
 
             _npc = GetComponent<BlackMarketNPC>();
             _characterController = GetComponent<CharacterController>();
             _isWalkingParamHash = Animator.StringToHash("IsWalking");
+        }
+
+        private void CleanupConflictingComponents()
+        {
+            var agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent != null) agent.enabled = false;
+
+            var cyberCtrl = GetComponent("PolygonCyberCity.NPC.Spawner.CyberNPCController") as MonoBehaviour;
+            if (cyberCtrl != null) cyberCtrl.enabled = false;
+
+            var bt = GetComponent("PolygonCyberCity.NPC.BT.BehaviorTreeRunner") as MonoBehaviour;
+            if (bt != null) bt.enabled = false;
+
+            var veh = GetComponent("PolygonCyberCity.NPC.Spawner.CyberNPCVehicleAvoidance") as MonoBehaviour;
+            if (veh != null) veh.enabled = false;
         }
 
         private void Start()
@@ -89,6 +120,13 @@ namespace SyntyCombined.BlackMarket
                 }
             }
 
+            // 1b. Discard waypoints buried inside walls or props so nobody tries to walk into them
+            if (waypoints.Count > 2)
+            {
+                for (int i = waypoints.Count - 1; i >= 0 && waypoints.Count > 2; i--)
+                    if (IsInsideSolid(waypoints[i])) waypoints.RemoveAt(i);
+            }
+
             // 2. Initialize floor height for all waypoints
             for (int i = 0; i < waypoints.Count; i++)
             {
@@ -108,6 +146,12 @@ namespace SyntyCombined.BlackMarket
                 _currentWaypointIndex = (_currentWaypointIndex + 1) % waypoints.Count;
                 _lastStuckCheckPos = transform.position;
                 _waitTimer = Random.Range(0f, 0.6f);
+            }
+
+            if (animator != null)
+            {
+                animator.applyRootMotion = false;
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             }
 
             SetWalkingAnimation(true);
@@ -174,13 +218,38 @@ namespace SyntyCombined.BlackMarket
 
             SetWalkingAnimation(true);
 
-            // Rotate towards target heading
+            // Steer around walls and props instead of walking straight into them
             Vector3 moveDir = diff.normalized;
+            bool pathFree = TrySteer(ref moveDir);
+            if (!pathFree)
+            {
+                _blockedTime += Time.deltaTime;
+                if (_blockedTime > 0.8f)
+                {
+                    // Boxed in: give up on this waypoint, browse for a moment, then try the next one
+                    _blockedTime = 0f;
+                    _isWaiting = true;
+                    _waitTimer = Random.Range(waitTimeMin, waitTimeMax);
+                    AdvanceWaypoint();
+                    SetWalkingAnimation(false);
+                }
+                else
+                {
+                    SetWalkingAnimation(false);
+                }
+                return;
+            }
+            _blockedTime = 0f;
+
             if (moveDir.sqrMagnitude > 0.001f)
             {
                 Quaternion targetRot = Quaternion.LookRotation(moveDir);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, turnSpeed * Time.deltaTime);
             }
+
+            // While still turning away from a wall, hold position rather than clipping into it
+            if (IsBlocked(transform.forward, Mathf.Min(lookAhead, 0.6f)))
+                return;
 
             // Anti-stuck watchdog: if moving but barely progressing over 1.6s, advance waypoint
             _stuckCheckTimer += Time.deltaTime;
@@ -190,7 +259,6 @@ namespace SyntyCombined.BlackMarket
                 if (moved < 0.25f && !_isWaiting && !_isPaused)
                 {
                     AdvanceWaypoint();
-                    transform.position += transform.forward * 0.35f;
                 }
                 _lastStuckCheckPos = transform.position;
                 _stuckCheckTimer = 0f;
@@ -218,6 +286,77 @@ namespace SyntyCombined.BlackMarket
                 nextPos.y = SnapToFloor(nextPos);
                 transform.position = nextPos;
             }
+        }
+
+        private bool IsInsideSolid(Vector3 pos)
+        {
+            var cols = Physics.OverlapSphere(new Vector3(pos.x, pos.y + 1.0f, pos.z), 0.3f, ~0, QueryTriggerInteraction.Ignore);
+            foreach (var c in cols)
+            {
+                if (c == null || c.transform.IsChildOf(transform)) continue;
+                if (c.GetComponentInParent<CharacterController>() != null) continue;
+                if (c.GetComponentInParent<BlackMarketNPCWanderer>() != null) continue;
+                string n = c.name.ToLower();
+                if (n.Contains("alita") || n.Contains("starship") || n.StartsWith("npc_") || n.Contains("trigger")) continue;
+                return true;
+            }
+            return false;
+        }
+
+        // Tries the desired heading first, then widening offsets on the side that worked last time.
+        private bool TrySteer(ref Vector3 desired)
+        {
+            if (!IsBlocked(desired, lookAhead)) return true;
+
+            float[] angles = { 35f, 70f, 110f, 150f };
+            foreach (float a in angles)
+            {
+                Vector3 first = Quaternion.Euler(0f, a * _avoidSign, 0f) * desired;
+                if (!IsBlocked(first, lookAhead)) { desired = first; return true; }
+
+                Vector3 second = Quaternion.Euler(0f, -a * _avoidSign, 0f) * desired;
+                if (!IsBlocked(second, lookAhead)) { desired = second; _avoidSign = -_avoidSign; return true; }
+            }
+            return false;
+        }
+
+        // True when a wall or solid prop (not floor, steps, other NPCs or the player) is within dist along dir.
+        private bool IsBlocked(Vector3 dir, float dist)
+        {
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f) return false;
+            dir.Normalize();
+
+            // Probe at chest and knee height so low walls and railings count too; all layers, whatever floorLayerMask says
+            for (int h = 0; h < 2; h++)
+            {
+                Vector3 origin = transform.position + Vector3.up * (h == 0 ? probeHeight : 0.45f);
+                if (ProbeHits(origin, dir, dist)) return true;
+            }
+            return false;
+        }
+
+        private bool ProbeHits(Vector3 origin, Vector3 dir, float dist)
+        {
+            var hits = Physics.SphereCastAll(origin, probeRadius, dir, dist, ~0, QueryTriggerInteraction.Ignore);
+            foreach (var hit in hits)
+            {
+                var col = hit.collider;
+                if (col == null || col.transform.IsChildOf(transform)) continue;
+                if (hit.normal.y > 0.55f) continue;                       // walkable floor / ramp
+                if (col.GetComponentInParent<CharacterController>() != null) continue; // other NPCs, player
+                if (col.GetComponentInParent<BlackMarketNPCWanderer>() != null) continue;
+
+                string n = col.name.ToLower();
+                if (n.Contains("alita") || n.Contains("starship") || n.StartsWith("npc_") ||
+                    n.Contains("sign") || n.Contains("trigger") || n.Contains("roof")) continue;
+
+                // Low lips (curbs, cables) are stepped over
+                if (col.bounds.max.y < transform.position.y + 0.25f) continue;
+
+                return true;
+            }
+            return false;
         }
 
         private void AdvanceWaypoint()
@@ -287,9 +426,57 @@ namespace SyntyCombined.BlackMarket
                 {
                     animator.SetInteger("RandomIdle", 0);
                 }
+
+                if (HasParameter(_isWalkingParamHash))
+                {
+                    animator.SetBool(_isWalkingParamHash, true);
+                }
+
+                if (HasParameter(Animator.StringToHash("IsStopped")))
+                {
+                    animator.SetBool("IsStopped", false);
+                }
+
+                float animSpeed = Mathf.Max(walkSpeed, 1.45f);
+                if (HasParameter(Animator.StringToHash("Speed")))
+                {
+                    animator.SetFloat("Speed", animSpeed);
+                }
+
+                if (HasParameter(Animator.StringToHash("MoveSpeed")))
+                {
+                    animator.SetFloat("MoveSpeed", animSpeed);
+                }
+
+                // If not already in Locomotion or actively transitioning into it, smoothly crossfade
+                var state = animator.GetCurrentAnimatorStateInfo(0);
+                if (!state.IsName("Locomotion") && !animator.IsInTransition(0))
+                {
+                    animator.CrossFadeInFixedTime("Locomotion", 0.12f, 0);
+                }
             }
             else
             {
+                if (HasParameter(_isWalkingParamHash))
+                {
+                    animator.SetBool(_isWalkingParamHash, false);
+                }
+
+                if (HasParameter(Animator.StringToHash("IsStopped")))
+                {
+                    animator.SetBool("IsStopped", true);
+                }
+
+                if (HasParameter(Animator.StringToHash("Speed")))
+                {
+                    animator.SetFloat("Speed", 0f);
+                }
+
+                if (HasParameter(Animator.StringToHash("MoveSpeed")))
+                {
+                    animator.SetFloat("MoveSpeed", 0f);
+                }
+
                 if (HasParameter(Animator.StringToHash("RandomIdle")) && _isWaiting)
                 {
                     int currentIdle = animator.GetInteger("RandomIdle");
@@ -299,24 +486,6 @@ namespace SyntyCombined.BlackMarket
                         animator.SetInteger("RandomIdle", wanderIdlePool[Random.Range(0, wanderIdlePool.Length)]);
                     }
                 }
-            }
-
-            // If using standard IsWalking parameter
-            if (HasParameter(_isWalkingParamHash))
-            {
-                animator.SetBool(_isWalkingParamHash, walking);
-            }
-
-            // Also set Speed and MoveSpeed float if controller supports it
-            float animSpeed = walking ? Mathf.Max(walkSpeed, 1.45f) : 0f;
-            if (HasParameter(Animator.StringToHash("Speed")))
-            {
-                animator.SetFloat("Speed", animSpeed);
-            }
-
-            if (HasParameter(Animator.StringToHash("MoveSpeed")))
-            {
-                animator.SetFloat("MoveSpeed", animSpeed);
             }
 
             // Controller swapping fallback if idle/walk are separate standalone controllers

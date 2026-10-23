@@ -1883,6 +1883,22 @@ namespace SyntyCombined.Editor
                 if (avatar != null) anim.avatar = avatar;
             }
 
+            // Strip conflicting crowd components from prefabs (NavMeshAgent, CyberNPCController, BehaviorTreeRunner, CyberNPCVehicleAvoidance)
+            var navMeshAgent = instance.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (navMeshAgent != null) Object.DestroyImmediate(navMeshAgent);
+
+            var cyberCtrl = instance.GetComponent("PolygonCyberCity.NPC.Spawner.CyberNPCController");
+            if (cyberCtrl != null) Object.DestroyImmediate(cyberCtrl);
+
+            var bt = instance.GetComponent("PolygonCyberCity.NPC.BT.BehaviorTreeRunner");
+            if (bt != null) Object.DestroyImmediate(bt);
+
+            var veh = instance.GetComponent("PolygonCyberCity.NPC.Spawner.CyberNPCVehicleAvoidance");
+            if (veh != null) Object.DestroyImmediate(veh);
+
+            anim.applyRootMotion = false;
+            anim.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
             // Configure locomotion / colliders based on whether NPC is a wandering pedestrian or stationary shopkeeper
             if (patrolWaypoints != null && patrolWaypoints.Length > 1)
             {
@@ -1941,7 +1957,11 @@ namespace SyntyCombined.Editor
             npcComp.interactionRange = interactionRange;
             npcComp.animator = anim;
             npcComp.defaultIdleID = defaultIdleId;
-            npcComp.ApplyIdlePosture(defaultIdleId);
+            npcComp.playAmbientFidgets = (patrolWaypoints == null || patrolWaypoints.Length <= 1);
+            if (patrolWaypoints == null || patrolWaypoints.Length <= 1)
+            {
+                npcComp.ApplyIdlePosture(defaultIdleId);
+            }
 
             npcComp.dialogueEntries = new List<DialogueEntry>();
             foreach (var line in dialogue)

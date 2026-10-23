@@ -239,6 +239,21 @@ namespace Cyberpunk.Mars.Editor
                 }
             }
 
+            PopulateGameplay(sunLight, false);
+
+            // 13. Save Scene
+            EditorSceneManager.SaveScene(newScene, ScenePath);
+            Debug.Log($"[MarsSceneBuilder] Alita vs Titan Mech on Huge Martian Land Scene with Dust Storm & Cutscene built and saved to {ScenePath}");
+        }
+
+        /// <summary>
+        /// Adds volume, Alita, the Titan boss, camera, starship, directors and the core pedestal to the
+        /// active scene. When snapToGround is true, every spawn point is dropped onto the scene's colliders.
+        /// </summary>
+        public static void PopulateGameplay(Light sunLight, bool snapToGround)
+        {
+            Vector3 G(Vector3 p) => snapToGround ? SnapToGround(p) : p;
+
             // 7. Global Volume & Post-Processing (Mars Cinematic Tuning)
             GameObject volumeGO = new GameObject("Global Volume");
             var volume = volumeGO.AddComponent<Volume>();
@@ -280,7 +295,7 @@ namespace Cyberpunk.Mars.Editor
             {
                 playerInstance = (GameObject)PrefabUtility.InstantiatePrefab(alitaPrefab);
                 playerInstance.name = "Alita";
-                playerInstance.transform.position = new Vector3(0f, 0.1f, -12f);
+                playerInstance.transform.position = G(new Vector3(0f, 0.1f, -12f));
                 playerInstance.transform.rotation = Quaternion.identity;
                 playerInstance.tag = "Player";
                 playerInstance.layer = LayerMask.NameToLayer("Player");
@@ -301,7 +316,7 @@ namespace Cyberpunk.Mars.Editor
             {
                 bossInstance = (GameObject)PrefabUtility.InstantiatePrefab(bossPrefab);
                 bossInstance.name = "PF_HammerMechBoss";
-                bossInstance.transform.position = new Vector3(0f, 0.05f, 10f);
+                bossInstance.transform.position = G(new Vector3(0f, 0.05f, 10f));
                 bossInstance.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
                 // Set Boss and all children to Enemy layer so Alita can target and damage it
@@ -362,7 +377,7 @@ namespace Cyberpunk.Mars.Editor
             {
                 shipInstance = (GameObject)PrefabUtility.InstantiatePrefab(shipPrefab);
                 shipInstance.name = "Alita_Martian_Starship";
-                shipInstance.transform.position = new Vector3(0f, 2.2f, 58f);
+                shipInstance.transform.position = G(new Vector3(0f, 2.2f, 58f));
                 shipInstance.transform.rotation = Quaternion.identity;
 
                 GameObject lightGO = new GameObject("Thruster_Point_Light");
@@ -391,7 +406,7 @@ namespace Cyberpunk.Mars.Editor
 
             // 12B. Ancient URM Antimatter Core Pedestal
             GameObject corePedestalGO = new GameObject("Mars_Antimatter_Core_Pedestal");
-            corePedestalGO.transform.position = new Vector3(0f, 0.20f, 67.50f);
+            corePedestalGO.transform.position = G(new Vector3(0f, 0.20f, 67.50f));
             var corePedestal = corePedestalGO.AddComponent<MarsAntimatterCorePedestal>();
 
             // 12C. Imperial Star Destroyer Fleet (Dual Dreadnoughts)
@@ -425,10 +440,15 @@ namespace Cyberpunk.Mars.Editor
             coreMission.corePedestal = corePedestal;
             coreMission.cutsceneDirector = cutsceneDirector;
             coreMission.superchargeAura = superchargeAura;
+        }
 
-            // 13. Save Scene
-            EditorSceneManager.SaveScene(newScene, ScenePath);
-            Debug.Log($"[MarsSceneBuilder] Alita vs Titan Mech on Huge Martian Land Scene with Dust Storm & Cutscene built and saved to {ScenePath}");
+        /// <summary>Drops a point onto the highest collider below it, keeping its original height as an offset.</summary>
+        public static Vector3 SnapToGround(Vector3 p)
+        {
+            Physics.SyncTransforms();
+            if (Physics.Raycast(new Vector3(p.x, 300f, p.z), Vector3.down, out var hit, 600f, ~0, QueryTriggerInteraction.Ignore))
+                return new Vector3(p.x, hit.point.y + p.y, p.z);
+            return p;
         }
 
         /// <summary>

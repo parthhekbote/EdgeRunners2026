@@ -838,10 +838,54 @@ PrefabInstance:
       propertyPath: m_Name
       value: Alita
       objectReference: {fileID: 0}
+    - target: {fileID: 6381059225458123186, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: burstInterval
+      value: 0.035
+      objectReference: {fileID: 0}
+    - target: {fileID: 6381059225458123186, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: ghostLifetime
+      value: 0.45
+      objectReference: {fileID: 0}
+    - target: {fileID: 6381059225458123186, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: dodgeGhostColor.a
+      value: 0.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 6381059225458123186, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: dodgeGhostColor.b
+      value: 1.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 6381059225458123186, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: dodgeGhostColor.g
+      value: 2.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6381059225458123186, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: dodgeGhostColor.r
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6381059225458123186, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: defaultGhostColor.a
+      value: 0.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 6381059225458123186, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: defaultGhostColor.b
+      value: 2.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6381059225458123186, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: defaultGhostColor.g
+      value: 1.8
+      objectReference: {fileID: 0}
     - target: {fileID: 8254673018651005477, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
       propertyPath: targetEnemy
       value: 
       objectReference: {fileID: 911275187}
+    - target: {fileID: 8254673018651005477, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: dodgeDistance
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8254673018651005477, guid: 334be57b34ad5d54cb2abf6182657b4d, type: 3}
+      propertyPath: dodgeDuration
+      value: 0.3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

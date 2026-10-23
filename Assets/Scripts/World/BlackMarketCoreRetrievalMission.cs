@@ -460,42 +460,19 @@ namespace SyntyCombined.World
             float sw = Screen.width;
             float sh = Screen.height;
 
-            // Mission Objective Card (Top Left)
-            float objW = 420f;
-            float objH = 68f;
-            float objX = 24f;
-            float objY = 22f;
-
-            GUI.color = new Color(0.02f, 0.05f, 0.10f, 0.90f);
-            GUI.DrawTexture(new Rect(objX, objY, objW, objH), Texture2D.whiteTexture);
-            GUI.color = new Color(0f, 0.94f, 1.0f, 0.95f);
-            DrawBorder(new Rect(objX, objY, objW, objH), 1);
-
-            var titleStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 11,
-                fontStyle = FontStyle.Bold
-            };
-            titleStyle.normal.textColor = new Color(0f, 0.95f, 1f);
-
-            var subStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 12,
-                fontStyle = FontStyle.Bold
-            };
-            subStyle.normal.textColor = Color.white;
-
             int held = tractorBeam != null ? tractorBeam.HeldCoreCount : 0;
             bool isPiloting = nightshadeShip != null && nightshadeShip.IsPiloted;
 
             Vector3 targetWpPos = Vector3.zero;
             string wpLabel = "";
+            string objTitle = null;
+            string objBody = null;
 
             switch (currentStage)
             {
                 case CoreRetrievalStage.Briefing:
-                    GUI.Label(new Rect(objX + 12f, objY + 8f, objW - 24f, 18f), "MISSION: THE COLLECTOR // DRIFT SECTOR 04", titleStyle);
-                    GUI.Label(new Rect(objX + 12f, objY + 28f, objW - 24f, 32f), ">> LOCATE KAELEN VOSS <<\nENTER SANCTUARY POD ON CONCOURSE [E]", subStyle);
+                    objTitle = "MISSION: THE COLLECTOR // DRIFT SECTOR 04";
+                    objBody = ">> LOCATE KAELEN VOSS <<\nENTER SANCTUARY POD ON CONCOURSE [E]";
                     targetWpPos = new Vector3(4.80f, 0.45f, -7.80f);
                     wpLabel = "THE COLLECTOR // KAELEN VOSS";
                     break;
@@ -503,22 +480,21 @@ namespace SyntyCombined.World
                 case CoreRetrievalStage.CollectingMatrices:
                     if (!isPiloting)
                     {
-                        GUI.Label(new Rect(objX + 12f, objY + 8f, objW - 24f, 18f), "MISSION: ASTEROID CORE RETRIEVAL", titleStyle);
-                        GUI.Label(new Rect(objX + 12f, objY + 28f, objW - 24f, 32f), ">> BOARD NIGHTSHADE STRIKER <<\nHEAD TO WESTERN FLIGHT DECK [E]", subStyle);
+                        objTitle = "MISSION: ASTEROID CORE RETRIEVAL";
+                        objBody = ">> BOARD NIGHTSHADE STRIKER <<\nHEAD TO WESTERN FLIGHT DECK [E]";
                         if (nightshadeShip != null) targetWpPos = nightshadeShip.transform.position;
                         wpLabel = "SS-04 NIGHTSHADE STRIKER // FLIGHT DECK";
                     }
                     else
                     {
-                        GUI.Label(new Rect(objX + 12f, objY + 8f, objW - 24f, 18f), "MISSION: ASTEROID CORE RETRIEVAL", titleStyle);
-                        GUI.Label(new Rect(objX + 12f, objY + 28f, objW - 24f, 32f), $">> RETRIEVE SCATTERED MATRICES [{held} / 4] <<\nFLY OUT BROKEN DOME // TRACTOR BEAM [T]", subStyle);
+                        objTitle = "MISSION: ASTEROID CORE RETRIEVAL";
+                        objBody = $">> RETRIEVE SCATTERED MATRICES [{held} / 4] <<\nFLY OUT BROKEN DOME // TRACTOR BEAM [T]";
                     }
                     break;
 
                 case CoreRetrievalStage.ReturnToCoreEngine:
-                    GUI.Label(new Rect(objX + 12f, objY + 8f, objW - 24f, 18f), "MISSION: DELIVER THE 4 CORES", titleStyle);
-                    subStyle.normal.textColor = new Color(0.2f, 1f, 0.5f);
-                    GUI.Label(new Rect(objX + 12f, objY + 28f, objW - 24f, 32f), $">> ALL 4 MATRICES SECURED <<\nLAND ON PAD B-04 & TALK TO THE COLLECTOR [E]", subStyle);
+                    objTitle = "MISSION: DELIVER THE 4 CORES";
+                    objBody = $">> ALL 4 MATRICES SECURED <<\nLAND ON PAD B-04 & TALK TO THE COLLECTOR [E]";
                     targetWpPos = (CollectorBetrayalManager.Instance != null) ? CollectorBetrayalManager.Instance.landingPadPos : new Vector3(22.0f, 1.88f, 33.5f);
                     wpLabel = "LANDING PAD B-04 // THE COLLECTOR";
                     break;
@@ -526,11 +502,13 @@ namespace SyntyCombined.World
                 case CoreRetrievalStage.InsertingCores:
                 case CoreRetrievalStage.ReactorIgnited:
                 case CoreRetrievalStage.HyperspaceWarpUnlocked:
-                    GUI.Label(new Rect(objX + 12f, objY + 8f, objW - 24f, 18f), "MISSION COMPLETED: MARS COORDINATES DECRYPTED", titleStyle);
-                    subStyle.normal.textColor = new Color(0.1f, 1f, 0.4f);
-                    GUI.Label(new Rect(objX + 12f, objY + 28f, objW - 24f, 32f), "WARP VECTOR LOCKED // PRESS [R] TO JUMP TO MARS!", subStyle);
+                    objTitle = "MISSION COMPLETED: MARS COORDINATES DECRYPTED";
+                    objBody = "WARP VECTOR LOCKED // PRESS [R] TO JUMP TO MARS!";
                     break;
             }
+
+            // Objective text lives in the HUD quest tracker below the minimap
+            PushObjectiveToHud(objTitle, objBody);
 
             // Draw 3D Waypoint Reticle when target is active
             if (targetWpPos != Vector3.zero && _mainCam != null)
@@ -557,6 +535,18 @@ namespace SyntyCombined.World
             }
 
             GUI.color = Color.white;
+        }
+
+        private string _lastHudTitle, _lastHudBody;
+
+        private void PushObjectiveToHud(string title, string body)
+        {
+            if (title == null || body == null) return;
+            if (title == _lastHudTitle && body == _lastHudBody) return;
+            _lastHudTitle = title;
+            _lastHudBody = body;
+            if (CyberpunkHUDController.Instance != null)
+                CyberpunkHUDController.Instance.SetQuestObjective(title, body.Replace(">>", "").Replace("<<", "").Replace("\n", " ").Trim());
         }
 
         private void DrawBorder(Rect rect, int thickness)

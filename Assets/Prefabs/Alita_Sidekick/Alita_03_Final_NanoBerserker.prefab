@@ -1718,8 +1718,8 @@ MonoBehaviour:
   walkSpeed: 3
   runSpeed: 7
   rotationSpeed: 720
-  dodgeDistance: 3.2
-  dodgeDuration: 0.32
+  dodgeDistance: 6
+  dodgeDuration: 0.3
   gravity: 22
   groundLayers:
     serializedVersion: 2
@@ -1760,6 +1760,8 @@ MonoBehaviour:
   blockKey: 102
   lockedTarget: {fileID: 0}
   enableLockOn: 1
+  customAnimationKey: 109
+  customAnimationStateName: X_Bot_M_Action
   rightHandSocket: {fileID: 8182588340186238433}
   leftHandSocket: {fileID: 4953988795702222295}
   swordPrefab: {fileID: 0}
@@ -1813,11 +1815,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c14c4c7e77c422f7daad00f8e7cc4689, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InsaneGun.Combat.HolographicGhostEmitter
-  defaultGhostColor: {r: 0, g: 0.95, b: 1, a: 0.85}
+  defaultGhostColor: {r: 0, g: 1.8, b: 2.2, a: 0.9}
   heavyComboColor: {r: 1, g: 0.1, b: 0.45, a: 0.9}
-  dodgeGhostColor: {r: 0.3, g: 1, b: 0.85, a: 0.75}
-  ghostLifetime: 0.28
-  burstInterval: 0.04
+  dodgeGhostColor: {r: 0.1, g: 2.2, b: 1.8, a: 0.9}
+  ghostLifetime: 0.45
+  burstInterval: 0.035
 --- !u!114 &9161010241208147555
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1831,14 +1833,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InsaneGun.Combat.EuphoriaRagdollController
   _isRagdoll: 0
+  _isSettled: 0
+  _isFrozen: 0
   ragdollForceMultiplier: 1.35
-  autoRecoverDelay: 2.2
-  autoRecover: 1
-  getUpFaceDownClip: {fileID: 0}
-  getUpFaceUpClip: {fileID: 0}
+  inheritVelocityMultiplier: 0.85
+  maxInheritedVelocity: 12
+  boneLinearDamping: 0.75
+  boneAngularDamping: 1.8
   ragdollSettleVelocityThreshold: 0.4
+  settleCheckDuration: 0.4
+  autoFreezeFatalRagdolls: 1
+  freezeDelayAfterSettle: 1.8
+  autoRecover: 1
+  autoRecoverDelay: 2.2
   poseBlendDuration: 0.45
   getUpBlendInTime: 0.15
+  getUpFaceDownClip: {fileID: 0}
+  getUpFaceUpClip: {fileID: 0}
+  enableGroundImpactAudio: 1
+  enableGroundImpactDust: 1
+  groundImpactMinVelocity: 2.2
+  groundImpactAudioClips: []
 --- !u!1 &2855682738631761172
 GameObject:
   m_ObjectHideFlags: 0
