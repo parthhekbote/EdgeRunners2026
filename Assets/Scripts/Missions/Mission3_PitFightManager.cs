@@ -9,6 +9,7 @@ using SyntyCombined;
 using Cyberpunk.Inventory;
 using Cyberpunk.Audio;
 using Cyberpunk.World;
+using Cyberpunk.Arena;
 
 namespace Cyberpunk.Missions
 {
@@ -1061,6 +1062,9 @@ namespace Cyberpunk.Missions
         public void OnVulcanShowdownCompleted()
         {
             Debug.Log("<color=#00FFAA><b>[Mission3 Pit]</b></color> Vulcan defeated! Resuming standard arena championship loop.");
+
+            // Celebratory victory confetti
+            ArenaConfettiCelebration.TriggerVictoryConfetti(new Vector3(0f, 0.85f, 0f), 11f, 25f);
 
             // Unlock South Exit so player can leave anytime
             PitArenaExitTrigger.IsExitLocked = false;

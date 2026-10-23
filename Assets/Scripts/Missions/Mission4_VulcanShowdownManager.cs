@@ -8,6 +8,7 @@ using CyberCombat.Audio;
 using Cyberpunk.Audio;
 using Cyberpunk.Inventory;
 using Cyberpunk.World;
+using Cyberpunk.Arena;
 using SyntyCombined;
 using SyntyCombined.Cutscene;
 
@@ -73,6 +74,18 @@ namespace Cyberpunk.Missions
         public void DebugForceVulcanShowdown()
         {
             TriggerVulcanArrival(force: true);
+        }
+
+        [ContextMenu("Test Victory Confetti")]
+        public void DebugTestVictoryConfetti()
+        {
+            ArenaConfettiCelebration.TriggerVictoryConfetti(ringCenterPos, 11f, 20f);
+        }
+
+        [ContextMenu("Test Finisher Confetti Burst")]
+        public void DebugTestFinisherConfetti()
+        {
+            ArenaConfettiCelebration.TriggerFinisherConfettiBurst(ringCenterPos);
         }
 
         public enum ShowdownPhase
@@ -1551,6 +1564,9 @@ namespace Cyberpunk.Missions
 
             PendingIdoReputationMessage = true;
 
+            // Grand Victory Confetti Celebration: Staged corner cannon volleys and continuous arena rain
+            ArenaConfettiCelebration.TriggerVictoryConfetti(ringCenterPos, 11f, 30f);
+
             Debug.Log("<color=#00FFAA><b>[Mission 4]</b></color> Vulcan defeated! Press [E] to execute finisher.");
         }
 
@@ -1608,6 +1624,9 @@ namespace Cyberpunk.Missions
             // Deafening Crowd Ovation
             PitCrowdAudioManager.Instance?.PlayCheer(isEntrance: true);
             PitCrowdAudioManager.Instance?.StartClap();
+
+            // Massive Finisher Confetti Eruption at Boss Execution Point
+            ArenaConfettiCelebration.TriggerFinisherConfettiBurst(vulcanBoss != null ? vulcanBoss.transform.position : ringCenterPos);
 
             // Massive Purse: +€$ 10,000!
             CyberpunkInventory.EnsureInScene();
