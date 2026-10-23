@@ -736,6 +736,7 @@ namespace Cyberpunk.Missions
             // Hide gameplay HUD during cinematic cutscene
             SetGameplayHudVisible(false);
 
+            BuildSoundDesign();
             PrepareAlita();
             SpawnIdo();
             SpawnSwitchBlade();
@@ -784,8 +785,6 @@ namespace Cyberpunk.Missions
             SetCam(s3, LookAt(s3, new Vector3(2.5f, 1.3f, BridgeZ)), 34f);
             yield return Say("DR. DYSON IDO", "CYBER-SURGEON & HUNTER-WARRIOR",
                 "I should have told you sooner. He will come for you now that the whole district knows what you are. Stay close and...", 4.8f);
-            if (_idoAnim != null) { /* Ido's idle holds */ }
-            if (_sfx != null && _thunderClip != null) _sfx.PlayOneShot(_thunderClip, 0.7f);
 
             // [Shot 4] THE ENTRANCE: a rumble of thunder, then a beam of light spears down from the clouds; the city
             // goes dark only while the beam is up. SwitchBlade drops down it, lands with a shockwave and walks slowly
@@ -805,6 +804,9 @@ namespace Cyberpunk.Missions
             StartCoroutine(GrowBeam(beam, 1.0f, 1.4f));
             StartCoroutine(LightningFlash(0.4f, false));
             if (_sfx != null && _thunderClip != null) _sfx.PlayOneShot(_thunderClip, 0.7f);
+            // Riser is 2.9s: 2.4s wait + 0.5s drop, so it is cut dead exactly as he hits the deck
+            Sfx(_riserClip, 0.85f);
+            StartCoroutine(BeamHum(0.5f, 1.0f, 2.4f, 1.4f));
             // ── Music starts exactly here, as the spotlight pierces down and darkness creeps in ──
             StartCoroutine(FadeMusic(0.75f, 1.6f));
             MoveCam(c4, LookAt(c4, new Vector3(beamBase.x, 1.4f, BridgeZ)), 42f, 3.6f);
@@ -815,9 +817,12 @@ namespace Cyberpunk.Missions
             _blade.transform.position = beamBase + Vector3.up * 16f;
             _blade.SetActive(true);
             if (_bladeAnim != null) _bladeAnim.Play("Menace", 0, 0f);
+            Sfx(_fallClip, 0.8f, 0.8f);
             yield return MoveActor(_blade.transform, beamBase + Vector3.up * 16f, beamBase, 0.5f, false, true);
 
             // Impact: shockwave ring, flash, smoke, screen slam + aftershocks, hit-stop
+            Sfx(_boomClip, 1f);
+            Sfx(Pick(_landClips), 0.9f, 0.75f);
             SpawnShockwave(beamBase);
             StartCoroutine(LightningFlash(1.0f, true));
             if (_sfx != null && _thunderClip != null) _sfx.PlayOneShot(_thunderClip, 1.0f);
@@ -838,6 +843,7 @@ namespace Cyberpunk.Missions
             Vector3 walkEnd = new Vector3(4.2f, BridgeY, BridgeZ);
             if (_bladeAnim != null) { _bladeAnim.CrossFadeInFixedTime("Walk", 0.3f, 0); _bladeAnim.speed = 0.5f; }
             StartCoroutine(MoveActor(_blade.transform, beamBase, walkEnd, walkTime, false, true));
+            StartCoroutine(FootstepRoutine(_bladeAnim, walkTime, 0.95f));
 
             // 4a: three-quarter front tracking shot from beyond the railing, so his face reads as he leaves the smoke (4s)
             Vector3 trackA = new Vector3(beamBase.x - 2.2f, 2.0f, -6.5f);
@@ -853,23 +859,38 @@ namespace Cyberpunk.Missions
             yield return new WaitForSecondsRealtime(walkTime - 4.0f);
             if (_bladeAnim != null) { _bladeAnim.speed = 1f; _bladeAnim.CrossFadeInFixedTime("Menace", 0.4f, 0); }
 
-            // 4c: TITLE DROP (Vulcan-style): a held shot on his face, the blade ignites, thunder cracks, music swells,
-            // and the card slams in for a full beat.
-            Vector3 tc = new Vector3(2.4f, 1.3f, -8.55f);
-            SetCam(tc, LookAt(tc, new Vector3(walkEnd.x, 1.55f, BridgeZ)), 40f);
-            MoveCam(new Vector3(2.8f, 1.35f, -8.6f), LookAt(new Vector3(2.8f, 1.35f, -8.6f), new Vector3(walkEnd.x, 1.6f, BridgeZ)), 32f, 5.5f);
+            // 4c: the blade ignites in a tight insert (sound, flash and thunder all on the same frame), then a held shot
+            // on his face as the title card slams in with a sub drop.
+            float insertTime = 0f;
+            Transform swordT = FindChildRecursive(_blade.transform, "SwitchBlade_Blade");
             StartCoroutine(IgniteBlade());
             StartCoroutine(LightningFlash(0.7f, false));
+            Sfx(_igniteClip, 0.9f);
+            Sfx(_cleaveClip, 0.55f, 0.6f);
             if (_sfx != null && _thunderClip != null) _sfx.PlayOneShot(_thunderClip, 0.9f);
             TriggerShake(0.5f, 0.6f);
-            // Duck BGM under the title card so music breathes; restore after
-            StartCoroutine(FadeMusic(1.0f, 1.0f));
+            StartCoroutine(FadeMusic(0.3f, 0.15f)); // music dips for the draw so the slam that follows hits harder
+            if (swordT != null)
+            {
+                Vector3 sp = swordT.position;
+                Vector3 ic = sp + new Vector3(-0.3f, 0.12f, -0.95f);
+                SetCam(ic, LookAt(ic, sp), 26f);
+                MoveCam(ic + new Vector3(0.1f, 0f, 0.3f), LookAt(ic, sp), 21f, 1.0f);
+                insertTime = 1.0f;
+                yield return new WaitForSecondsRealtime(insertTime);
+            }
+            Vector3 tc = new Vector3(2.4f, 1.3f, -8.55f);
+            SetCam(tc, LookAt(tc, new Vector3(walkEnd.x, 1.55f, BridgeZ)), 40f);
+            MoveCam(new Vector3(2.8f, 1.35f, -8.6f), LookAt(new Vector3(2.8f, 1.35f, -8.6f), new Vector3(walkEnd.x, 1.6f, BridgeZ)), 32f, 5.0f);
+            Sfx(_boomClip, 0.9f, 1.1f);
+            TriggerShake(0.4f, 0.5f);
+            StartCoroutine(FadeMusic(1.0f, 0.25f));
             GotGTitleCardUI.GetOrCreate().ShowTitleCard(
                 title: "SWITCHBLADE",
                 subtitle: "CYBORG OVERLORD OF THE SYNDICATE",
                 details: "SECTOR 7 SKYBRIDGE  •  TARGET: DR. DYSON IDO  •  NO WITNESSES",
                 duration: 6.0f);
-            yield return new WaitForSecondsRealtime(5.0f);
+            yield return new WaitForSecondsRealtime(5.0f - insertTime);
 
             // Spotlight over: music ducks under dialogue
             StartCoroutine(FadeDarkness(0f, 1.5f));
@@ -881,6 +902,7 @@ namespace Cyberpunk.Missions
             Vector3 s5 = new Vector3(2.4f, 2.4f, -6.4f);
             SetCam(s5, LookAt(s5, new Vector3(2.8f, 1.1f, BridgeZ)), 42f);
             if (_sfx != null && _dashClip != null) _sfx.PlayOneShot(_dashClip, 1f);
+            Sfx(_whooshClip, 0.9f, 1.5f);
             yield return MoveActor(_blade.transform, _blade.transform.position, BladeStabPos, 0.28f, true);
             _blade.transform.rotation = faceWest;
 
@@ -895,18 +917,15 @@ namespace Cyberpunk.Missions
                 _idoAnim.applyRootMotion = true; // the victim clip carries Ido's stagger forward
                 _idoAnim.CrossFadeInFixedTime("Victim", 0.05f, 0);
             }
-            // Stab sound (bridge-battle) has priority; fall back to generic thrust SFX
-            if (_sfx != null)
-            {
-                if (_stabSoundClip != null) _sfx.PlayOneShot(_stabSoundClip, 1f);
-                else if (_thrustClip != null) _sfx.PlayOneShot(_thrustClip, 1f);
-            }
-            // BGM sync: swell the music back up as the blade goes in
-            StartCoroutine(FadeMusic(0.8f, 0.3f));
+            // Wind-up: only the lunge swish here. The stab/impact sounds are fired on the hit frame below.
+            Sfx(_thrustClip, 0.7f, 0.8f);
+            Sfx(_whooshClip, 0.6f, 0.8f);
+            StartCoroutine(FadeMusic(0.6f, 0.3f));
             yield return new WaitForSecondsRealtime(0.45f);
 
             const float slowScale = 0.22f;
             StartCoroutine(TimeScaleRamp(1f, slowScale, 0.15f));
+            Sfx(_fallClip, 0.6f, 0.5f); // time-warp suck-in as the world slows
             if (_music != null) _music.pitch = 0.8f;
             yield return new WaitForSecondsRealtime(0.4f / slowScale); // remaining 0.4s of wind-up, played slow
 
@@ -917,6 +936,10 @@ namespace Cyberpunk.Missions
             TriggerShake(1.2f, 1.2f);
             // Fire-and-forget temporary AudioSource: bypasses timeScale, shared-source state, and AudioListener
             PlayImpactOnce(_impactSoundClip != null ? _impactSoundClip : _thunderClip);
+            Sfx(_stabSoundClip != null ? _stabSoundClip : _thrustClip, 1f, 0.8f);
+            Sfx(_boomClip, 0.9f, 1.2f);
+            Sfx(_ringClip, 0.25f);
+            StartCoroutine(FadeMusic(0.15f, 0.12f)); // music punches out on the hit
             yield return new WaitForSecondsRealtime(0.7f);
 
             // [Shot 7] The shockwave hits Alita: she is thrown to the deck, still in slow motion, time recovering as she falls
@@ -924,6 +947,8 @@ namespace Cyberpunk.Missions
             SetCam(s7, LookAt(s7, new Vector3(-2.6f, 0.9f, BridgeZ)), 36f);
             MoveCam(new Vector3(-2.1f, 2.1f, -6.7f), LookAt(new Vector3(-2.1f, 2.1f, -6.7f), new Vector3(-2.6f, 0.5f, BridgeZ)), 32f, 2.2f);
             if (_playerAnim != null) _playerAnim.CrossFadeInFixedTime("KnockDown", 0.05f, 0);
+            Sfx(_whooshClip, 0.8f, 0.6f); // shockwave passing over her
+            StartCoroutine(DelayedSfx(0.6f, Pick(_landClips), 0.85f, 0.7f)); // body hits the deck
             SpawnElectricBurst(AlitaPos + Vector3.up * 1.0f);
             // Music ducks low during Ido's dying words
             StartCoroutine(FadeMusic(0.25f, 0.6f));
@@ -939,6 +964,8 @@ namespace Cyberpunk.Missions
             SetCam(s8, LookAt(s8, new Vector3(-0.7f, 0.3f, BridgeZ)), 38f);
             yield return new WaitForSecondsRealtime(1.2f);
             if (_idoAnim != null) _idoAnim.CrossFadeInFixedTime("Dead", 0.1f, 0);
+            StartCoroutine(DelayedSfx(0.5f, Pick(_landClips), 0.7f, 0.6f)); // Ido's body hits the deck
+            StartCoroutine(FadeMusic(0.3f, 1.5f)); // score swells back under his last words
             yield return Say("DR. DYSON IDO", "CYBER-SURGEON & FATHER",
                 "Alita... your core... they can never erase who you are. Run... live... and finish what I could not.", 6.2f);
             if (_idoAnim != null) _idoAnim.speed = 0f; // hold the final collapsed pose
@@ -959,6 +986,9 @@ namespace Cyberpunk.Missions
             var exitBeam = CreateSkyBeam(exitBase);
             StartCoroutine(GrowBeam(exitBeam, 0.8f, 1.0f));
             if (_sfx != null && _thunderClip != null) _sfx.PlayOneShot(_thunderClip, 0.8f);
+            Sfx(_riserClip, 0.7f, 2.4f); // ~1.2s riser, peaking as he lifts off
+            StartCoroutine(BeamHum(0.5f, 0.6f, 2.2f, 1.2f));
+            StartCoroutine(FadeMusic(0.7f, 1.2f));
             TriggerShake(0.3f, 1.0f);
             Vector3 s9b = new Vector3(-0.2f, 0.7f, -8.4f);
             SetCam(s9b, LookAt(s9b, new Vector3(exitBase.x, 1.6f, BridgeZ)), 46f);
@@ -969,7 +999,10 @@ namespace Cyberpunk.Missions
             StartCoroutine(LightningFlash(0.9f, true));
             if (_sfx != null && _thunderClip != null) _sfx.PlayOneShot(_thunderClip, 1.0f);
             StartCoroutine(ImpactShakeRoutine());
+            Sfx(_boomClip, 0.8f, 1.3f);
+            Sfx(_whooshClip, 1f, 0.5f); // ~1s ascent
             yield return MoveActor(_blade.transform, _blade.transform.position, exitBase + Vector3.up * 18f, 1.2f);
+            Sfx(_boomClip, 0.5f, 1.8f);
             SpawnElectricBurst(exitBase + Vector3.up * 1.0f);
             Destroy(_blade);
             _blade = null;
@@ -1096,6 +1129,228 @@ namespace Cyberpunk.Missions
             clip.SetData(data, 0);
             return clip;
         }
+        // ── Cinematic sound design ───────────────────────────────────────────
+        // Every cue below is fired on the exact visual beat it belongs to (see AssassinationCutscene). Synthesised
+        // layers (sub-boom, riser, whooshes, ignite, ringing) sit on top of the project's recorded clips.
+
+        private AudioClip _boomClip, _riserClip, _fallClip, _whooshClip, _igniteClip, _ringClip;
+        private AudioClip _humClip, _cleaveClip;
+        private AudioClip[] _stepClips, _landClips;
+
+        private void BuildSoundDesign()
+        {
+            if (_boomClip != null) return;
+            _boomClip   = BuildSubBoom();
+            _riserClip  = BuildRiser(2.9f);
+            _fallClip   = BuildWhoosh(0.55f, true);
+            _whooshClip = BuildWhoosh(0.5f, false);
+            _igniteClip = BuildIgnite();
+            _ringClip   = BuildRinging(3f);
+#if UNITY_EDITOR
+            _humClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Tron_Drone_Sound.mp3");
+            _cleaveClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Sword_Slash_Heavy_Cleave_01.wav");
+            _stepClips = new[]
+            {
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Mechs/Mech_Footstep_Titan_Heavy_01.wav"),
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Mechs/Mech_Footstep_Titan_Heavy_02.wav"),
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Mechs/Mech_Footstep_Titan_Heavy_03.wav"),
+            };
+            _landClips = new[]
+            {
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Jump_Land_Armor_01.wav"),
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Jump_Land_Armor_02.wav"),
+                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Jump_Land_Armor_03.wav"),
+            };
+#endif
+        }
+
+        /// <summary>Isolated one-shot that ignores timeScale and mixer state, with optional pitch.</summary>
+        private static void Sfx(AudioClip clip, float volume = 1f, float pitch = 1f)
+        {
+            if (clip == null) return;
+            var go = new GameObject("_CutsceneSfx");
+            var src = go.AddComponent<AudioSource>();
+            src.spatialBlend = 0f;
+            src.volume = Mathf.Clamp01(volume);
+            src.pitch = pitch;
+            src.priority = 0;
+            src.ignoreListenerPause = true;
+            src.clip = clip;
+            src.Play();
+            Destroy(go, clip.length / Mathf.Max(0.1f, pitch) + 1f);
+        }
+
+        private static AudioClip Pick(AudioClip[] set)
+        {
+            if (set == null || set.Length == 0) return null;
+            return set[UnityEngine.Random.Range(0, set.Length)];
+        }
+
+        private IEnumerator DelayedSfx(float delay, AudioClip clip, float volume, float pitch)
+        {
+            yield return new WaitForSecondsRealtime(delay);
+            Sfx(clip, volume, pitch);
+        }
+
+        /// <summary>Looping energy hum that fades in with the sky beam and out when it collapses.</summary>
+        private IEnumerator BeamHum(float peak, float fadeIn, float hold, float fadeOut)
+        {
+            if (_humClip == null) yield break;
+            var go = new GameObject("_BeamHum");
+            var src = go.AddComponent<AudioSource>();
+            src.spatialBlend = 0f; src.loop = true; src.clip = _humClip; src.volume = 0f; src.priority = 0;
+            src.ignoreListenerPause = true;
+            src.Play();
+            float e = 0f;
+            while (e < fadeIn) { e += Time.unscaledDeltaTime; src.volume = peak * Mathf.Clamp01(e / fadeIn); yield return null; }
+            yield return new WaitForSecondsRealtime(hold);
+            e = 0f;
+            while (e < fadeOut) { e += Time.unscaledDeltaTime; src.volume = peak * (1f - Mathf.Clamp01(e / fadeOut)); yield return null; }
+            Destroy(go);
+        }
+
+        /// <summary>
+        /// Footsteps locked to the walk cycle: fires each time a foot bone plants on the deck, so sound, camera
+        /// thump and animation always agree. Falls back to a fixed stride if the rig has no humanoid feet.
+        /// </summary>
+        private IEnumerator FootstepRoutine(Animator anim, float duration, float fallbackInterval)
+        {
+            if (anim == null) yield break;
+            Transform foot0 = anim.GetBoneTransform(HumanBodyBones.LeftFoot);
+            Transform foot1 = anim.GetBoneTransform(HumanBodyBones.RightFoot);
+            bool haveFeet = foot0 != null && foot1 != null;
+            float min0 = haveFeet ? foot0.position.y : 0f, min1 = haveFeet ? foot1.position.y : 0f;
+            bool down0 = true, down1 = true;
+            float t = 0f, nextStep = 0.35f;
+            while (t < duration && anim != null)
+            {
+                t += Time.unscaledDeltaTime;
+                if (haveFeet)
+                {
+                    float h0 = foot0.position.y, h1 = foot1.position.y;
+                    min0 = Mathf.Min(min0, h0); min1 = Mathf.Min(min1, h1);
+                    if (!down0 && h0 < min0 + 0.035f) { down0 = true; Footstep(); }
+                    else if (down0 && h0 > min0 + 0.09f) down0 = false;
+                    if (!down1 && h1 < min1 + 0.035f) { down1 = true; Footstep(); }
+                    else if (down1 && h1 > min1 + 0.09f) down1 = false;
+                }
+                else if (t >= nextStep) { nextStep += fallbackInterval; Footstep(); }
+                yield return null;
+            }
+        }
+
+        private void Footstep()
+        {
+            Sfx(Pick(_stepClips), 0.6f, UnityEngine.Random.Range(0.8f, 0.9f));
+            TriggerShake(0.06f, 0.18f);
+        }
+
+        private static AudioClip MakeClip(string name, float[] data, int sampleRate)
+        {
+            var clip = AudioClip.Create(name, data.Length, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        /// <summary>Cinematic "braaam" sub drop: falling sine sweep plus a low rumble tail.</summary>
+        private static AudioClip BuildSubBoom()
+        {
+            const int sr = 44100; const float dur = 2.6f;
+            int n = Mathf.CeilToInt(sr * dur);
+            var d = new float[n];
+            var rng = new System.Random(7);
+            float phase = 0f, lp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = (float)i / sr;
+                phase += 2f * Mathf.PI * (28f + 62f * Mathf.Exp(-t * 4f)) / sr;
+                float env = Mathf.Min(1f, t / 0.004f) * Mathf.Exp(-t * 1.5f);
+                lp += ((float)(rng.NextDouble() * 2.0 - 1.0) - lp) * 0.08f;
+                float rumble = lp * Mathf.Exp(-t * 3f) * 1.6f;
+                d[i] = Mathf.Clamp(Mathf.Sin(phase) * env * 0.95f + rumble * 0.5f, -1f, 1f);
+            }
+            return MakeClip("CutsceneSubBoom", d, sr);
+        }
+
+        /// <summary>Rising tension swell that is cut dead at full volume so the hit lands in silence.</summary>
+        private static AudioClip BuildRiser(float dur)
+        {
+            const int sr = 44100;
+            int n = Mathf.CeilToInt(sr * dur);
+            var d = new float[n];
+            var rng = new System.Random(11);
+            float phase = 0f, lp = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = (float)i / sr, k = t / dur, k2 = k * k;
+                lp += ((float)(rng.NextDouble() * 2.0 - 1.0) - lp) * Mathf.Lerp(0.02f, 0.6f, k2);
+                phase += 2f * Mathf.PI * (70f + 900f * k2) / sr;
+                float fade = Mathf.Min(1f, (dur - t) / 0.03f);
+                d[i] = Mathf.Clamp((lp * 2.5f * k2 * 0.9f + Mathf.Sin(phase) * 0.35f * k2) * fade, -1f, 1f);
+            }
+            return MakeClip("CutsceneRiser", d, sr);
+        }
+
+        /// <summary>Band-passed air movement. Forward = swell and fade (passing blade); reverse = builds to a peak (fall).</summary>
+        private static AudioClip BuildWhoosh(float dur, bool reverse)
+        {
+            const int sr = 44100;
+            int n = Mathf.CeilToInt(sr * dur);
+            var d = new float[n];
+            var rng = new System.Random(reverse ? 21 : 22);
+            float lpA = 0f, lpB = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float u = (float)i / n;
+                float env = reverse ? Mathf.Pow(u, 2.5f) : Mathf.Sin(Mathf.PI * Mathf.Pow(u, 0.6f));
+                float a = Mathf.Lerp(0.03f, 0.35f, env);
+                float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
+                lpA += (noise - lpA) * a;
+                lpB += (noise - lpB) * a * 0.25f;
+                float edge = Mathf.Min(1f, (n - i) / (sr * 0.02f));
+                d[i] = Mathf.Clamp((lpA - lpB) * env * 3.2f * edge, -1f, 1f);
+            }
+            return MakeClip(reverse ? "CutsceneFall" : "CutsceneWhoosh", d, sr);
+        }
+
+        /// <summary>Energy blade igniting: noise burst, electric crackle and a climbing hum.</summary>
+        private static AudioClip BuildIgnite()
+        {
+            const int sr = 44100; const float dur = 1.4f;
+            int n = Mathf.CeilToInt(sr * dur);
+            var d = new float[n];
+            var rng = new System.Random(5);
+            float phase = 0f, pulse = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = (float)i / sr;
+                float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
+                if (rng.NextDouble() < 0.02 * (Mathf.Exp(-t * 1.5f) + 0.2f)) pulse = (float)rng.NextDouble();
+                pulse *= 0.92f;
+                phase += 2f * Mathf.PI * (110f + 260f * Mathf.Min(1f, t / 0.5f)) / sr;
+                float hum = Mathf.Sin(phase) * 0.3f * Mathf.Min(1f, t / 0.25f) * Mathf.Exp(-t * 1.2f);
+                float burst = noise * Mathf.Exp(-t * 18f) * 0.8f;
+                float fade = Mathf.Min(1f, (dur - t) / 0.2f);
+                d[i] = Mathf.Clamp((burst + noise * pulse * 0.7f + hum) * fade, -1f, 1f);
+            }
+            return MakeClip("CutsceneIgnite", d, sr);
+        }
+
+        /// <summary>High ear-ring after the stab, played quietly so the dying words stay intelligible.</summary>
+        private static AudioClip BuildRinging(float dur)
+        {
+            const int sr = 44100;
+            int n = Mathf.CeilToInt(sr * dur);
+            var d = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                float t = (float)i / sr;
+                float env = Mathf.Min(1f, t / 0.15f) * Mathf.Exp(-t * 1.1f) * Mathf.Min(1f, (dur - t) / 0.4f);
+                d[i] = (Mathf.Sin(2f * Mathf.PI * 3150f * t) * 0.5f + Mathf.Sin(2f * Mathf.PI * 4300f * t) * 0.3f) * env * 0.5f;
+            }
+            return MakeClip("CutsceneRinging", d, sr);
+        }
+
         /// <summary>The in-game HUD canvas keeps resetting its CanvasGroup alpha, so toggle the root Canvas itself.</summary>
         private static void SetGameplayHudVisible(bool visible)
         {
