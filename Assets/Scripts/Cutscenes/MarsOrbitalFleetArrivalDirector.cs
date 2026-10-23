@@ -11,11 +11,11 @@ namespace Cyberpunk.Mars
 {
     /// <summary>
     /// AAA-Grade Standalone Cinematic Director: Mars Orbital Fleet Arrival.
-    /// Frame-by-frame recreation of Star Wars Fleet Arrival (12s to 25s, DINZHI UE5/Blender animation) adapted for Mars:
-    /// - Beat 1 (0:12 - 0:16): Deep space starfield void -> Warp rupture shockwave -> Flagship Super Dreadnought (SM_Ship_Colossal_01, 765m) breaches bow-first with vanguard escorts.
-    /// - Beat 2 (0:17 - 0:19): Dorsal spine tracking shot skimming past communications spires -> Starboard & port warp detonations -> Fleet Battlecarrier (SM_Ship_Galactic_Carrier_01, 540m) & escort cruisers drop in.
-    /// - Beat 3 (0:20 - 0:25): Grand crane pullback reveal -> Colossal Red Planet Mars globe fills the horizon -> Sublight ion engines ignite across the entire armada -> High-orbital blockade established!
-    /// Fully isolated from the Mars ground mission for independent playback, testing, and cinematic quality.
+    /// Frame-by-frame exact recreation of Star Wars Fleet Arrival (12s to 25s) adapted for Mars:
+    /// - Beat 1 (0:12 - 0:16) [t: 0.0s - 4.5s]: Starfield void -> Warp rupture -> Flagship Dreadnought streaks in from starboard-ventral and SNAP STOPS instantly with fighter escort. Mars is hidden in deep space void.
+    /// - Beat 2 (0:17 - 0:19) [t: 4.5s - 7.2s]: Dorsal runway tracking shot past communication masts -> Carrier drops in upper-right starry sky with instant snap deceleration. Mars hidden until 0:19 edge reveal.
+    /// - Beat 3 (0:20 - 0:24) [t: 7.2s - 12.3s]: Grand crane pullback behind conning mast -> Colossal Red Planet Mars globe fills 75% of horizon -> Both port cruisers flank on left with amber thrusters -> Carrier drops in lower-right with 3 blazing cyan engine bells -> Flagship 3 amber engine bells ignite in lower-left -> High-orbital siege blockade established!
+    /// - Beat 4 (0:25) [t: 12.3s - 13.0s]: Hero flotilla exterior pass against Mars and starfield.
     /// </summary>
     [ExecuteAlways]
     public class MarsOrbitalFleetArrivalDirector : MonoBehaviour
@@ -144,8 +144,9 @@ namespace Cyberpunk.Mars
             if (fighterPrefab == null)
                 fighterPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/PolygonSciFiSpace/Prefabs/Vehicles/SM_Ship_Fighter_Heavy_01.prefab");
 
+            // Authentic deep black space with crisp white pin-point stars (PolygonScifiSpace_Skybox_04)
             if (spaceSkyboxMaterial == null)
-                spaceSkyboxMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/PolygonSciFiSpace/Materials/Misc/PolygonScifiSpace_Skybox_01.mat");
+                spaceSkyboxMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/PolygonSciFiSpace/Materials/Misc/PolygonScifiSpace_Skybox_04.mat");
 
             if (warpBoomAudio == null)
                 warpBoomAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Weather/dragon-studio-dry-thunder-364468.mp3");
@@ -188,7 +189,7 @@ namespace Cyberpunk.Mars
         {
             LoadDefaultAssets();
 
-            // 1. Skybox
+            // 1. Skybox: Deep black space with pinpoint white stars
             if (spaceSkyboxMaterial != null)
             {
                 RenderSettings.skybox = spaceSkyboxMaterial;
@@ -208,12 +209,12 @@ namespace Cyberpunk.Mars
                 cinematicCamera.clearFlags = spaceSkyboxMaterial != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
                 cinematicCamera.backgroundColor = new Color(0.002f, 0.002f, 0.005f);
                 cinematicCamera.nearClipPlane = 0.5f;
-                cinematicCamera.farClipPlane = 35000f;
-                cinematicCamera.fieldOfView = 56f;
+                cinematicCamera.farClipPlane = 45000f;
+                cinematicCamera.fieldOfView = 50f;
                 cinematicCamera.tag = "MainCamera";
             }
 
-            // 3. Directional Sun Key Light (Warm Grazing Sunlight)
+            // 3. Directional Sun Key Light (Warm Grazing Sunlight on ship prow)
             if (keySunLight == null)
             {
                 var sunGo = GameObject.Find("Orbital_KeySun");
@@ -226,9 +227,9 @@ namespace Cyberpunk.Mars
                 if (keySunLight == null) keySunLight = sunGo.AddComponent<Light>();
                 keySunLight.type = LightType.Directional;
             }
-            keySunLight.transform.localRotation = Quaternion.Euler(18f, 125f, 0f);
+            keySunLight.transform.localRotation = Quaternion.Euler(20f, -140f, 0f);
             keySunLight.color = new Color(1.0f, 0.96f, 0.90f);
-            keySunLight.intensity = 3.2f;
+            keySunLight.intensity = 2.8f;
             keySunLight.shadows = LightShadows.Soft;
 
             // 4. Mars Atmospheric Orange Rim Fill Light
@@ -266,8 +267,8 @@ namespace Cyberpunk.Mars
             if (flagshipColossal != null)
             {
                 flagshipColossal.transform.localScale = Vector3.one * 1.25f; // ~765m length
-                flagshipColossal.transform.localPosition = new Vector3(-120f, 0f, 500f);
-                flagshipColossal.transform.localRotation = Quaternion.Euler(0f, 20f, 0f);
+                flagshipColossal.transform.localPosition = Vector3.zero;
+                flagshipColossal.transform.localRotation = Quaternion.identity;
                 foreach (var c in flagshipColossal.GetComponentsInChildren<Collider>()) DestroyImmediate(c);
                 SetupCapitalShipThrusters(flagshipColossal, true);
             }
@@ -290,8 +291,8 @@ namespace Cyberpunk.Mars
             if (carrierGalactic != null)
             {
                 carrierGalactic.transform.localScale = Vector3.one * 1.85f; // ~540m length
-                carrierGalactic.transform.localPosition = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(420f, -40f, 320f));
-                carrierGalactic.transform.localRotation = flagshipColossal.transform.rotation * Quaternion.Euler(0f, -6f, 0f);
+                carrierGalactic.transform.localPosition = new Vector3(250f, -35f, 110f);
+                carrierGalactic.transform.localRotation = Quaternion.Euler(4f, 22f, -2f);
                 foreach (var c in carrierGalactic.GetComponentsInChildren<Collider>()) DestroyImmediate(c);
                 SetupCapitalShipThrusters(carrierGalactic, false);
             }
@@ -307,14 +308,16 @@ namespace Cyberpunk.Mars
                 }
             }
 
+#if UNITY_EDITOR
             var sphereMesh = AssetDatabase.LoadAssetAtPath<UnityEngine.Mesh>("Assets/Models/Environments/Mesh_HighDef_Planet_Sphere.asset");
             var mf = marsGlobe.GetComponent<MeshFilter>() ?? marsGlobe.AddComponent<MeshFilter>();
             if (sphereMesh != null) mf.sharedMesh = sphereMesh;
+#endif
 
-            // Position Mars to fill 80% of upper & right background curvature
-            marsGlobe.transform.position = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(1500f, 150f, 4800f));
-            marsGlobe.transform.localScale = Vector3.one * 6400f;
-            marsGlobe.transform.rotation = Quaternion.Euler(22f, 115f, 0f);
+            // Position Mars to fill 75% of upper & right background curvature
+            marsGlobe.transform.position = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(2600f, 320f, 3000f));
+            marsGlobe.transform.localScale = Vector3.one * 5400f;
+            marsGlobe.transform.rotation = Quaternion.Euler(20f, 115f, 0f);
 
             var marsRen = marsGlobe.GetComponent<MeshRenderer>() ?? marsGlobe.AddComponent<MeshRenderer>();
             if (marsRen != null)
@@ -373,10 +376,9 @@ namespace Cyberpunk.Mars
             // Place camera in default Beat 3 pose for scene view
             if (cinematicCamera != null && flagshipColossal != null)
             {
-                Vector3 camLocalToFlagship = new Vector3(-35f, 150f, -220f);
-                cinematicCamera.transform.position = flagshipColossal.transform.TransformPoint(camLocalToFlagship);
-                cinematicCamera.transform.rotation = flagshipColossal.transform.rotation * Quaternion.Euler(11f, 14f, 0f);
-                cinematicCamera.fieldOfView = 56f;
+                cinematicCamera.transform.position = flagshipColossal.transform.TransformPoint(new Vector3(48f, 98f, -280f));
+                cinematicCamera.transform.LookAt(flagshipColossal.transform.TransformPoint(new Vector3(10f, 70f, 160f)));
+                cinematicCamera.fieldOfView = 52f;
             }
 
             Debug.Log("<color=#00FFCC><b>[Mars Orbital Fleet]</b></color> High-orbit stage with full escort armada successfully built!");
@@ -394,30 +396,26 @@ namespace Cyberpunk.Mars
                 }
             }
 
-            // Clear previous entries
             escortShips.Clear();
 
             var unlitShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
             var amberMat = new Material(unlitShader) { color = new Color(1.0f, 0.65f, 0.15f) };
             var cyanMat = new Material(unlitShader) { color = new Color(0.1f, 0.95f, 1.0f) };
 
-            // Escort Ship Specifications matching Star Wars reference frames 21-25
             var specs = new[] {
-                // Port Upper Cruiser (Ref: Upper-Left ship with twin yellow thrusters)
-                new { Name = "Escort_Cruiser_Port_Upper", Prefab = cruiser1Prefab, Offset = new Vector3(-340f, 180f, 480f), Rot = Quaternion.Euler(0f, 22f, 0f), Scale = 2.0f, Mat = amberMat, Color = new Color(1.0f, 0.65f, 0.15f), GlowOffset = new Vector3(0, 0, -26f), GlowScale = new Vector3(6f, 10f, 6f) },
-                // Port Lower Cruiser (Ref: Lower-Left ship)
-                new { Name = "Escort_Cruiser_Port_Lower", Prefab = cruiser2Prefab, Offset = new Vector3(-280f, -80f, 280f), Rot = Quaternion.Euler(0f, 18f, 0f), Scale = 1.8f, Mat = amberMat, Color = new Color(1.0f, 0.65f, 0.15f), GlowOffset = new Vector3(0, 0, -25f), GlowScale = new Vector3(5f, 8f, 5f) },
-                // Far Starboard Cruiser (Ref: Far-Right ship)
-                new { Name = "Escort_Cruiser_Starboard", Prefab = cruiser3Prefab, Offset = new Vector3(680f, 90f, 620f), Rot = Quaternion.Euler(0f, 16f, 0f), Scale = 1.9f, Mat = cyanMat, Color = new Color(0.15f, 0.9f, 1.0f), GlowOffset = new Vector3(0, 0, -25f), GlowScale = new Vector3(6f, 10f, 6f) },
-                // Vanguard Lead Cruiser (Ref: Distant upper-center leading ship)
-                new { Name = "Vanguard_Cruiser_Lead", Prefab = cruiser1Prefab, Offset = new Vector3(140f, 240f, 1100f), Rot = Quaternion.Euler(0f, 20f, 0f), Scale = 2.2f, Mat = amberMat, Color = new Color(1.0f, 0.65f, 0.15f), GlowOffset = new Vector3(0, 0, -26f), GlowScale = new Vector3(6f, 10f, 6f) },
-                // Vanguard Wing Left (Ref: Upper distant escort)
-                new { Name = "Vanguard_Escort_Left", Prefab = stealthPrefab, Offset = new Vector3(480f, 320f, 1350f), Rot = Quaternion.Euler(0f, 20f, 0f), Scale = 2.5f, Mat = cyanMat, Color = new Color(0.15f, 0.9f, 1.0f), GlowOffset = new Vector3(0, 0, -10f), GlowScale = new Vector3(4f, 6f, 4f) },
+                // Port Upper Cruiser (Ref: Upper-Left ship with twin yellow thrusters in black starfield)
+                new { Name = "Escort_Cruiser_Port_Upper", Prefab = cruiser1Prefab, Offset = new Vector3(-260f, 145f, 130f), Rot = Quaternion.Euler(4f, -14f, 2f), Scale = 2.0f, Mat = amberMat, Color = new Color(1.0f, 0.65f, 0.15f), GlowOffset = new Vector3(0, 0, -26f), GlowScale = new Vector3(8f, 14f, 8f) },
+                // Port Lower Cruiser (Ref: Lower-Left ship with twin yellow thrusters in black starfield)
+                new { Name = "Escort_Cruiser_Port_Lower", Prefab = cruiser2Prefab, Offset = new Vector3(-270f, 30f, 70f), Rot = Quaternion.Euler(4f, -16f, 2f), Scale = 1.8f, Mat = amberMat, Color = new Color(1.0f, 0.65f, 0.15f), GlowOffset = new Vector3(0, 0, -25f), GlowScale = new Vector3(7f, 12f, 7f) },
+                // Vanguard Lead Cruiser (Ref: Center leading ship diving toward Mars)
+                new { Name = "Vanguard_Cruiser_Lead", Prefab = cruiser1Prefab, Offset = new Vector3(140f, 190f, 750f), Rot = Quaternion.Euler(8f, 16f, 0f), Scale = 2.2f, Mat = amberMat, Color = new Color(1.0f, 0.65f, 0.15f), GlowOffset = new Vector3(0, 0, -26f), GlowScale = new Vector3(8f, 14f, 8f) },
+                // Vanguard Wing Left (Ref: Upper distant escort over Mars)
+                new { Name = "Vanguard_Escort_Left", Prefab = stealthPrefab, Offset = new Vector3(450f, 280f, 1100f), Rot = Quaternion.Euler(8f, 18f, 0f), Scale = 2.5f, Mat = cyanMat, Color = new Color(0.15f, 0.9f, 1.0f), GlowOffset = new Vector3(0, 0, -10f), GlowScale = new Vector3(5f, 8f, 5f) },
                 // Vanguard Wing Right
-                new { Name = "Vanguard_Escort_Right", Prefab = stealthPrefab, Offset = new Vector3(-120f, 290f, 1450f), Rot = Quaternion.Euler(0f, 20f, 0f), Scale = 2.5f, Mat = amberMat, Color = new Color(1.0f, 0.65f, 0.15f), GlowOffset = new Vector3(0, 0, -10f), GlowScale = new Vector3(4f, 6f, 4f) },
-                // Starboard Fighter Escort Pair
-                new { Name = "Fighter_Escort_1", Prefab = fighterPrefab, Offset = new Vector3(260f, 40f, 260f), Rot = Quaternion.Euler(0f, 20f, 0f), Scale = 2.0f, Mat = cyanMat, Color = new Color(0.15f, 0.9f, 1.0f), GlowOffset = new Vector3(0, 0, -6f), GlowScale = new Vector3(2.5f, 4f, 2.5f) },
-                new { Name = "Fighter_Escort_2", Prefab = fighterPrefab, Offset = new Vector3(290f, 65f, 240f), Rot = Quaternion.Euler(0f, 20f, 0f), Scale = 2.0f, Mat = cyanMat, Color = new Color(0.15f, 0.9f, 1.0f), GlowOffset = new Vector3(0, 0, -6f), GlowScale = new Vector3(2.5f, 4f, 2.5f) }
+                new { Name = "Vanguard_Escort_Right", Prefab = stealthPrefab, Offset = new Vector3(-120f, 260f, 1200f), Rot = Quaternion.Euler(8f, 18f, 0f), Scale = 2.5f, Mat = amberMat, Color = new Color(1.0f, 0.65f, 0.15f), GlowOffset = new Vector3(0, 0, -10f), GlowScale = new Vector3(5f, 8f, 5f) },
+                // Starboard Fighter Escort Pair (Fighter 1 is under the belly in Beat 1)
+                new { Name = "Fighter_Escort_1", Prefab = fighterPrefab, Offset = new Vector3(-20f, -140f, -30f), Rot = Quaternion.identity, Scale = 1.5f, Mat = cyanMat, Color = new Color(0.15f, 0.9f, 1.0f), GlowOffset = new Vector3(0, 0, -6f), GlowScale = new Vector3(3f, 5f, 3f) },
+                new { Name = "Fighter_Escort_2", Prefab = fighterPrefab, Offset = new Vector3(320f, 50f, 260f), Rot = Quaternion.Euler(6f, 20f, 0f), Scale = 2.0f, Mat = cyanMat, Color = new Color(0.15f, 0.9f, 1.0f), GlowOffset = new Vector3(0, 0, -6f), GlowScale = new Vector3(3f, 5f, 3f) }
             };
 
             foreach (var cfg in specs)
@@ -466,7 +464,7 @@ namespace Cyberpunk.Mars
                 if (tLight == null) tLight = glowGo.AddComponent<Light>();
                 tLight.type = LightType.Point;
                 tLight.color = cfg.Color;
-                tLight.range = 80f;
+                tLight.range = 100f;
                 tLight.intensity = 0f;
 
                 var entry = new EscortShipEntry
@@ -493,11 +491,12 @@ namespace Cyberpunk.Mars
             lightList.Clear();
             glowList.Clear();
 
+            // Flagship stern is at Z = -305, Carrier stern is at Z = -135
             Vector3[] localOffsets = isFlagship ?
-                new Vector3[] { new Vector3(-25f, 8f, -280f), new Vector3(25f, 8f, -280f), new Vector3(0f, 24f, -280f) } :
-                new Vector3[] { new Vector3(-18f, 5f, -145f), new Vector3(18f, 5f, -145f), new Vector3(0f, 0f, -148f) };
+                new Vector3[] { new Vector3(-25f, 6f, -305f), new Vector3(25f, 6f, -305f), new Vector3(0f, 22f, -305f) } :
+                new Vector3[] { new Vector3(-18f, 5f, -135f), new Vector3(18f, 5f, -135f), new Vector3(0f, 0f, -138f) };
 
-            Vector3 glowScale = isFlagship ? new Vector3(14f, 22f, 14f) : new Vector3(12f, 18f, 12f);
+            Vector3 glowScale = isFlagship ? new Vector3(18f, 26f, 18f) : new Vector3(16f, 22f, 16f);
             Color thColor = isFlagship ? new Color(1.0f, 0.65f, 0.15f) : new Color(0.1f, 0.95f, 1.0f);
 
             var unlitShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
@@ -520,7 +519,7 @@ namespace Cyberpunk.Mars
                 if (l == null) l = tGo.AddComponent<Light>();
                 l.type = LightType.Point;
                 l.color = thColor;
-                l.range = 140f;
+                l.range = 160f;
                 l.intensity = 0f;
                 lightList.Add(l);
 
@@ -552,19 +551,16 @@ namespace Cyberpunk.Mars
             {
                 playbackTime += Time.deltaTime;
 
-                // Handle Skip on Spacebar / Left Click / Escape
                 if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Escape))
                 {
                     SkipCutscene();
                 }
 
-                // Handle Replay on [R]
                 if (Input.GetKeyDown(KeyCode.R))
                 {
                     PlayCutscene();
                 }
 
-                // Handle Jump to Mars on [Enter]
                 if (Input.GetKeyDown(KeyCode.Return))
                 {
                     TransitionToMarsSurface();
@@ -585,40 +581,8 @@ namespace Cyberpunk.Mars
             if (_cutsceneRoutine != null) StopCoroutine(_cutsceneRoutine);
 
             currentBeat = 3;
-            playbackTime = 13.0f;
-            SetThrustersIntensity(1.0f);
-
-            if (flagshipColossal != null)
-            {
-                flagshipColossal.SetActive(true);
-                flagshipColossal.transform.localPosition = new Vector3(-120f, 0f, 500f);
-                flagshipColossal.transform.localRotation = Quaternion.Euler(0f, 20f, 0f);
-            }
-
-            if (carrierGalactic != null)
-            {
-                carrierGalactic.SetActive(true);
-                carrierGalactic.transform.position = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(420f, -40f, 320f));
-                carrierGalactic.transform.localRotation = flagshipColossal.transform.rotation * Quaternion.Euler(0f, -6f, 0f);
-            }
-
-            foreach (var escort in escortShips)
-            {
-                if (escort.shipObject != null)
-                {
-                    escort.shipObject.SetActive(true);
-                    escort.shipObject.transform.position = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(escort.formationOffset);
-                    escort.shipObject.transform.rotation = escort.formationRotation;
-                }
-            }
-
-            if (cinematicCamera != null && flagshipColossal != null)
-            {
-                Vector3 camLocalToFlagship = new Vector3(-35f, 150f, -220f);
-                cinematicCamera.transform.position = flagshipColossal.transform.TransformPoint(camLocalToFlagship);
-                cinematicCamera.transform.rotation = flagshipColossal.transform.rotation * Quaternion.Euler(11f, 14f, 0f);
-                cinematicCamera.fieldOfView = 56f;
-            }
+            playbackTime = 12.0f;
+            EvaluateCutsceneAtTime(12.0f);
 
             if (_warpShockwave != null) _warpShockwave.SetActive(false);
             _cameraTrauma = 0f;
@@ -635,14 +599,300 @@ namespace Cyberpunk.Mars
             }
         }
 
+        /// <summary>
+        /// Deterministic frame evaluation: Sets camera, ships, lighting, and FX for any time t in [0..13]
+        /// corresponding to reference video timestamp 0:12 (t=0) to 0:25 (t=13).
+        /// </summary>
+        public void EvaluateCutsceneAtTime(float t)
+        {
+            EnsureStageBuilt();
+
+            // ════════════════════════════════════════════════════════════════
+            // BEAT 1 (0:12 – 0:16.5) [t: 0.0s to 4.5s]: STARFIELD VOID & FLAGSHIP WARP SNAP
+            // ════════════════════════════════════════════════════════════════
+            if (t < 4.5f)
+            {
+                currentBeat = 1;
+
+                if (marsGlobe != null) marsGlobe.SetActive(false);
+                if (carrierGalactic != null) carrierGalactic.SetActive(false);
+
+                // Small belly fighter active at t >= 1.0s
+                var f1 = GameObject.Find("Fighter_Escort_1");
+                if (f1 != null) f1.SetActive(t >= 1.0f);
+
+                // Other escorts hidden
+                foreach (var escort in escortShips)
+                {
+                    if (escort.shipObject != null && escort.name != "Fighter_Escort_1")
+                    {
+                        escort.shipObject.SetActive(false);
+                    }
+                }
+
+                // Warp breach at t = 1.8s
+                if (t < 1.8f)
+                {
+                    if (flagshipColossal != null) flagshipColossal.SetActive(false);
+                    SetThrustersIntensity(0f);
+
+                    float b1InitNorm = t / 1.8f;
+                    Vector3 camPos = Vector3.Lerp(new Vector3(380f, -60f, 520f), new Vector3(350f, -52f, 490f), b1InitNorm);
+                    Vector3 lookTarget = Vector3.Lerp(new Vector3(20f, 30f, 200f), new Vector3(0f, 28f, 100f), b1InitNorm);
+                    cinematicCamera.transform.position = camPos;
+                    cinematicCamera.transform.LookAt(lookTarget);
+                    cinematicCamera.fieldOfView = 46f;
+                }
+                else
+                {
+                    // Flagship breaches warp and SNAP STOPS instantly (t: 1.8s to 2.15s, then dead stop)
+                    if (flagshipColossal != null) flagshipColossal.SetActive(true);
+
+                    float snapDur = 0.35f;
+                    float snapTime = t - 1.8f;
+
+                    Vector3 shipWarpStart = new Vector3(200f, 30f, 950f);
+                    Vector3 shipRestPos = Vector3.zero;
+
+                    if (snapTime <= snapDur)
+                    {
+                        float st = snapTime / snapDur;
+                        float snapProgress = 1.0f - Mathf.Pow(1.0f - st, 5f);
+                        flagshipColossal.transform.position = Vector3.Lerp(shipWarpStart, shipRestPos, snapProgress);
+                    }
+                    else
+                    {
+                        float drift = snapTime - snapDur;
+                        flagshipColossal.transform.position = shipRestPos + new Vector3(0f, 0f, -0.1f * drift);
+                    }
+                    flagshipColossal.transform.rotation = Quaternion.identity;
+
+                    // Camera holding heroic starboard-ventral angle looking up at prow and conning tower
+                    float b1HoldNorm = Mathf.Clamp01((t - 1.8f) / 2.7f);
+                    Vector3 camPos = Vector3.Lerp(new Vector3(340f, -50f, 480f), new Vector3(310f, -42f, 440f), b1HoldNorm);
+                    Vector3 lookTarget = Vector3.Lerp(new Vector3(-10f, 25f, 50f), new Vector3(-15f, 28f, 30f), b1HoldNorm);
+                    cinematicCamera.transform.position = camPos;
+                    cinematicCamera.transform.LookAt(lookTarget);
+                    cinematicCamera.fieldOfView = 44f;
+
+                    SetThrustersIntensity(0f);
+                }
+            }
+            // ════════════════════════════════════════════════════════════════
+            // BEAT 2 (0:16.5 – 0:19.2) [t: 4.5s to 7.2s]: DORSAL RUNWAY TRACKING & CARRIER SNAP
+            // ════════════════════════════════════════════════════════════════
+            else if (t < 7.2f)
+            {
+                currentBeat = 2;
+
+                if (marsGlobe != null)
+                {
+                    marsGlobe.SetActive(t >= 6.8f);
+                    if (t >= 6.8f)
+                    {
+                        float revealNorm = Mathf.Clamp01((t - 6.8f) / 0.4f);
+                        marsGlobe.transform.position = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(Vector3.Lerp(new Vector3(4500f, 400f, 3000f), new Vector3(2600f, 320f, 3000f), revealNorm));
+                    }
+                }
+
+                if (flagshipColossal != null)
+                {
+                    flagshipColossal.SetActive(true);
+                    flagshipColossal.transform.position = Vector3.zero;
+                    flagshipColossal.transform.rotation = Quaternion.identity;
+                }
+
+                // Carrier emergence at t = 4.8s
+                if (carrierGalactic != null)
+                {
+                    if (t < 4.8f)
+                    {
+                        carrierGalactic.SetActive(false);
+                    }
+                    else
+                    {
+                        carrierGalactic.SetActive(true);
+                        float cSnapDur = 0.35f;
+                        float cSnapTime = t - 4.8f;
+
+                        Vector3 carrierWarpStart = flagshipColossal.transform.TransformPoint(new Vector3(-350f, 220f, 200f));
+                        Vector3 carrierRestPos = flagshipColossal.transform.TransformPoint(new Vector3(-240f, 130f, -320f));
+
+                        if (cSnapTime <= cSnapDur)
+                        {
+                            float cst = cSnapTime / cSnapDur;
+                            float cSnapProgress = 1.0f - Mathf.Pow(1.0f - cst, 5f);
+                            carrierGalactic.transform.position = Vector3.Lerp(carrierWarpStart, carrierRestPos, cSnapProgress);
+                        }
+                        else
+                        {
+                            carrierGalactic.transform.position = carrierRestPos;
+                        }
+                        carrierGalactic.transform.rotation = flagshipColossal.transform.rotation * Quaternion.Euler(0f, 190f, 0f);
+                    }
+                }
+
+                // Camera skimming dorsal runway looking aft-starboard
+                if (t < 6.8f)
+                {
+                    float trackNorm = (t - 4.5f) / 2.3f;
+                    Vector3 camLocal = Vector3.Lerp(new Vector3(-12f, 95f, -30f), new Vector3(-8f, 92f, -80f), trackNorm);
+                    Vector3 lookLocal = Vector3.Lerp(new Vector3(-42f, 98f, -240f), new Vector3(-38f, 98f, -250f), trackNorm);
+                    cinematicCamera.transform.position = flagshipColossal.transform.TransformPoint(camLocal);
+                    cinematicCamera.transform.LookAt(flagshipColossal.transform.TransformPoint(lookLocal));
+                    cinematicCamera.fieldOfView = 54f;
+                }
+                else
+                {
+                    // Transition to Beat 3: crane up and swing forward
+                    float swingNorm = (t - 6.8f) / 0.4f;
+                    Vector3 camLocal = Vector3.Lerp(new Vector3(-8f, 92f, -80f), new Vector3(35f, 85f, -200f), swingNorm);
+                    Vector3 lookLocal = Vector3.Lerp(new Vector3(-38f, 98f, -250f), new Vector3(0f, 65f, 160f), swingNorm);
+                    cinematicCamera.transform.position = flagshipColossal.transform.TransformPoint(camLocal);
+                    cinematicCamera.transform.LookAt(flagshipColossal.transform.TransformPoint(lookLocal));
+                    cinematicCamera.fieldOfView = Mathf.Lerp(54f, 50f, swingNorm);
+                }
+
+                SetThrustersIntensity(0f);
+            }
+            // ════════════════════════════════════════════════════════════════
+            // BEAT 3 (0:19.2 – 0:24.3) [t: 7.2s to 12.3s]: GRAND MARS ORBITAL BLOCKADE
+            // ════════════════════════════════════════════════════════════════
+            else if (t < 12.7f)
+            {
+                currentBeat = 3;
+
+                if (marsGlobe != null)
+                {
+                    marsGlobe.SetActive(true);
+                    marsGlobe.transform.position = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(2600f, 320f, 3000f));
+                    marsGlobe.transform.localScale = Vector3.one * 5400f;
+                    marsGlobe.transform.rotation = Quaternion.Euler(20f, 115f, 0f);
+                }
+
+                if (flagshipColossal != null)
+                {
+                    flagshipColossal.SetActive(true);
+                    flagshipColossal.transform.position = Vector3.zero;
+                    flagshipColossal.transform.rotation = Quaternion.identity;
+                }
+
+                // All escort flotilla active in formation
+                foreach (var escort in escortShips)
+                {
+                    if (escort.shipObject != null)
+                    {
+                        escort.shipObject.SetActive(true);
+                        escort.shipObject.transform.position = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(escort.formationOffset);
+                        escort.shipObject.transform.rotation = escort.formationRotation;
+                    }
+                }
+
+                // Carrier drops in lower-right foreground at t = 10.4s (sec 23)
+                if (carrierGalactic != null)
+                {
+                    carrierGalactic.SetActive(true);
+                    Vector3 carrierRestPos = flagshipColossal.transform.TransformPoint(new Vector3(250f, -35f, 110f));
+                    Vector3 carrierWarpIn = flagshipColossal.transform.TransformPoint(new Vector3(250f, -20f, 600f));
+
+                    if (t < 10.4f)
+                    {
+                        carrierGalactic.transform.position = carrierRestPos;
+                    }
+                    else
+                    {
+                        float cSnapDur = 0.35f;
+                        float cSnapTime = t - 10.4f;
+                        if (cSnapTime <= cSnapDur)
+                        {
+                            float cst = cSnapTime / cSnapDur;
+                            float cSnapProgress = 1.0f - Mathf.Pow(1.0f - cst, 5f);
+                            carrierGalactic.transform.position = Vector3.Lerp(carrierWarpIn, carrierRestPos, cSnapProgress);
+                        }
+                        else
+                        {
+                            carrierGalactic.transform.position = carrierRestPos;
+                        }
+                    }
+                    carrierGalactic.transform.rotation = flagshipColossal.transform.rotation * Quaternion.Euler(4f, 22f, -2f);
+                }
+
+                // Camera smooth crane pullback along the dorsal spine behind the stern:
+                // t = 7.2s (sec 19.5): (25, 70, -140) -> Look (0, 65, 160)
+                // t = 8.0s (sec 20):   (28, 74, -170) -> Look (3, 66, 160)
+                // t = 9.0s (sec 21):   (32, 78, -200) -> Look (6, 68, 160)
+                // t = 10.0s (sec 22):  (40, 86, -240) -> Look (8, 70, 160)
+                // t = 11.0s (sec 23):  (48, 98, -280) -> Look (10, 70, 160)
+                // t = 12.0s (sec 24):  (55, 115, -340) -> Look (15, 65, 150)
+                float b3Norm = Mathf.Clamp01((t - 7.2f) / 4.8f);
+                float b3Smooth = Mathf.SmoothStep(0f, 1f, b3Norm);
+
+                Vector3 b3CamStart = new Vector3(35f, 85f, -200f);
+                Vector3 b3CamEnd = new Vector3(55f, 115f, -340f);
+                Vector3 b3LookStart = new Vector3(0f, 65f, 160f);
+                Vector3 b3LookEnd = new Vector3(15f, 65f, 150f);
+
+                Vector3 curCamLocal = Vector3.Lerp(b3CamStart, b3CamEnd, b3Smooth);
+                Vector3 curLookLocal = Vector3.Lerp(b3LookStart, b3LookEnd, b3Smooth);
+
+                cinematicCamera.transform.position = flagshipColossal.transform.TransformPoint(curCamLocal);
+                cinematicCamera.transform.LookAt(flagshipColossal.transform.TransformPoint(curLookLocal));
+                cinematicCamera.fieldOfView = Mathf.Lerp(50f, 54f, b3Smooth);
+
+                // Thrusters ignite across armada
+                float thIntensity = Mathf.Clamp01((t - 8.0f) / 1.5f);
+                SetThrustersIntensity(thIntensity);
+            }
+            // ════════════════════════════════════════════════════════════════
+            // BEAT 4 (0:24.3 – 0:25.0) [t: 12.3s to 13.0s]: HERO FLOTILLA EXTERIOR (SEC 25)
+            // ════════════════════════════════════════════════════════════════
+            else
+            {
+                currentBeat = 4;
+
+                // In reference sec 25, cut to wide starfield exterior (deep space, Mars not filling frame)
+                if (marsGlobe != null) marsGlobe.SetActive(false);
+                if (flagshipColossal != null)
+                {
+                    flagshipColossal.SetActive(true);
+                    flagshipColossal.transform.position = Vector3.zero;
+                    flagshipColossal.transform.rotation = Quaternion.identity;
+                }
+                if (carrierGalactic != null)
+                {
+                    carrierGalactic.SetActive(true);
+                    carrierGalactic.transform.position = flagshipColossal.transform.TransformPoint(new Vector3(320f, 60f, 340f));
+                    carrierGalactic.transform.rotation = flagshipColossal.transform.rotation * Quaternion.Euler(0f, -6f, 0f);
+                }
+
+                foreach (var escort in escortShips)
+                {
+                    if (escort.shipObject != null)
+                    {
+                        escort.shipObject.SetActive(true);
+                        escort.shipObject.transform.position = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(escort.formationOffset);
+                        escort.shipObject.transform.rotation = escort.formationRotation;
+                    }
+                }
+
+                // Wide heroic exterior pass matching ref sec 25: conning tower/bridge on left, wedge nose to right, deep starfield
+                float b4Norm = Mathf.Clamp01((t - 12.7f) / 0.3f);
+                Vector3 camPos = Vector3.Lerp(new Vector3(450f, 110f, -60f), new Vector3(440f, 105f, -50f), b4Norm);
+                Vector3 lookTarget = new Vector3(-30f, 20f, 80f);
+                cinematicCamera.transform.position = camPos;
+                cinematicCamera.transform.LookAt(lookTarget);
+                cinematicCamera.fieldOfView = 46f;
+
+                SetThrustersIntensity(1.0f);
+            }
+        }
+
         private IEnumerator ExecuteOrbitalFleetArrivalSequence()
         {
             isPlaying = true;
             playbackTime = 0f;
             currentBeat = 1;
-            SetThrustersIntensity(0f);
 
-            // Start ambient audio
             if (_musicSource != null && ominousThemeAudio != null)
             {
                 _musicSource.clip = ominousThemeAudio;
@@ -655,245 +905,49 @@ namespace Cyberpunk.Mars
                 _rumbleSource.Play();
             }
 
-            // Hide ships initially
-            if (flagshipColossal != null) flagshipColossal.SetActive(false);
-            if (carrierGalactic != null) carrierGalactic.SetActive(false);
-            foreach (var escort in escortShips)
+            bool warp1Triggered = false;
+            bool warp2Triggered = false;
+            bool warp3Triggered = false;
+
+            float totalDuration = 13.0f;
+
+            while (playbackTime < totalDuration)
             {
-                if (escort.shipObject != null) escort.shipObject.SetActive(false);
-            }
+                playbackTime += Time.deltaTime;
 
-            // ════════════════════════════════════════════════════════════════
-            // BEAT 1 (0:12 – 0:16): WARP BREACH & PROW EMERGENCE (~3.4s)
-            // ════════════════════════════════════════════════════════════════
-            currentBeat = 1;
-
-            // Camera looking up into starfield void (Ref: Sec 12-14)
-            Vector3 b1CamStart = transform.position + new Vector3(80f, -40f, 650f);
-            Vector3 b1CamEnd = transform.position + new Vector3(40f, -20f, 580f);
-            Quaternion b1CamRot = Quaternion.Euler(-18f, -22f, 0f);
-
-            if (cinematicCamera != null)
-            {
-                cinematicCamera.transform.position = b1CamStart;
-                cinematicCamera.transform.rotation = b1CamRot;
-                cinematicCamera.fieldOfView = 52f;
-            }
-
-            yield return new WaitForSeconds(0.4f);
-
-            // Detonate Hyperspace Warp Shockwave at Prow Emergence Point (Ref: Sec 14)
-            Vector3 warpPoint1 = transform.position + new Vector3(-80f, 50f, 1100f);
-            StartCoroutine(TriggerWarpShockwave(warpPoint1, new Color(0.35f, 0.85f, 1f), 1.8f));
-            AddCameraTrauma(0.9f);
-
-            if (_sfxSource != null && warpBoomAudio != null)
-            {
-                _sfxSource.PlayOneShot(warpBoomAudio, 1.0f);
-            }
-
-            yield return new WaitForSeconds(0.2f);
-
-            // Flagship Dreadnought emerges bow-first from warp (Ref: Sec 15-16)
-            if (flagshipColossal != null)
-            {
-                flagshipColossal.SetActive(true);
-                flagshipColossal.transform.localRotation = Quaternion.Euler(0f, 20f, 0f);
-            }
-
-            // Vanguard ships streak in ahead
-            foreach (var escort in escortShips)
-            {
-                if (escort.name.Contains("Vanguard") && escort.shipObject != null)
+                // Warp FX triggers
+                if (!warp1Triggered && playbackTime >= 1.6f)
                 {
-                    escort.shipObject.SetActive(true);
+                    warp1Triggered = true;
+                    Vector3 warpPoint1 = transform.position + new Vector3(200f, 20f, 500f);
+                    StartCoroutine(TriggerWarpShockwave(warpPoint1, new Color(0.35f, 0.85f, 1f), 1.6f));
+                    AddCameraTrauma(0.85f);
+                    if (_sfxSource != null && warpBoomAudio != null) _sfxSource.PlayOneShot(warpBoomAudio, 1.0f);
                 }
-            }
 
-            Vector3 ship1Start = new Vector3(-60f, 15f, 1350f);
-            Vector3 ship1Mid = new Vector3(-100f, 5f, 650f);
-
-            // TRAVEL FAST AND STOP AT AN INSTANT (Hyper-relativistic Snap Deceleration)
-            float b1Timer = 0f;
-            float b1Dur = 3.0f;
-            float snapTime = 0.38f; // Arrives in 0.38 seconds then STOPS DEAD!
-
-            while (b1Timer < b1Dur)
-            {
-                b1Timer += Time.deltaTime;
-
-                if (b1Timer <= snapTime)
+                if (!warp2Triggered && playbackTime >= 4.6f)
                 {
-                    // Ultra-fast arrival curve: 95% distance in first 0.2s, snapping to dead stop at snapTime
-                    float t = b1Timer / snapTime;
-                    float snapProgress = 1.0f - Mathf.Pow(1.0f - t, 5f);
-                    if (flagshipColossal != null)
-                    {
-                        flagshipColossal.transform.localPosition = Vector3.Lerp(ship1Start, ship1Mid, snapProgress);
-                    }
+                    warp2Triggered = true;
+                    Vector3 warpPoint2 = flagshipColossal.transform.TransformPoint(new Vector3(-350f, 220f, 200f));
+                    StartCoroutine(TriggerWarpShockwave(warpPoint2, new Color(0.2f, 0.95f, 0.85f), 1.4f));
+                    AddCameraTrauma(0.75f);
+                    if (_sfxSource != null && warpBoomAudio != null) _sfxSource.PlayOneShot(warpBoomAudio, 0.85f);
                 }
-                else
+
+                if (!warp3Triggered && playbackTime >= 10.2f)
                 {
-                    // DEAD STOP (practically zero speed, tiny 0.2m/s ambient space drift)
-                    float driftTime = b1Timer - snapTime;
-                    if (flagshipColossal != null)
-                    {
-                        flagshipColossal.transform.localPosition = ship1Mid + new Vector3(0f, 0f, -0.2f * driftTime);
-                    }
+                    warp3Triggered = true;
+                    Vector3 warpPoint3 = flagshipColossal.transform.TransformPoint(new Vector3(250f, -20f, 500f));
+                    StartCoroutine(TriggerWarpShockwave(warpPoint3, new Color(0.15f, 0.9f, 1f), 1.2f));
+                    AddCameraTrauma(0.6f);
+                    if (_sfxSource != null && warpBoomAudio != null) _sfxSource.PlayOneShot(warpBoomAudio, 0.75f);
                 }
+
+                EvaluateCutsceneAtTime(playbackTime);
 
                 if (cinematicCamera != null)
                 {
-                    float camNorm = Mathf.Clamp01(b1Timer / b1Dur);
-                    Vector3 p = Vector3.Lerp(b1CamStart, b1CamEnd, camNorm);
-                    cinematicCamera.transform.position = ApplyCameraShake(p);
-                    cinematicCamera.transform.rotation = Quaternion.Euler(-18f + camNorm * 6f, -22f + camNorm * 4f, 0f);
-                }
-
-                yield return null;
-            }
-
-            // ════════════════════════════════════════════════════════════════
-            // BEAT 2 (0:17 – 0:19): DORSAL SPINE TRACKING & ESCORT WARP-IN (~2.6s)
-            // ════════════════════════════════════════════════════════════════
-            currentBeat = 2;
-
-            // Camera cuts to low dorsal spine skimming past communication masts (Ref: Sec 17-19)
-            Vector3 b2CamStart = flagshipColossal.transform.TransformPoint(new Vector3(-15f, 95f, -80f));
-            Vector3 b2CamEnd = flagshipColossal.transform.TransformPoint(new Vector3(-25f, 115f, -140f));
-            Quaternion b2CamStartRot = flagshipColossal.transform.rotation * Quaternion.Euler(6f, 18f, 0f);
-            Quaternion b2CamEndRot = flagshipColossal.transform.rotation * Quaternion.Euler(8f, 26f, 0f);
-
-            if (cinematicCamera != null)
-            {
-                cinematicCamera.fieldOfView = 54f;
-            }
-
-            // Starboard warp flash for Carrier emergence (Ref: Sec 17)
-            Vector3 warpPoint2 = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(420f, 60f, 1000f));
-            StartCoroutine(TriggerWarpShockwave(warpPoint2, new Color(0.2f, 0.95f, 0.85f), 1.5f));
-            AddCameraTrauma(0.85f);
-
-            if (_sfxSource != null && warpBoomAudio != null)
-            {
-                _sfxSource.PlayOneShot(warpBoomAudio, 0.85f);
-            }
-
-            if (carrierGalactic != null)
-            {
-                carrierGalactic.SetActive(true);
-            }
-
-            // Port and flank escort cruisers drop out of warp
-            foreach (var escort in escortShips)
-            {
-                if (escort.shipObject != null)
-                {
-                    escort.shipObject.SetActive(true);
-                }
-            }
-
-            Vector3 carrierStart = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(420f, -20f, 1200f));
-            Vector3 carrierMid = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(420f, -35f, 450f));
-
-            // CARRIER TRAVELS FAST AND STOPS AT AN INSTANT
-            float b2Timer = 0f;
-            float b2Dur = 2.6f;
-            float carrierSnapTime = 0.35f;
-
-            while (b2Timer < b2Dur)
-            {
-                b2Timer += Time.deltaTime;
-                float norm = Mathf.Clamp01(b2Timer / b2Dur);
-
-                if (b2Timer <= carrierSnapTime)
-                {
-                    float ct = b2Timer / carrierSnapTime;
-                    float carrierSnap = 1.0f - Mathf.Pow(1.0f - ct, 5f);
-                    if (carrierGalactic != null)
-                    {
-                        carrierGalactic.transform.position = Vector3.Lerp(carrierStart, carrierMid, carrierSnap);
-                    }
-                }
-                else
-                {
-                    // DEAD STOP (locked in formation drift)
-                    if (carrierGalactic != null)
-                    {
-                        carrierGalactic.transform.position = carrierMid;
-                    }
-                }
-
-                if (flagshipColossal != null)
-                {
-                    flagshipColossal.transform.localPosition = Vector3.Lerp(ship1Mid, new Vector3(-115f, 2f, 540f), norm);
-                }
-
-                if (cinematicCamera != null)
-                {
-                    Vector3 p = Vector3.Lerp(b2CamStart, b2CamEnd, norm);
-                    cinematicCamera.transform.position = ApplyCameraShake(p);
-                    cinematicCamera.transform.rotation = Quaternion.Slerp(b2CamStartRot, b2CamEndRot, norm);
-                }
-
-                yield return null;
-            }
-
-            // ════════════════════════════════════════════════════════════════
-            // BEAT 3 (0:20 – 0:25): GRAND MARS REVEAL & FULL ARMADA BLOCKADE (~4.6s)
-            // ════════════════════════════════════════════════════════════════
-            currentBeat = 3;
-
-            // Grand Crane Pullback revealing Mars (Ref: Sec 20-25)
-            Vector3 b3CamStart = flagshipColossal.transform.TransformPoint(new Vector3(-25f, 125f, -160f));
-            Vector3 b3CamEnd = flagshipColossal.transform.TransformPoint(new Vector3(-35f, 150f, -220f));
-            Quaternion b3CamStartRot = flagshipColossal.transform.rotation * Quaternion.Euler(8f, 10f, 0f);
-            Quaternion b3CamEndRot = flagshipColossal.transform.rotation * Quaternion.Euler(11f, 14f, 0f);
-
-            if (cinematicCamera != null)
-            {
-                cinematicCamera.fieldOfView = 56f;
-            }
-
-            // Sublight Ion Thrusters ignite across the entire armada! (Ref: Sec 23-24)
-            StartCoroutine(IgniteThrustersSmooth(1.2f));
-
-            Vector3 finalShip1Pos = new Vector3(-120f, 0f, 500f);
-            Vector3 finalCarrierPos = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(420f, -40f, 320f));
-
-            float b3Timer = 0f;
-            float b3Dur = 4.6f;
-
-            while (b3Timer < b3Dur)
-            {
-                b3Timer += Time.deltaTime;
-                float norm = Mathf.Clamp01(b3Timer / b3Dur);
-                float smooth = Mathf.SmoothStep(0f, 1f, norm);
-
-                if (flagshipColossal != null)
-                {
-                    flagshipColossal.transform.localPosition = Vector3.Lerp(new Vector3(-115f, 2f, 540f), finalShip1Pos, smooth);
-                }
-
-                if (carrierGalactic != null)
-                {
-                    carrierGalactic.transform.position = Vector3.Lerp(carrierMid, finalCarrierPos, smooth);
-                }
-
-                // Escort ships glide smoothly in formation
-                foreach (var escort in escortShips)
-                {
-                    if (escort.shipObject != null)
-                    {
-                        escort.shipObject.transform.position = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(escort.formationOffset);
-                    }
-                }
-
-                if (cinematicCamera != null)
-                {
-                    Vector3 p = Vector3.Lerp(b3CamStart, b3CamEnd, smooth);
-                    cinematicCamera.transform.position = ApplyCameraShake(p);
-                    cinematicCamera.transform.rotation = Quaternion.Slerp(b3CamStartRot, b3CamEndRot, smooth);
+                    cinematicCamera.transform.position = ApplyCameraShake(cinematicCamera.transform.position);
                 }
 
                 yield return null;
@@ -923,7 +977,6 @@ namespace Cyberpunk.Mars
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
 
-                // Expanding ring shockwave
                 float scale = Mathf.Lerp(15f, 850f, Mathf.Sqrt(t));
                 _warpShockwave.transform.localScale = new Vector3(scale, 1.5f, scale);
 
@@ -936,19 +989,6 @@ namespace Cyberpunk.Mars
             }
 
             _warpShockwave.SetActive(false);
-        }
-
-        private IEnumerator IgniteThrustersSmooth(float duration)
-        {
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-                SetThrustersIntensity(Mathf.SmoothStep(0f, 1f, t));
-                yield return null;
-            }
-            SetThrustersIntensity(1.0f);
         }
 
         public void SetThrustersIntensity(float factor)
@@ -964,7 +1004,7 @@ namespace Cyberpunk.Mars
 
             foreach (var l in _carrierThrusterLights)
             {
-                if (l != null) l.intensity = 15f * factor;
+                if (l != null) l.intensity = 18f * factor;
             }
             foreach (var g in _carrierThrusterGlows)
             {
@@ -973,7 +1013,7 @@ namespace Cyberpunk.Mars
 
             foreach (var escort in escortShips)
             {
-                if (escort.thrusterLight != null) escort.thrusterLight.intensity = 12f * factor;
+                if (escort.thrusterLight != null) escort.thrusterLight.intensity = 14f * factor;
                 if (escort.thrusterGlow != null) escort.thrusterGlow.SetActive(factor > 0.05f);
             }
         }
@@ -1093,7 +1133,7 @@ namespace Cyberpunk.Mars
 
             // 5. Telemetry & Interactive Prompts (Top/Bottom corners)
             GUI.color = Color.white;
-            GUI.Label(new Rect(32f, 12f, 400f, 22f), $"ORBITAL TELEMETRY: ALTITUDE 42,000 KM // BEAT {currentBeat}/3 // ARMADA COUNT: {2 + escortShips.Count}", _hudTelemetryStyle);
+            GUI.Label(new Rect(32f, 12f, 400f, 22f), $"ORBITAL TELEMETRY: ALTITUDE 42,000 KM // BEAT {currentBeat}/4 // ARMADA COUNT: {2 + escortShips.Count}", _hudTelemetryStyle);
 
             GUI.color = Color.white;
             GUI.Label(new Rect(sw - 420f, sh - 28f, 390f, 20f), "[SPACE / LMB] SKIP  |  [R] REPLAY  |  [ENTER] MARS SURFACE", _promptStyle);
