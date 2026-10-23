@@ -75,6 +75,7 @@ namespace Cyberpunk.Mars
 
         [Header("UI & Next Scene")]
         public string nextSceneName = "Scene_Mars_FinalBattle";
+        public bool autoTransitionToMission = false;
         public bool showHUD = true;
 
         [Header("Escort Ships Data")]
@@ -86,10 +87,8 @@ namespace Cyberpunk.Mars
         private AudioSource _rumbleSource;
 
         // FX & Lights
-        private List<Light> _flagshipThrusterLights = new List<Light>();
-        private List<GameObject> _flagshipThrusterGlows = new List<GameObject>();
-        private List<Light> _carrierThrusterLights = new List<Light>();
-        private List<GameObject> _carrierThrusterGlows = new List<GameObject>();
+        private CapitalShipThrusters.Rig _flagshipRig;
+        private CapitalShipThrusters.Rig _carrierRig;
         private GameObject _warpShockwave;
         private Light _warpFlashLight;
 
@@ -486,71 +485,15 @@ namespace Cyberpunk.Mars
 
         private void SetupCapitalShipThrusters(GameObject ship, bool isFlagship)
         {
-            var lightList = isFlagship ? _flagshipThrusterLights : _carrierThrusterLights;
-            var glowList = isFlagship ? _flagshipThrusterGlows : _carrierThrusterGlows;
-            lightList.Clear();
-            glowList.Clear();
-
-            // Flagship stern is at Z = -305, Carrier stern is at Z = -135
-            Vector3[] localOffsets = isFlagship ?
-                new Vector3[] { new Vector3(-25f, 6f, -305f), new Vector3(25f, 6f, -305f), new Vector3(0f, 22f, -305f) } :
-                new Vector3[] { new Vector3(-18f, 5f, -135f), new Vector3(18f, 5f, -135f), new Vector3(0f, 0f, -138f) };
-
-            Vector3 glowScale = isFlagship ? new Vector3(18f, 26f, 18f) : new Vector3(16f, 22f, 16f);
-            Color thColor = isFlagship ? new Color(1.0f, 0.65f, 0.15f) : new Color(0.1f, 0.95f, 1.0f);
-
-            var unlitShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            var glowMat = new Material(unlitShader) { color = thColor };
-
-            for (int i = 0; i < localOffsets.Length; i++)
-            {
-                string tName = $"Thruster_Light_{i + 1}";
-                Transform existing = ship.transform.Find(tName);
-                GameObject tGo;
-                if (existing == null)
-                {
-                    tGo = new GameObject(tName);
-                    tGo.transform.SetParent(ship.transform, false);
-                }
-                else tGo = existing.gameObject;
-
-                tGo.transform.localPosition = localOffsets[i];
-                var l = tGo.GetComponent<Light>();
-                if (l == null) l = tGo.AddComponent<Light>();
-                l.type = LightType.Point;
-                l.color = thColor;
-                l.range = 160f;
-                l.intensity = 0f;
-                lightList.Add(l);
-
-                // Add physical glow cylinder
-                string gName = $"Thruster_Glow_Mesh_{i + 1}";
-                Transform gExisting = ship.transform.Find(gName);
-                GameObject gGo;
-                if (gExisting == null)
-                {
-                    gGo = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                    gGo.name = gName;
-                    gGo.transform.SetParent(ship.transform, false);
-                    var col = gGo.GetComponent<Collider>();
-                    if (col != null) DestroyImmediate(col);
-                }
-                else gGo = gExisting.gameObject;
-
-                gGo.transform.localPosition = localOffsets[i];
-                gGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                gGo.transform.localScale = glowScale;
-                gGo.GetComponent<MeshRenderer>().sharedMaterial = glowMat;
-                glowList.Add(gGo);
-            }
+            // Player-ship plasma flames in the real bell nozzles (replaces the old glow cylinders)
+            if (isFlagship) _flagshipRig = CapitalShipThrusters.BuildColossal(ship);
+            else _carrierRig = CapitalShipThrusters.BuildCarrier(ship);
         }
 
         private void Update()
         {
-            if (isPlaying && Application.isPlaying)
+            if (Application.isPlaying)
             {
-                playbackTime += Time.deltaTime;
-
                 if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Escape))
                 {
                     SkipCutscene();
@@ -953,7 +896,32 @@ namespace Cyberpunk.Mars
                 yield return null;
             }
 
-            Debug.Log("<color=#00FFCC><b>[Mars Orbital Fleet]</b></color> High-Orbital Fleet Arrival sequence completed successfully!");
+            Debug.Log("<color=#00FFCC><b>[Mars Orbital Fleet]</b></color> High-Orbital Fleet Arrival sequence completed! Entering Orbital Blockade Patrol Hold.");
+
+            // Post-arrival: seamless slow orbital drift so the cutscene never freezes dead
+            currentBeat = 4;
+            float holdTimer = 0f;
+            while (isPlaying)
+            {
+                holdTimer += Time.deltaTime;
+                float driftAngle = (holdTimer * 1.5f) * Mathf.Deg2Rad;
+                Vector3 driftCam = new Vector3(Mathf.Cos(driftAngle) * 450f, 110f + Mathf.Sin(holdTimer * 0.4f) * 12f, -60f + Mathf.Sin(driftAngle) * 80f);
+                if (cinematicCamera != null && flagshipColossal != null)
+                {
+                    cinematicCamera.transform.position = flagshipColossal.transform.TransformPoint(driftCam);
+                    cinematicCamera.transform.LookAt(flagshipColossal.transform.TransformPoint(new Vector3(-20f, 25f, 60f)));
+                }
+
+                SetThrustersIntensity(1.0f);
+
+                if (autoTransitionToMission && holdTimer >= 5.0f)
+                {
+                    TransitionToMarsSurface();
+                    yield break;
+                }
+
+                yield return null;
+            }
         }
 
         private IEnumerator TriggerWarpShockwave(Vector3 position, Color flashColor, float duration)
@@ -993,23 +961,8 @@ namespace Cyberpunk.Mars
 
         public void SetThrustersIntensity(float factor)
         {
-            foreach (var l in _flagshipThrusterLights)
-            {
-                if (l != null) l.intensity = 18f * factor;
-            }
-            foreach (var g in _flagshipThrusterGlows)
-            {
-                if (g != null) g.SetActive(factor > 0.05f);
-            }
-
-            foreach (var l in _carrierThrusterLights)
-            {
-                if (l != null) l.intensity = 18f * factor;
-            }
-            foreach (var g in _carrierThrusterGlows)
-            {
-                if (g != null) g.SetActive(factor > 0.05f);
-            }
+            CapitalShipThrusters.SetPower(_flagshipRig, factor);
+            CapitalShipThrusters.SetPower(_carrierRig, factor);
 
             foreach (var escort in escortShips)
             {

@@ -17,7 +17,6 @@ namespace SyntyCombined.Cutscene
             _targetSO = (BlackMarketFlightPathSO)target;
         }
 
-        [InitializeOnLoadMethod]
         [MenuItem("Cyberpunk/Generate Arrival FlightPath Asset")]
         public static void EnsureFlightPathAssetExists()
         {

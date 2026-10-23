@@ -79,68 +79,23 @@ namespace Cyberpunk.Mars
             SetFleetVisible(false); // the dreadnoughts only exist once the invasion starts
         }
 
-        // ── Engines: the same glow rig as Cutscene_Mars_OrbitalFleetArrival (3 emissive cones + 3 point lights per ship) ──
+        // ── Engines: the player-ship plasma flame (AAAStarshipThrusterSystem) placed in the real bell nozzles ──
 
-        private readonly System.Collections.Generic.List<Light> _alphaEngineLights = new System.Collections.Generic.List<Light>();
-        private readonly System.Collections.Generic.List<GameObject> _alphaEngineGlows = new System.Collections.Generic.List<GameObject>();
-        private readonly System.Collections.Generic.List<Light> _betaEngineLights = new System.Collections.Generic.List<Light>();
-        private readonly System.Collections.Generic.List<GameObject> _betaEngineGlows = new System.Collections.Generic.List<GameObject>();
-        private bool _enginesBuilt;
+        private CapitalShipThrusters.Rig _alphaRig;
+        private CapitalShipThrusters.Rig _betaRig;
 
-        // Same offsets / sizes / colours the orbital-fleet cutscene uses for these two prefabs
         private void BuildEngines()
         {
-            if (_enginesBuilt) return;
-            _enginesBuilt = true;
-            AttachEngineGlow(dreadnoughtAlpha, _alphaEngineLights, _alphaEngineGlows,
-                new[] { new Vector3(-25f, 8f, -280f), new Vector3(25f, 8f, -280f), new Vector3(0f, 24f, -280f) },
-                new Vector3(14f, 22f, 14f), new Color(1.0f, 0.65f, 0.15f));
-            AttachEngineGlow(dreadnoughtBeta, _betaEngineLights, _betaEngineGlows,
-                new[] { new Vector3(-18f, 5f, -145f), new Vector3(18f, 5f, -145f), new Vector3(0f, 0f, -148f) },
-                new Vector3(12f, 18f, 12f), new Color(0.1f, 0.95f, 1.0f));
+            if (_alphaRig == null && dreadnoughtAlpha != null) _alphaRig = CapitalShipThrusters.BuildColossal(dreadnoughtAlpha);
+            if (_betaRig == null && dreadnoughtBeta != null) _betaRig = CapitalShipThrusters.BuildCarrier(dreadnoughtBeta);
         }
 
-        private static void AttachEngineGlow(GameObject ship, System.Collections.Generic.List<Light> lights,
-            System.Collections.Generic.List<GameObject> glows, Vector3[] offsets, Vector3 glowScale, Color color)
-        {
-            if (ship == null) return;
-            lights.Clear();
-            glows.Clear();
-            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            var mat = new Material(shader) { color = color };
-
-            for (int i = 0; i < offsets.Length; i++)
-            {
-                var lightGo = new GameObject("Thruster_Light_" + (i + 1));
-                lightGo.transform.SetParent(ship.transform, false);
-                lightGo.transform.localPosition = offsets[i];
-                var l = lightGo.AddComponent<Light>();
-                l.type = LightType.Point;
-                l.color = color;
-                l.range = 140f;
-                l.intensity = 0f;
-                lights.Add(l);
-
-                var glow = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                glow.name = "Thruster_Glow_Mesh_" + (i + 1);
-                glow.transform.SetParent(ship.transform, false);
-                var col = glow.GetComponent<Collider>();
-                if (col != null) Destroy(col);
-                glow.transform.localPosition = offsets[i];
-                glow.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                glow.transform.localScale = glowScale;
-                glow.GetComponent<MeshRenderer>().sharedMaterial = mat;
-                glow.SetActive(false);
-                glows.Add(glow);
-            }
-        }
-
-        /// <summary>0 = engines dark, 1 = full burn (intensities match the cutscene's SetThrustersIntensity).</summary>
+        /// <summary>0 = engines dark, 1 = full burn.</summary>
         public void SetEnginePower(float factor)
         {
             BuildEngines();
-            for (int i = 0; i < _alphaEngineLights.Count; i++) { _alphaEngineLights[i].intensity = 18f * factor; _alphaEngineGlows[i].SetActive(factor > 0.05f); }
-            for (int i = 0; i < _betaEngineLights.Count; i++) { _betaEngineLights[i].intensity = 15f * factor; _betaEngineGlows[i].SetActive(factor > 0.05f); }
+            CapitalShipThrusters.SetPower(_alphaRig, factor);
+            CapitalShipThrusters.SetPower(_betaRig, factor);
         }
 
         private void SetFleetVisible(bool visible)
