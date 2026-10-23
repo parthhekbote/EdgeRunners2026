@@ -100,6 +100,7 @@ namespace SyntyCombined.World
         private void Start()
         {
             FindSceneReferences();
+            ConfigureLandingOnPodPad();
             SpawnCoreMatricesIfNeeded();
             SetupReactorBay();
             SetupLandingPadVisuals();
@@ -435,6 +436,63 @@ namespace SyntyCombined.World
             }
         }
 
+        // After collecting the cores the Nightshade lands on the western Pod Pad (SM_Bld_Pod_Pad_01),
+        // where it was parked at the start, not on the eastern corporate pad the old coordinates pointed at.
+        private Vector3 _alitaDisembarkPos;
+        private bool _hasAlitaDisembarkPos;
+
+        private void ConfigureLandingOnPodPad()
+        {
+            var pad = GameObject.Find("SM_Bld_Pod_Pad_01");
+            if (pad == null)
+            {
+                Debug.LogWarning("[CoreRetrieval] SM_Bld_Pod_Pad_01 not found; keeping the default landing pad position.");
+                return;
+            }
+
+            var rends = pad.GetComponentsInChildren<Renderer>();
+            Bounds b = rends.Length > 0 ? rends[0].bounds : new Bounds(pad.transform.position, Vector3.one);
+            foreach (var rd in rends) b.Encapsulate(rd.bounds);
+
+            float groundY = GroundYAt(b.center.x, b.center.z, b.max.y + 25f, b.max.y);
+
+            // Keep the ship's own pivot-to-ground offset so it sits on the deck exactly as it did when parked
+            float rest = 1.2f;
+            Quaternion rot = landingPadRot;
+            if (nightshadeShip != null)
+            {
+                Vector3 sp = nightshadeShip.transform.position;
+                float shipGround = GroundYAt(sp.x, sp.z, sp.y + 10f, sp.y);
+                rest = Mathf.Clamp(sp.y - shipGround, 0.3f, 6f);
+                rot = nightshadeShip.transform.rotation;
+            }
+
+            landingPadPos = new Vector3(b.center.x, groundY + rest, b.center.z);
+            landingPadRot = rot;
+
+            // Alita steps off beside the cockpit, on the deck
+            Vector3 side = (rot * Vector3.right).normalized * 3.6f;
+            _alitaDisembarkPos = new Vector3(landingPadPos.x + side.x, GroundYAt(landingPadPos.x + side.x, landingPadPos.z + side.z, landingPadPos.y + 6f, landingPadPos.y) + 0.05f, landingPadPos.z + side.z);
+            _hasAlitaDisembarkPos = true;
+
+            if (CollectorBetrayalManager.Instance != null) CollectorBetrayalManager.Instance.landingPadPos = landingPadPos;
+            Debug.Log($"[CoreRetrieval] Landing pad set to SM_Bld_Pod_Pad_01 at {landingPadPos}");
+        }
+
+        private float GroundYAt(float x, float z, float fromY, float fallback)
+        {
+            var hits = Physics.RaycastAll(new Vector3(x, fromY, z), Vector3.down, 80f, ~0, QueryTriggerInteraction.Ignore);
+            float best = float.NegativeInfinity;
+            foreach (var h in hits)
+            {
+                string n = h.collider.name.ToLowerInvariant();
+                if (n.Contains("alita") || n.Contains("nightshade") || n.Contains("starship") || n.StartsWith("npc_")) continue;
+                if (h.collider.GetComponentInParent<CharacterController>() != null) continue;
+                if (h.point.y > best) best = h.point.y;
+            }
+            return float.IsNegativeInfinity(best) ? fallback : best;
+        }
+
         private void SetupLandingPadVisuals()
         {
             if (_landingPadBeacon != null) return;
@@ -442,6 +500,7 @@ namespace SyntyCombined.World
             if (existing != null)
             {
                 _landingPadBeacon = existing;
+                _landingPadBeacon.transform.position = landingPadPos + Vector3.up * 0.08f;
                 _landingPadBeacon.SetActive(false);
                 return;
             }
@@ -576,7 +635,7 @@ namespace SyntyCombined.World
                 var player = GameObject.FindWithTag("Player");
                 if (player != null)
                 {
-                    Vector3 safeAlitaPos = new Vector3(22.88f, 1.88f, 34.00f);
+                    Vector3 safeAlitaPos = _hasAlitaDisembarkPos ? _alitaDisembarkPos : new Vector3(22.88f, 1.88f, 34.00f);
                     var cc = player.GetComponent<CharacterController>();
                     if (cc != null) cc.enabled = false;
                     player.transform.position = safeAlitaPos;
@@ -599,6 +658,7 @@ namespace SyntyCombined.World
             if (CollectorBetrayalManager.Instance != null)
             {
                 CollectorBetrayalManager.Instance.currentPhase = BetrayalPhase.WaitingForCoreReturn;
+                CollectorBetrayalManager.Instance.landingPadPos = landingPadPos;
             }
 
             if (BlackMarketNPCDialogueHUD.Instance != null)

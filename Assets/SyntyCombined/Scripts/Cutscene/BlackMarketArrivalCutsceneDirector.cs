@@ -114,10 +114,51 @@ namespace SyntyCombined.Cutscene
             }
         }
 
+        // While the arrival cutscene plays, Sweet Child O' Mine is the only sound: every other
+        // AudioSource (ambience, engines, drones, music) is muted and restored when it ends.
+        private readonly System.Collections.Generic.List<AudioSource> _mutedForCutscene = new System.Collections.Generic.List<AudioSource>();
+        private float _nextMuteSweep;
+
+        private void MuteAllOtherAudio()
+        {
+            foreach (var src in FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (src == null || src == _musicSource || src == _sfxSource || src.mute) continue;
+                src.mute = true;
+                _mutedForCutscene.Add(src);
+            }
+        }
+
+        // The ship's engine and thruster loops are the loudest thing in the flyby: keep them silent every frame.
+        private void MuteStarshipAudio()
+        {
+            if (starship == null) return;
+            foreach (var src in starship.GetComponentsInChildren<AudioSource>(true))
+            {
+                if (src == null || src == _musicSource || src == _sfxSource) continue;
+                if (!src.mute) { src.mute = true; _mutedForCutscene.Add(src); }
+                if (src.isPlaying) src.Stop();
+            }
+        }
+
+        private void RestoreOtherAudio()
+        {
+            foreach (var src in _mutedForCutscene)
+                if (src != null) src.mute = false;
+            _mutedForCutscene.Clear();
+        }
+
         private void Update()
         {
             if (isPlaying)
             {
+                if (Time.unscaledTime >= _nextMuteSweep)
+                {
+                    _nextMuteSweep = Time.unscaledTime + 0.05f;
+                    MuteAllOtherAudio();
+                }
+                MuteStarshipAudio();
+
                 // Allow skipping with Space or Escape
                 if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Escape))
                 {
@@ -477,6 +518,7 @@ namespace SyntyCombined.Cutscene
                     if (proximity > 0.55f && !_flybyAudioTriggered)
                     {
                         _flybyAudioTriggered = true;
+                        // The ship pass-by sound is the one effect allowed alongside the music
                         if (_sfxSource != null && flybyWhooshClip != null)
                         {
                             _sfxSource.PlayOneShot(flybyWhooshClip, 1.0f);
@@ -561,6 +603,7 @@ namespace SyntyCombined.Cutscene
         private void FinishCutscene(bool skipped)
         {
             isPlaying = false;
+            RestoreOtherAudio();
             _currentShotIndex = -1;
 
             // 1. Settle starship firmly on landing pad

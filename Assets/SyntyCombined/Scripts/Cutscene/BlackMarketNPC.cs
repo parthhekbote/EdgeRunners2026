@@ -267,7 +267,10 @@ namespace SyntyCombined.BlackMarket
                 {
                     if (!_isConversing)
                     {
-                        StartConversation();
+                        // The dialogue HUD finishes a conversation on the same [E] press; without this
+                        // guard the NPC would read that key again and restart the same dialogue forever.
+                        if (Time.unscaledTime - _lastConversationEndTime > 0.4f)
+                            StartConversation();
                     }
                     else
                     {
@@ -476,6 +479,7 @@ namespace SyntyCombined.BlackMarket
         }
 
         private float _lastAdvanceTime = 0f;
+        private float _lastConversationEndTime = -10f;
 
         public void AdvanceConversation()
         {
@@ -519,6 +523,7 @@ namespace SyntyCombined.BlackMarket
         public void FinishConversation()
         {
             _isConversing = false;
+            _lastConversationEndTime = Time.unscaledTime;
             var hud = BlackMarketNPCDialogueHUD.GetOrCreate();
             hud.HideDialogue();
 
@@ -569,6 +574,7 @@ namespace SyntyCombined.BlackMarket
         public void CloseConversation()
         {
             _isConversing = false;
+            _lastConversationEndTime = Time.unscaledTime;
             var hud = BlackMarketNPCDialogueHUD.GetOrCreate();
             hud.HideDialogue();
 

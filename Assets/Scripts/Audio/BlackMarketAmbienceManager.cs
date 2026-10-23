@@ -7,10 +7,10 @@ namespace Cyberpunk.Audio
 {
     /// <summary>
     /// Layered orbital-station ambience for the Black Market (Demo_BlackMarket_01):
-    /// 1. Station drone + reactor hum (2D beds)
-    /// 2. Crowd murmur (3D emitters spread around the market)
-    /// 3. Random one-shots: ship flybys, hydraulics, clamps
-    /// 4. Low, muffled background music
+    /// 1. Crowd murmur (3D emitters spread around the market)
+    /// 2. Random hydraulic one-shots
+    /// 3. Low, muffled background music
+    /// No drones, hums or ship whooshes: any leftover drone/hum loops in the scene are muted.
     /// Everything ducks while CyberpunkDialogueHUD has a conversation open.
     /// Clips load from Resources/Audio/BlackMarket.
     /// </summary>
@@ -22,8 +22,6 @@ namespace Cyberpunk.Audio
         private const string ResPath = "Audio/BlackMarket/";
 
         [Header("Volumes")]
-        [Range(0f, 1f)] public float droneVolume = 0.30f;
-        [Range(0f, 1f)] public float reactorVolume = 0.18f;
         [Range(0f, 1f)] public float crowdVolume = 0.35f;
         [Range(0f, 1f)] public float musicVolume = 0.22f;
         [Range(0f, 1f)] public float oneShotVolume = 0.45f;
@@ -33,13 +31,11 @@ namespace Cyberpunk.Audio
         public float duckSpeed = 3f;
 
         [Header("One-shot timing (seconds)")]
-        public Vector2 shipFlybyInterval = new Vector2(25f, 55f);
         public Vector2 hydraulicInterval = new Vector2(8f, 20f);
 
-        private AudioSource _drone, _reactor, _music;
+        private AudioSource _music;
         private AudioSource[] _crowd;
         private AudioClip[] _crowdClips, _hydraulicClips;
-        private AudioClip _flybyClip;
         private float _duck = 1f;
         private float _musicFade;
 
@@ -80,22 +76,18 @@ namespace Cyberpunk.Audio
             if (FindAnyObjectByType<AudioListener>() == null && Camera.main != null)
                 Camera.main.gameObject.AddComponent<AudioListener>();
 
-            _drone = MakeBed("Bed_StationDrone", Load("BM_StationDrone"));
-            _reactor = MakeBed("Bed_ReactorHum", Load("BM_ReactorHum"));
-            if (_reactor != null) _reactor.pitch = 0.8f; // deeper, felt more than heard
             _music = MakeBed("Music_Low", Load("BM_Music"));
             if (_music != null) _music.volume = 0f;
 
             _crowdClips = new[] { Load("npc_civilian_murmur_01"), Load("npc_civilian_murmur_02"), Load("npc_civilian_murmur_03") };
             _hydraulicClips = new[] { Load("Mech_Hydraulic_Actuator_01"), Load("Mech_Hydraulic_Actuator_02"), Load("Mech_Hydraulic_Actuator_03") };
-            _flybyClip = Load("BM_ShipFlyby");
 
             BuildCrowdEmitters();
         }
 
         private void Start()
         {
-            StartCoroutine(OneShotLoop(shipFlybyInterval, PlayShipFlyby));
+            StartCoroutine(MuteDroneLoopsRoutine());
             StartCoroutine(OneShotLoop(hydraulicInterval, PlayHydraulic));
         }
 
@@ -154,8 +146,6 @@ namespace Cyberpunk.Audio
 
             _musicFade = Mathf.MoveTowards(_musicFade, 1f, Time.unscaledDeltaTime / 6f);
 
-            if (_drone != null) _drone.volume = droneVolume * _duck;
-            if (_reactor != null) _reactor.volume = reactorVolume * _duck;
             if (_music != null) _music.volume = musicVolume * _musicFade * _duck;
             if (_crowd != null)
                 foreach (var c in _crowd)
@@ -179,10 +169,32 @@ namespace Cyberpunk.Audio
             return center + new Vector3(dir.x, height, dir.y);
         }
 
-        private void PlayShipFlyby()
+        // Silences drone/hum loops and whoosh sounds (flybys, pass-bys, dashes) that belong to the scene itself.
+        // Sword slashes and other combat sounds are left alone.
+        private IEnumerator MuteDroneLoopsRoutine()
         {
-            if (_flybyClip == null) return;
-            PlayAt(_flybyClip, RandomPointAroundListener(30f, 60f, 12f), oneShotVolume * 0.9f, Random.Range(0.85f, 1.1f), 90f);
+            var wait = new WaitForSeconds(0.15f);
+            while (true)
+            {
+                foreach (var src in FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    if (src == null || src.transform.IsChildOf(transform)) continue;
+                    if (src.GetComponent<SyntyCombined.Cutscene.BlackMarketArrivalCutsceneDirector>() != null) continue; // cutscene music and ship pass-by stay
+                    string clipName = src.clip != null ? src.clip.name.ToLowerInvariant() : "";
+                    string objName = src.gameObject.name.ToLowerInvariant();
+
+                    bool droneLike = objName.Contains("hover_hum") || objName.Contains("drone") ||
+                                     clipName.Contains("drone") || clipName.Contains("_hum") || clipName.Contains("hum_");
+                    bool whooshLike = clipName.Contains("passby") || clipName.Contains("flyby") || clipName.Contains("swoosh") ||
+                                      clipName.Contains("dash_cyber") || clipName.Contains("jump_takeoff") ||
+                                      (clipName.Contains("whoosh") && !clipName.Contains("slash"));
+                    if (!droneLike && !whooshLike) continue;
+
+                    src.mute = true;
+                    if (src.isPlaying) src.Stop();
+                }
+                yield return wait;
+            }
         }
 
         private void PlayHydraulic()
