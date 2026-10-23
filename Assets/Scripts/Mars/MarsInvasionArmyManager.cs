@@ -40,7 +40,7 @@ namespace Cyberpunk.Mars
         public GameObject landingDustFX;
         [Range(2, 6)] public int podCount = 4;
         public float podDescentAltitude = 95f;
-        public float podDescentDuration = 5.2f;
+        public float podDescentDuration = 1.8f; // Hyper-kinetic re-entry speed (was 5.2s, now matching StarCraft 1:34-1:45)
         public bool arePodsLanded = false;
 
         [Header("Army Formation Tuning")]
@@ -317,8 +317,8 @@ namespace Cyberpunk.Mars
 
             onPodsLanded?.Invoke();
 
-            // Wait 0.35s for doors to blow open & steam to vent
-            yield return new WaitForSeconds(0.35f);
+            // Wait 0.15s for doors to blow open & steam to vent (fast action deploy)
+            yield return new WaitForSeconds(0.15f);
 
             // ════════════════════════════════════════════════════════════════════════
             // DEPLOY 12 PILOTS FROM PODS INTO COMBAT PERIMETER
@@ -688,7 +688,7 @@ namespace Cyberpunk.Mars
 
         private IEnumerator ArmyFiringRoutine(Transform targetTransform)
         {
-            float fireDuration = 4.0f;
+            float fireDuration = 1.2f;
             float timer = 0f;
 
             while (timer < fireDuration && !isArmyObliterated)

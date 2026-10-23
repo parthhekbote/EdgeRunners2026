@@ -479,7 +479,7 @@ namespace Cyberpunk.Mars
                 titleCard.titleColor = new Color(1.0f, 0.45f, 0.15f);
                 titleCard.titleShadowColor = new Color(0.85f, 0.12f, 0.25f, 0.85f);
                 titleCard.subtitleColor = new Color(0.1f, 0.92f, 1.0f);
-                titleCard.ShowTitleCard("MARS", "CYDONIA BASIN // SECTOR 00", "ANCIENT URM EXCAVATION SITE • HIGH THREAT PROTOCOL • COORD: 40.75°N, 9.46°W", 4.5f);
+                titleCard.ShowTitleCard("MARS", "CYDONIA BASIN // SECTOR 00", "ANCIENT URM EXCAVATION SITE • HIGH THREAT PROTOCOL • COORD: 40.75°N, 9.46°W", 2.2f);
             }
 
             Vector3 shipStart1 = new Vector3(130f, 150f, -160f);
@@ -490,7 +490,7 @@ namespace Cyberpunk.Mars
             Vector3 camEnd1 = new Vector3(-42f, 48f, -40f);
 
             float t1 = 0f;
-            float dur1 = 5.0f;
+            float dur1 = 2.4f; // Snappy re-entry
             bool atmosphericEntryTriggered = false;
 
             if (starship != null)
@@ -506,7 +506,7 @@ namespace Cyberpunk.Mars
                 float norm = Mathf.Clamp01(t1 / dur1);
                 float smooth = Mathf.SmoothStep(0f, 1f, norm);
 
-                if (!atmosphericEntryTriggered && t1 >= 2.4f)
+                if (!atmosphericEntryTriggered && t1 >= 1.0f)
                 {
                     atmosphericEntryTriggered = true;
                     if (dustStormSystem != null) dustStormSystem.SetStormIntensity(1.0f, 0.45f);
@@ -556,7 +556,7 @@ namespace Cyberpunk.Mars
             );
 
             float t2 = 0f;
-            float dur2 = 4.5f;
+            float dur2 = 2.0f; // Rapid canyon pass
             bool flybyAudioPlayed = false;
 
             while (t2 < dur2)
@@ -608,7 +608,7 @@ namespace Cyberpunk.Mars
             }
 
             float t3 = 0f;
-            float dur3 = 5.0f;
+            float dur3 = 2.4f; // Quick landing & ramp deploy
             bool touchedDown = false;
             bool swordDrawn = false;
 
@@ -812,7 +812,7 @@ namespace Cyberpunk.Mars
 
             if (starDestroyerFleet != null)
             {
-                starDestroyerFleet.StartFleetDescentSequence(6.5f);
+                starDestroyerFleet.StartFleetDescentSequence(2.5f);
             }
 
             Vector3 camStart5 = new Vector3(0f, 0.9f, 68f);
@@ -826,7 +826,7 @@ namespace Cyberpunk.Mars
             );
 
             float t5 = 0f;
-            float dur5 = 5.5f;
+            float dur5 = 2.2f; // Hyper-kinetic dreadnought breach
 
             while (t5 < dur5)
             {
@@ -878,7 +878,7 @@ namespace Cyberpunk.Mars
             Vector3 camEnd6A   = new Vector3(5.2f, 1.8f, 74.5f);
 
             float t6A = 0f;
-            float dur6A = 6.5f;
+            float dur6A = 2.4f; // StarCraft drop pod speed (1:34-1:45)
             bool pilotsAlerted = false;
 
             while (t6A < dur6A)
@@ -886,7 +886,7 @@ namespace Cyberpunk.Mars
                 t6A += Time.deltaTime;
 
                 // Phase 1 (0.0s - 2.2s): Worm's-eye skyward tracking of blazing drop pods
-                if (t6A < 2.2f)
+                if (t6A < 1.0f)
                 {
                     _isShowingInteriorCabin = false;
                     if (mainCamera != null)
@@ -894,11 +894,11 @@ namespace Cyberpunk.Mars
                         mainCamera.transform.position = ApplyCameraShake(camStart6A);
                         Vector3 lookSkyward = AlitaCombatStartPos + new Vector3(-8f, 45f, 12f);
                         mainCamera.transform.rotation = Quaternion.LookRotation(lookSkyward - camStart6A);
-                        mainCamera.fieldOfView = Mathf.Lerp(65f, 58f, t6A / 2.2f);
+                        mainCamera.fieldOfView = Mathf.Lerp(65f, 58f, t6A / 1.0f);
                     }
                 }
                 // Phase 2 (2.2s - 3.8s): Cut to Drop Pod Interior Cabin Red Alert Viewport
-                else if (t6A >= 2.2f && t6A < 3.8f)
+                else if (t6A >= 1.0f && t6A < 1.6f)
                 {
                     _isShowingInteriorCabin = true;
                     AddCameraTrauma(0.35f);
@@ -913,9 +913,9 @@ namespace Cyberpunk.Mars
                 else
                 {
                     _isShowingInteriorCabin = false;
-                    float subNorm = (t6A - 3.8f) / (dur6A - 3.8f);
+                    float subNorm = (t6A - 1.6f) / (dur6A - 1.6f);
 
-                    if (!pilotsAlerted && t6A >= 5.4f)
+                    if (!pilotsAlerted && t6A >= 1.7f)
                     {
                         pilotsAlerted = true;
                         TriggerCockpitTransmission(
@@ -964,10 +964,10 @@ namespace Cyberpunk.Mars
                 AddCameraTrauma(1.0f);
             }
 
-            TriggerTacticalAlert("[!] ALL 12 ESCORT PILOTS OBLITERATED // BERSERKER DISCHARGE 100% [!]", 3.5f);
+            TriggerTacticalAlert("[!] ALL 12 ESCORT PILOTS OBLITERATED // BERSERKER DISCHARGE 100% [!]", 2.0f);
 
             float t6B = 0f;
-            float dur6B = 4.5f;
+            float dur6B = 1.5f; // Fast-cut hit-stop cleave
 
             while (t6B < dur6B)
             {
@@ -1021,16 +1021,16 @@ namespace Cyberpunk.Mars
             bool visorIgnited = false;
 
             float t6C = 0f;
-            float dur6C = 9.5f;
+            float dur6C = 5.2f; // Hyper-kinetic Titanfall pacing (0:00-0:10)
 
             while (t6C < dur6C)
             {
                 t6C += Time.deltaTime;
 
                 // ── BEAT 1: Skyward Camera Tilt & Supersonic Streak (0.0s - 2.0s) ──
-                if (t6C < 2.0f)
+                if (t6C < 1.0f)
                 {
-                    float b1Norm = t6C / 2.0f;
+                    float b1Norm = t6C / 1.0f;
                     if (bossCapsule != null)
                     {
                         float curY = Mathf.Lerp(180f, 65f, b1Norm);
@@ -1050,9 +1050,9 @@ namespace Cyberpunk.Mars
                     }
                 }
                 // ── BEAT 2: Mid-Air Decoupling & Free-Fall Dive (2.0s - 3.8s) ──
-                else if (t6C >= 2.0f && t6C < 3.8f)
+                else if (t6C >= 1.0f && t6C < 2.0f)
                 {
-                    float b2Norm = (t6C - 2.0f) / 1.8f;
+                    float b2Norm = (t6C - 1.0f) / 1.0f;
 
                     if (!decoupled)
                     {
@@ -1102,9 +1102,9 @@ namespace Cyberpunk.Mars
                     }
                 }
                 // ── BEAT 3: 3-Point Superhero Seismic Ground Impact (3.8s - 5.2s) ──
-                else if (t6C >= 3.8f && t6C < 5.2f)
+                else if (t6C >= 2.0f && t6C < 3.0f)
                 {
-                    float b3Norm = (t6C - 3.8f) / 1.4f;
+                    float b3Norm = (t6C - 2.0f) / 1.0f;
 
                     if (!groundImpacted)
                     {
@@ -1151,9 +1151,9 @@ namespace Cyberpunk.Mars
                     }
                 }
                 // ── BEAT 4: Hydraulic Stand-Up & Dorsal Steam Blasts (5.2s - 7.5s) ──
-                else if (t6C >= 5.2f && t6C < 7.5f)
+                else if (t6C >= 3.0f && t6C < 4.1f)
                 {
-                    float b4Norm = (t6C - 5.2f) / 2.3f;
+                    float b4Norm = (t6C - 3.0f) / 1.1f;
 
                     if (!stoodUp)
                     {
@@ -1161,7 +1161,7 @@ namespace Cyberpunk.Mars
 
                         if (_bossAnimator != null)
                         {
-                            _bossAnimator.CrossFadeInFixedTime("ReactorPowerUp", 0.35f);
+                            _bossAnimator.CrossFadeInFixedTime("ReactorPowerUp", 0.15f);
                         }
 
                         if (hydraulicSteamFX != null)
@@ -1190,7 +1190,7 @@ namespace Cyberpunk.Mars
                 // ── BEAT 5: Crimson Visor Flare, Hammer Thruster Ignition & Boss Health Bar (7.5s - 9.5s) ──
                 else
                 {
-                    float b5Norm = (t6C - 7.5f) / 2.0f;
+                    float b5Norm = (t6C - 4.1f) / 1.1f;
 
                     if (!visorIgnited)
                     {
@@ -1199,7 +1199,7 @@ namespace Cyberpunk.Mars
                         if (bossEyeVisorLight != null)
                         {
                             bossEyeVisorLight.color = new Color(1.0f, 0.08f, 0.08f);
-                            bossEyeVisorLight.intensity = 6.5f;
+                            bossEyeVisorLight.intensity = 8.5f;
                         }
 
                         if (_sfxSource != null)
@@ -1217,7 +1217,7 @@ namespace Cyberpunk.Mars
                             _bossAnimator.CrossFadeInFixedTime("Idle", 0.35f);
                         }
 
-                        TriggerTacticalAlert("[!] GOLIATH-06 TITAN WAR MECH ENGAGED // THREAT CLASS: EXTINCTION [!]", 4.5f);
+                        TriggerTacticalAlert("[!] GOLIATH-06 TITAN WAR MECH ENGAGED // THREAT CLASS: EXTINCTION [!]", 3.0f);
 
                         if (_bossHealthBar != null)
                         {
