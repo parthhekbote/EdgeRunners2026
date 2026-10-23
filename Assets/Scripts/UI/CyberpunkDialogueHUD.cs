@@ -33,6 +33,7 @@ namespace Alita.UI
             RogueBot,   // Hostile Crimson Red (#FF2A3A) + Dark Carbon Chassis
             Scalper,    // Electric Cyber Gold (#FFD700) + Scrapper Cybernetics
             Vulcan,     // Fiery Amber/Orange (#FF5500)
+            Switchblade,// Golden-Cyan Cybernetic Demon Frame
             Custom
         }
 
@@ -55,18 +56,21 @@ namespace Alita.UI
         public Sprite cyanFrameSprite;
         public Sprite redFrameSprite;
         public Sprite goldFrameSprite;
+        public Sprite vulcanFrameSprite;
+        public Sprite switchbladeFrameSprite;
         public Sprite alitaPortraitSprite;
         public Sprite idoPortraitSprite;
         public Sprite rogueBotPortraitSprite;
         public Sprite scalperPortraitSprite;
         public Sprite vulcanPortraitSprite;
+        public Sprite switchbladePortraitSprite;
         public Sprite hexMaskSprite;
         public Sprite purpleNextSprite;
         public Sprite cyanNextSprite;
         public Sprite redNextSprite;
         public Sprite goldNextSprite;
         public Sprite vulcanNextSprite;
-        public Sprite vulcanFrameSprite;
+        public Sprite switchbladeNextSprite;
 
         [Header("TMP Fonts")]
         public TMP_FontAsset headerFont;
@@ -103,6 +107,8 @@ namespace Alita.UI
         private static readonly Color ColorRogueRed     = new Color(1f, 0.22f, 0.27f, 1f);      // #FF3845 Threat Red
         private static readonly Color ColorScalperGold  = new Color(1f, 0.84f, 0f, 1f);         // #FFD700 Electric Gold
         private static readonly Color ColorVulcanAmber  = new Color(1f, 0.35f, 0f, 1f);          // #FF5500
+        private static readonly Color ColorSwitchbladeCyan = new Color(0f, 0.94f, 1f, 1f);       // #00F0FF Electric Cyan
+        private static readonly Color ColorSwitchbladeGold = new Color(0.95f, 0.73f, 0.25f, 1f); // #F3BA40 Cyber Gold
 
         [System.Serializable]
         public class DialogueLineData
@@ -205,6 +211,12 @@ namespace Alita.UI
                 goldNextSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/UI/Dialogue/UI_Dialogue_Next_Gold.png");
             if (vulcanNextSprite == null)
                 vulcanNextSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/UI/Dialogue/UI_Dialogue_Next_Amber.png");
+            if (switchbladeFrameSprite == null)
+                switchbladeFrameSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/UI/Dialogue/UI_Dialogue_Frame_Switchblade.png");
+            if (switchbladePortraitSprite == null)
+                switchbladePortraitSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Textures/UI/Dialogue/T_Switchblade_Dialogue_Portrait.png");
+            if (switchbladeNextSprite == null)
+                switchbladeNextSprite = cyanNextSprite != null ? cyanNextSprite : goldNextSprite;
 
             if (headerFont == null)
                 headerFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/UI/Shared/Fonts/Orbitron/Orbitron-ExtraBold SDF.asset");
@@ -593,13 +605,15 @@ namespace Alita.UI
             if (string.IsNullOrEmpty(speaker)) return DialogueTheme.Alita;
             if (StreetNpcSpeakers.Contains(speaker)) return DialogueTheme.Scalper;
             string upper = speaker.ToUpper();
+            if (upper.Contains("SWITCHBLADE") || upper.Contains("SWITCH BLADE"))
+                return DialogueTheme.Switchblade;
             if (upper.Contains("IDO") || upper.Contains("DOCTOR") || upper.Contains("DYSON") || upper.Contains("SURGEON"))
                 return DialogueTheme.DoctorIdo;
             if (upper.Contains("BOT") || upper.Contains("ROUGE") || upper.Contains("ROGUE") ||
                 upper.Contains("ENFORCER") || upper.Contains("RECOVERY") || upper.Contains("SQUAD") ||
                 upper.Contains("VECTOR") || upper.Contains("COMBAT UNIT") || upper.Contains("DROID") ||
                 upper.Contains("CORPO") || upper.Contains("CYNOSURE") || upper.Contains("EREBUS") ||
-                upper.Contains("BLACKWALL") || upper.Contains("SWITCHBLADE") || upper.Contains("MECH") || upper.Contains("TITAN") ||
+                upper.Contains("BLACKWALL") || upper.Contains("MECH") || upper.Contains("TITAN") ||
                 upper.Contains("HAMMER") || upper.Contains("DRIFT CONTROL") || upper.Contains("SECURITY"))
                 return DialogueTheme.RogueBot;
             if (upper.Contains("SCALPER") || upper.Contains("RAZOR") || upper.Contains("PUNK") ||
@@ -618,8 +632,17 @@ namespace Alita.UI
 
         private void ApplyTheme(DialogueTheme theme, string speakerName, Sprite customPortrait, string speakerTitle = "")
         {
+            if (theme != DialogueTheme.Switchblade)
+            {
+                ResetStandardLayout();
+            }
+
             switch (theme)
             {
+                case DialogueTheme.Switchblade:
+                    ApplySwitchbladeTheme(speakerName, customPortrait, speakerTitle);
+                    break;
+
                 case DialogueTheme.Alita:
                     if (frameImage != null) frameImage.sprite = purpleFrameSprite;
                     if (advanceArrowImage != null) advanceArrowImage.sprite = purpleNextSprite;
@@ -727,6 +750,152 @@ namespace Alita.UI
                         portraitImage.sprite = customPortrait != null ? customPortrait : idoPortraitSprite;
                     }
                     break;
+            }
+        }
+
+        private void ResetStandardLayout()
+        {
+            if (rootPanel != null)
+            {
+                rootPanel.sizeDelta = new Vector2(1200f, 184f);
+                rootPanel.anchoredPosition = new Vector2(0f, 42f);
+            }
+            if (portraitImage != null)
+            {
+                portraitImage.gameObject.SetActive(true);
+                var pRect = portraitImage.rectTransform;
+                pRect.anchorMin = new Vector2(0f, 0.5f);
+                pRect.anchorMax = new Vector2(0f, 0.5f);
+                pRect.pivot = new Vector2(0.5f, 0.5f);
+                pRect.anchoredPosition = new Vector2(139f, -3.5f);
+                pRect.sizeDelta = new Vector2(172f, 157f);
+            }
+            if (speakerNameText != null)
+            {
+                speakerNameText.gameObject.SetActive(true);
+                var nRect = speakerNameText.rectTransform;
+                nRect.anchorMin = new Vector2(0f, 1f);
+                nRect.anchorMax = new Vector2(0f, 1f);
+                nRect.pivot = new Vector2(0f, 1f);
+                nRect.anchoredPosition = new Vector2(265f, -28f);
+                nRect.sizeDelta = new Vector2(460f, 32f);
+            }
+            if (dialogueBodyText != null)
+            {
+                dialogueBodyText.fontSize = 20.5f;
+                dialogueBodyText.lineSpacing = 8f;
+                dialogueBodyText.color = new Color(0.96f, 0.98f, 1f, 1f);
+                var bRect = dialogueBodyText.rectTransform;
+                bRect.anchorMin = new Vector2(0f, 0f);
+                bRect.anchorMax = new Vector2(1f, 1f);
+                bRect.offsetMin = new Vector2(265f, 22f);
+                bRect.offsetMax = new Vector2(-115f, -65f);
+            }
+            if (advanceArrowImage != null)
+            {
+                var aRect = advanceArrowImage.rectTransform;
+                aRect.anchoredPosition = new Vector2(-76f, 44f);
+            }
+            if (advancePromptText != null)
+            {
+                advancePromptText.color = new Color(0.85f, 0.88f, 1f, 0.85f);
+                var prRect = advancePromptText.rectTransform;
+                prRect.anchoredPosition = new Vector2(-96f, 44f);
+            }
+        }
+
+        private void ApplySwitchbladeTheme(string speakerName, Sprite customPortrait, string speakerTitle = "")
+        {
+            if (rootPanel != null)
+            {
+                rootPanel.sizeDelta = new Vector2(1200f, 273f);
+                rootPanel.anchoredPosition = new Vector2(0f, 32f);
+            }
+
+            if (frameImage != null)
+            {
+                frameImage.sprite = switchbladeFrameSprite != null ? switchbladeFrameSprite : cyanFrameSprite;
+            }
+
+            if (advanceArrowImage != null)
+            {
+                advanceArrowImage.sprite = switchbladeNextSprite != null ? switchbladeNextSprite : cyanNextSprite;
+                var aRect = advanceArrowImage.rectTransform;
+                aRect.anchoredPosition = new Vector2(-62f, 36f);
+            }
+
+            if (advancePromptText != null)
+            {
+                advancePromptText.color = ColorSwitchbladeCyan;
+                var prRect = advancePromptText.rectTransform;
+                prRect.anchoredPosition = new Vector2(-84f, 36f);
+            }
+
+            if (portraitImage != null)
+            {
+                if (customPortrait != null)
+                {
+                    portraitImage.gameObject.SetActive(true);
+                    portraitImage.sprite = customPortrait;
+                    var pRect = portraitImage.rectTransform;
+                    pRect.anchorMin = new Vector2(0f, 0.5f);
+                    pRect.anchorMax = new Vector2(0f, 0.5f);
+                    pRect.pivot = new Vector2(0.5f, 0.5f);
+                    pRect.anchoredPosition = new Vector2(148f, 3f);
+                    pRect.sizeDelta = new Vector2(195f, 195f);
+                }
+                else
+                {
+                    // Frame sprite already has SwitchBlade integrated inside the left octagonal frame
+                    portraitImage.gameObject.SetActive(false);
+                }
+            }
+
+            if (speakerNameText != null)
+            {
+                var nRect = speakerNameText.rectTransform;
+                nRect.anchorMin = new Vector2(0f, 1f);
+                nRect.anchorMax = new Vector2(0f, 1f);
+                nRect.pivot = new Vector2(0f, 1f);
+
+                string upper = string.IsNullOrEmpty(speakerName) ? "SWITCHBLADE" : speakerName.ToUpper();
+                if (upper.Contains("SWITCHBLADE"))
+                {
+                    // The artwork already has "SWITCHBLADE" printed in cyan on the stepped tab
+                    if (!string.IsNullOrEmpty(speakerTitle))
+                    {
+                        speakerNameText.text = $"<size=75%><color=#A5F3FC>// {speakerTitle.ToUpper()}</color></size>";
+                        nRect.anchoredPosition = new Vector2(655f, -42f);
+                        nRect.sizeDelta = new Vector2(400f, 28f);
+                        speakerNameText.color = ColorSwitchbladeCyan;
+                        speakerNameText.gameObject.SetActive(true);
+                    }
+                    else
+                    {
+                        speakerNameText.text = "";
+                        speakerNameText.gameObject.SetActive(false);
+                    }
+                }
+                else
+                {
+                    speakerNameText.text = upper;
+                    nRect.anchoredPosition = new Vector2(300f, -42f);
+                    nRect.sizeDelta = new Vector2(450f, 30f);
+                    speakerNameText.color = ColorSwitchbladeCyan;
+                    speakerNameText.gameObject.SetActive(true);
+                }
+            }
+
+            if (dialogueBodyText != null)
+            {
+                var bRect = dialogueBodyText.rectTransform;
+                bRect.anchorMin = new Vector2(0f, 0f);
+                bRect.anchorMax = new Vector2(1f, 1f);
+                bRect.offsetMin = new Vector2(305f, 26f);
+                bRect.offsetMax = new Vector2(-95f, -106f);
+                dialogueBodyText.fontSize = 21f;
+                dialogueBodyText.lineSpacing = 6f;
+                dialogueBodyText.color = new Color(0.94f, 0.98f, 1f, 1f);
             }
         }
 
