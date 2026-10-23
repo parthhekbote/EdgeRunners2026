@@ -10,8 +10,8 @@ namespace PolygonCyberCity.NPC.Spawner
     /// </summary>
     public static class AlitaReputation
     {
-        /// <summary>Fraction of eligible NPCs that attack Alita on sight while she is unknown.</summary>
-        public const float HostileFraction = 0.35f;
+        /// <summary>Fraction of eligible NPCs that attack Alita on sight. Zero: nobody starts a fight, NPCs only react once she attacks.</summary>
+        public const float HostileFraction = 0f;
 
         /// <summary>Chance that an NPC fights back (instead of fleeing) once Alita hits it.</summary>
         public const float FightBackFraction = 0.50f;

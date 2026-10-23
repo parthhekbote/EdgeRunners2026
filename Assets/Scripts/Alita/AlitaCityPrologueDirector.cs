@@ -771,7 +771,7 @@ namespace Alita
                     Vector3 moveDir = toDestFlat.normalized;
 
                     // Interpolate expected slope height along the current corner segment for natural stair climbing
-                    Vector3 startCorner = (_trialRouteActive && _trialCorner > 0) ? _trialRoute[_trialCorner - 1] : doctorTransform.position;
+                    Vector3 startCorner = (_trialRouteActive && _trialCorner > 0 && _trialCorner <= _trialRoute.Count) ? _trialRoute[_trialCorner - 1] : doctorTransform.position;
                     float totalSegDist = Vector2.Distance(new Vector2(startCorner.x, startCorner.z), new Vector2(dest.x, dest.z));
                     float curDistToDest = toDestFlat.magnitude;
                     float segT = totalSegDist > 0.1f ? Mathf.Clamp01(1f - (curDistToDest / totalSegDist)) : 1f;
@@ -1015,7 +1015,7 @@ namespace Alita
                         if (l.givesCityWarning)
                         {
                             PolygonCyberCity.NPC.Spawner.AlitaReputation.CityWarningGiven = true;
-                            StartCoroutine(StreetScuffleRoutine());
+                            // No scripted scuffle: random NPCs never start a fight with Alita
                         }
                         if (!string.IsNullOrEmpty(l.animTrigger))
                         {

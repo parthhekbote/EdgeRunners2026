@@ -229,23 +229,9 @@ namespace Cyberpunk.World
                 l.color = new Color(0.00f, 0.95f, 1.0f);
             }
 
-            // Holographic sign above the door
-            var signGo = doorObj.transform.Find("Clinic_HoloSign")?.gameObject;
-            if (signGo == null)
-            {
-                signGo = new GameObject("Clinic_HoloSign");
-                signGo.transform.SetParent(doorObj.transform, false);
-                signGo.transform.localPosition = new Vector3(0f, 2.70f, 0.20f);
-                signGo.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
-
-                var tm = signGo.AddComponent<TextMesh>();
-                tm.text = "✚ DR. IDO'S CYBER CLINIC ✚\nCYBER-SURGERY & AUGMENTATION";
-                tm.characterSize = 0.08f;
-                tm.fontSize = 32;
-                tm.alignment = TextAlignment.Center;
-                tm.anchor = TextAnchor.MiddleCenter;
-                tm.color = new Color(0.00f, 0.95f, 1.0f, 0.95f);
-            }
+            // The floating clinic sign was removed; clear any copy left over from earlier runs
+            var oldSign = doorObj.transform.Find("Clinic_HoloSign");
+            if (oldSign != null) Destroy(oldSign.gameObject);
 
             Debug.Log("[ClinicDoorTrigger] Dr. Ido's Clinic door trigger bound to " + doorObj.name + " at " + doorObj.transform.position);
         }

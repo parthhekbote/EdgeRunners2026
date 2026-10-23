@@ -6,6 +6,7 @@ using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using InsaneGun.Combat;
 using SyntyCombined;
+using CyberCombat.Coordination;
 
 namespace Cyberpunk.Missions
 {

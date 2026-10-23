@@ -41,6 +41,9 @@ namespace Cyberpunk.World
     {
         public static bool HasPlayed { get; private set; }
 
+        /// <summary>True once Ido has fallen: Mission 5 opens the server room door.</summary>
+        public static bool Mission5Unlocked { get; private set; }
+
         private const float TriggerDistance = 13f;
         private const float FallDepth = 70f;
 
@@ -58,6 +61,13 @@ namespace Cyberpunk.World
         private Animator _vulcanAnim;
         private Light _beacon;
         private bool _forceImmediateAmbush = false;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            HasPlayed = false;
+            Mission5Unlocked = false;
+        }
 
         public static void TryBegin()
         {
@@ -296,7 +306,9 @@ namespace Cyberpunk.World
             if (_beacon != null) Destroy(_beacon.gameObject);
 
             CyberpunkHUDController.Instance?.ShowToast("DR. IDO HAS FALLEN FROM THE BRIDGE", 6f);
-            CyberpunkHUDController.Instance?.SetQuestObjective("// IDO IS DOWN", "Go after Dr. Ido: he fell from the bridge");
+            Mission5Unlocked = true;
+            CyberpunkHUDController.Instance?.SetQuestObjective("MISSION 5 // THE SERVER ROOM",
+                "Ido's last signal traces to the server room. Reach the door and enter [E]");
         }
 
         // ── Beats ────────────────────────────────────────────────────────────────
@@ -662,13 +674,11 @@ namespace Cyberpunk.World
     }
 
     /// <summary>
-    /// Runtime hotkey and in-game debug overlay to trigger the Ido Bridge Ambush cutscene on demand.
-    /// Press F9 for Immediate Ambush cutscene, Shift+F9 for Full Distress Call sequence, F8 to toggle the button.
+    /// Runtime hotkey to trigger the Ido Bridge Ambush cutscene on demand.
+    /// Press F9 for Immediate Ambush cutscene, Shift+F9 for Full Distress Call sequence.
     /// </summary>
     public class IdoBridgeHotkeyRunner : MonoBehaviour
     {
-        private bool _showTestBtn = true;
-
         private void Update()
         {
             if (SceneManager.GetActiveScene().name != PitArenaDoorTrigger.CitySceneName) return;
@@ -679,36 +689,6 @@ namespace Cyberpunk.World
                 bool immediate = !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift);
                 IdoBridgeAmbushDirector.ForceBegin(immediate);
             }
-
-            // F8: Toggle overlay test buttons
-            if (Input.GetKeyDown(KeyCode.F8))
-            {
-                _showTestBtn = !_showTestBtn;
-            }
-        }
-
-        private void OnGUI()
-        {
-            if (!_showTestBtn || SceneManager.GetActiveScene().name != PitArenaDoorTrigger.CitySceneName) return;
-
-            // Sleek Cyberpunk styled runtime overlay buttons in top-right corner
-            float w = 230f;
-            float h = 34f;
-            float x = Screen.width - w - 16f;
-            float y = 56f;
-
-            GUI.color = new Color(0.2f, 0.95f, 0.85f, 0.95f);
-            if (GUI.Button(new Rect(x, y, w, h), "▶ PLAY IDO AMBUSH (F9)"))
-            {
-                IdoBridgeAmbushDirector.ForceBegin(true);
-            }
-
-            GUI.color = new Color(0.3f, 0.7f, 1f, 0.9f);
-            if (GUI.Button(new Rect(x, y + h + 4f, w, 26f), "▶ FULL SEQUENCE (Shift+F9)"))
-            {
-                IdoBridgeAmbushDirector.ForceBegin(false);
-            }
-            GUI.color = Color.white;
         }
     }
 }

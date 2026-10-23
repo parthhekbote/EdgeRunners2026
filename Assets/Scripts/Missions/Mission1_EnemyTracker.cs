@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 using InsaneGun.Combat;
 using SyntyCombined;
+using CyberCombat.Coordination;
 
 namespace Cyberpunk.Missions
 {
