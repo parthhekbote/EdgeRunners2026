@@ -56,17 +56,21 @@ namespace SyntyCombined
 
         [Header("Rotational Steering (Gimbal-Free 6DOF)")]
         [Tooltip("Turn pitch speed in deg/s")]
-        public float pitchSpeed = 85f;
+        public float pitchSpeed = 160f;
         [Tooltip("Turn yaw speed in deg/s")]
-        public float yawSpeed = 95f;
-        [Tooltip("Mouse steering sensitivity")]
-        public float mouseSensitivity = 65f;
+        public float yawSpeed = 180f;
+        [Tooltip("Mouse steering sensitivity multiplier")]
+        public float mouseSensitivity = 160f;
+        [Tooltip("Extra agile mouse steering multiplier for effortless rotation")]
+        public float mouseAgilityMultiplier = 2.5f;
+        [Tooltip("Invert flight pitch (pull back to pitch up)")]
+        public bool invertPitch = false;
         [Tooltip("Maximum roll bank angle into turns (degrees)")]
-        public float maxRollBank = 36f;
+        public float maxRollBank = 38f;
         [Tooltip("Roll bank transition speed")]
-        public float rollBankSpeed = 6.0f;
-        [Tooltip("Angular steering responsiveness")]
-        public float angularResponsiveness = 18f;
+        public float rollBankSpeed = 7.5f;
+        [Tooltip("Angular steering responsiveness (higher = crisper, more instant response)")]
+        public float angularResponsiveness = 32f;
 
         [Header("Hover Cushion & Landing Suspension")]
         public float hoverTargetHeight = 2.4f;
@@ -123,6 +127,8 @@ namespace SyntyCombined
         private float _verticalInput = 0f;
         private float _mouseXInput = 0f;
         private float _mouseYInput = 0f;
+        private float _mouseAccumX = 0f;
+        private float _mouseAccumY = 0f;
         private float _rudderInput = 0f;
         private float _fireTimer = 0f;
         private float _heavyTimer = 0f;
@@ -184,6 +190,13 @@ namespace SyntyCombined
             _rb.interpolation = RigidbodyInterpolation.Interpolate;
             _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             _rb.constraints = RigidbodyConstraints.None;
+
+            // Auto-upgrade legacy low-sensitivity values if loaded from old scenes/prefabs
+            if (mouseSensitivity < 120f) mouseSensitivity = 160f;
+            if (pitchSpeed < 120f) pitchSpeed = 160f;
+            if (yawSpeed < 140f) yawSpeed = 180f;
+            if (angularResponsiveness < 25f) angularResponsiveness = 32f;
+            if (mouseAgilityMultiplier < 1.0f) mouseAgilityMultiplier = 2.5f;
 
             SetupCollidersAndAnchors();
             SetupAudioSources();
@@ -563,6 +576,14 @@ namespace SyntyCombined
 
             if (_isPiloted)
             {
+                // Gather raw mouse movement deltas across render frames for high responsiveness
+                float rawX = Input.GetAxisRaw("Mouse X");
+                float rawY = Input.GetAxisRaw("Mouse Y");
+                if (Mathf.Abs(rawX) < 0.0001f) rawX = Input.GetAxis("Mouse X");
+                if (Mathf.Abs(rawY) < 0.0001f) rawY = Input.GetAxis("Mouse Y");
+                _mouseAccumX += rawX;
+                _mouseAccumY += rawY;
+
                 HandleFlightInput();
                 HandleWeaponsInput();
                 UpdateEngineFX();
@@ -574,8 +595,8 @@ namespace SyntyCombined
                     EngageHyperSpaceWarp();
                 }
 
-                // Exit ship on [F] or [E]
-                if (_exitCooldown <= 0f && (Input.GetKeyDown(boardKey) || Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.F)))
+                // Exit ship on [F]
+                if (_exitCooldown <= 0f && (Input.GetKeyDown(boardKey) || Input.GetKeyDown(KeyCode.F)))
                 {
                     // Check if Black Market mission is active and returning to Pad B-04
                     if (SyntyCombined.World.BlackMarketCoreRetrievalMission.Instance != null &&
@@ -832,9 +853,10 @@ namespace SyntyCombined
             // 2. Lateral Strafing: A (-1), D (+1)
             _strafeInput = Input.GetAxis("Horizontal");
 
-            // 3. Optional Dedicated Rudder Turn: Q (Yaw Left)
+            // 3. Dedicated Rudder Turn: Q / LeftArrow (Yaw Left), E / RightArrow (Yaw Right)
             _rudderInput = 0f;
-            if (Input.GetKey(KeyCode.Q)) _rudderInput -= 1f;
+            if (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.LeftArrow)) _rudderInput -= 1f;
+            if (Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.RightArrow)) _rudderInput += 1f;
 
             // 4. Boost / Afterburner: Left Shift
             _isBoosting = Input.GetKey(KeyCode.LeftShift);
@@ -844,9 +866,29 @@ namespace SyntyCombined
             if (Input.GetKey(KeyCode.Space)) _verticalInput += 1f;
             if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.C)) _verticalInput -= 1f;
 
-            // 6. Responsive Mouse Steering Input
-            _mouseXInput = Input.GetAxis("Mouse X");
-            _mouseYInput = Input.GetAxis("Mouse Y");
+            // 6. Responsive Mouse Steering Input with Frame Accumulation & Smooth Decay
+            float deltaX = _mouseAccumX;
+            float deltaY = _mouseAccumY;
+            _mouseAccumX = 0f;
+            _mouseAccumY = 0f;
+
+            if (Mathf.Abs(deltaX) > 0.0001f)
+            {
+                _mouseXInput = Mathf.Lerp(_mouseXInput, deltaX, 0.85f);
+            }
+            else
+            {
+                _mouseXInput = Mathf.MoveTowards(_mouseXInput, 0f, Time.deltaTime * 18f);
+            }
+
+            if (Mathf.Abs(deltaY) > 0.0001f)
+            {
+                _mouseYInput = Mathf.Lerp(_mouseYInput, deltaY, 0.85f);
+            }
+            else
+            {
+                _mouseYInput = Mathf.MoveTowards(_mouseYInput, 0f, Time.deltaTime * 18f);
+            }
         }
 
         private void ApplyFlightPhysics()
@@ -854,10 +896,16 @@ namespace SyntyCombined
             // ==========================================
             // 1. Gimbal-Free 6DOF Rotational Steering
             // ==========================================
+            float effectiveSens = mouseSensitivity * mouseAgilityMultiplier;
+
             // Pitch: rotates around local X (transform.right). Up/Down with mouse
-            float targetPitchRate = -_mouseYInput * mouseSensitivity;
-            // Yaw: rotates around local Y (transform.up) using Mouse X + Rudder
-            float targetYawRate = (_mouseXInput * mouseSensitivity) + (_rudderInput * yawSpeed * 0.8f);
+            float targetPitchRate = -_mouseYInput * effectiveSens;
+            if (invertPitch) targetPitchRate = -targetPitchRate;
+
+            // Yaw: rotates around local Y (transform.up) using Mouse X + Rudder (Q/E or Arrow keys)
+            // Also provide gentle A/D turn assist if no dedicated rudder is pressed
+            float turnAssist = (Mathf.Abs(_rudderInput) > 0.05f) ? _rudderInput : (_strafeInput * 0.40f);
+            float targetYawRate = (_mouseXInput * effectiveSens) + (turnAssist * yawSpeed * 0.9f);
 
             // Clamp steering rates to maximum specs
             targetPitchRate = Mathf.Clamp(targetPitchRate, -pitchSpeed, pitchSpeed);
@@ -872,7 +920,7 @@ namespace SyntyCombined
                 float currentRollAngle = Vector3.SignedAngle(horizonRight, transform.right, transform.forward);
 
                 // Banking into yaw and strafe turns (up to maxRollBank)
-                float turnDemand = _strafeInput * 0.70f + Mathf.Clamp(_mouseXInput * 0.40f, -1f, 1f);
+                float turnDemand = _strafeInput * 0.70f + Mathf.Clamp(_mouseXInput * 0.50f, -1f, 1f) + turnAssist * 0.35f;
                 float desiredBankAngle = -Mathf.Clamp(turnDemand, -1f, 1f) * maxRollBank;
 
                 float rollAngleError = Mathf.DeltaAngle(currentRollAngle, desiredBankAngle);
@@ -1524,8 +1572,8 @@ namespace SyntyCombined
                 fontSize = 11
             };
             guideStyle.normal.textColor = new Color(0.85f, 0.95f, 1f);
-            GUI.Label(new Rect(guideX, guideY + 4, guideW, 16), "W/S: Throttle  |  A/D: Turn  |  Space/Ctrl: Lift  |  Shift: Boost  |  Mouse: Pitch/Yaw", guideStyle);
-            GUI.Label(new Rect(guideX, guideY + 20, guideW, 16), "LMB: Rapid Cannons  |  RMB: Heavy Blast  |  Scroll: Zoom  |  V: Cockpit/Chase  |  [R]/[Enter]: Warp  |  [E]: Disembark", guideStyle);
+            GUI.Label(new Rect(guideX, guideY + 4, guideW, 16), "W/S: Throttle  |  A/D: Strafe/Turn  |  Q/E: Rudder  |  Space/Ctrl: Lift  |  Shift: Boost  |  Mouse: Pitch/Yaw", guideStyle);
+            GUI.Label(new Rect(guideX, guideY + 20, guideW, 16), "LMB: Rapid Cannons  |  RMB: Heavy Blast  |  Scroll: Zoom  |  V: Cockpit/Chase  |  [R]/[Enter]: Warp  |  [F]: Disembark", guideStyle);
 
             GUI.color = Color.white;
         }

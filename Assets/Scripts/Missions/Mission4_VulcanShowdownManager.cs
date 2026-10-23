@@ -275,7 +275,15 @@ namespace Cyberpunk.Missions
             if (voiceDeath == null) voiceDeath = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Voice/Vulcan/vulcan_04_death.wav");
 
             if (musicOminousIntro == null) musicOminousIntro = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/vulcan_battle/viramiller-ominous-284554.mp3");
-            if (musicWarDrums == null) musicWarDrums = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/vulcan_battle/stereo_color-war-drum-484498.mp3");
+            var spiderVerseClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Music/Across_The_Spider_Verse_Intro.mp3");
+            if (spiderVerseClip != null)
+            {
+                musicWarDrums = spiderVerseClip;
+            }
+            else if (musicWarDrums == null)
+            {
+                musicWarDrums = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/vulcan_battle/stereo_color-war-drum-484498.mp3");
+            }
             if (musicMeltdownClimax == null) musicMeltdownClimax = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/vulcan_battle/echoes_of_lumen-ominous-music-595730.mp3");
 
             if (sfxThunder == null) sfxThunder = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Weather/dragon-studio-dry-thunder-364468.mp3");

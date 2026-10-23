@@ -116,11 +116,21 @@ namespace Cyberpunk.Audio
         private void LoadClips()
         {
 #if UNITY_EDITOR
-            if (drumsClip == null)
+            var spiderVerseClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Music/Across_The_Spider_Verse_Intro.mp3");
+            if (spiderVerseClip != null)
+            {
+                drumsClip = spiderVerseClip;
+            }
+            else if (drumsClip == null)
+            {
                 drumsClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Crowd/tatamusic-battle-warrior-fighting-drums-478210.mp3");
+            }
+
             if (crowdCheerClip == null)
                 crowdCheerClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Crowd/u_xg7ssi08yr-crowd-cheering-379666.mp3");
 #endif
+            if (drumsClip == null)
+                drumsClip = Resources.Load<AudioClip>("Audio/Music/Across_The_Spider_Verse_Intro");
             if (drumsClip == null)
                 drumsClip = Resources.Load<AudioClip>("Audio/Crowd/tatamusic-battle-warrior-fighting-drums-478210");
             if (crowdCheerClip == null)

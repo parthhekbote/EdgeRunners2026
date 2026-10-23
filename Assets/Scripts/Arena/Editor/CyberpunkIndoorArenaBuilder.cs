@@ -1747,7 +1747,8 @@ namespace InsaneGun.EditorTools
             testMgr.enemySpawnPos = new Vector3(0f, 0.86f, 10.0f);
             testMgr.enemySpawnRot = Quaternion.Euler(0f, 180f, 0f);
 
-            var bgmClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Music/Cyberpunk_Combat_Metal_Heart.mp3")
+            var bgmClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Music/Across_The_Spider_Verse_Intro.mp3")
+                       ?? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Music/Cyberpunk_Combat_Metal_Heart.mp3")
                        ?? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Music/paulyudin-intense-intense-music-574004.mp3");
             if (bgmClip != null)
             {
