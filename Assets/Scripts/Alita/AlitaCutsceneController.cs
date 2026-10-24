@@ -659,9 +659,13 @@ namespace Alita
             _fadeAlpha = 1.0f;
 
             if (musicSource != null) musicSource.volume = 0f;
-            if (stormSystem != null && stormSystem.rainAudioSource != null)
+            if (stormSystem != null)
             {
-                stormSystem.rainAudioSource.volume = 0f;
+                stormSystem.isStormActive = false;
+                stormSystem.StopAllCoroutines();
+                if (stormSystem.rainAudioSource != null) stormSystem.rainAudioSource.Stop();
+                if (stormSystem.thunderAudioSource != null) stormSystem.thunderAudioSource.Stop();
+                if (stormSystem.lightningLight != null) stormSystem.lightningLight.intensity = 0f;
             }
 
             var op = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(nextCutsceneSceneName);

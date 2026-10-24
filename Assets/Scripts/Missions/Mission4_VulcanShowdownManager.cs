@@ -299,8 +299,16 @@ namespace Cyberpunk.Missions
             }
             if (musicMeltdownClimax == null) musicMeltdownClimax = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/vulcan_battle/echoes_of_lumen-ominous-music-595730.mp3");
 
-            if (sfxThunder == null) sfxThunder = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Weather/dragon-studio-dry-thunder-364468.mp3");
-            if (sfxGlitch == null) sfxGlitch = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Weather/dragon-studio-dry-thunder-364468.mp3");
+            if (sfxThunder == null || (sfxThunder != null && sfxThunder.name.Contains("thunder")))
+            {
+                sfxThunder = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Mechs/Mech_Footstep_Titan_Heavy_01.wav") ??
+                             AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Sword_Slash_Heavy_Finisher_01.wav");
+            }
+            if (sfxGlitch == null || (sfxGlitch != null && sfxGlitch.name.Contains("thunder")))
+            {
+                sfxGlitch = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Mechs/Mech_Hydraulic_Actuator_01.wav") ??
+                            AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/NPC_Chatter/npc_reaction_startle_01.wav");
+            }
             if (sfxGroundSlam == null) sfxGroundSlam = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Sword_Slash_Heavy_Cleave_01.wav");
 #endif
         }

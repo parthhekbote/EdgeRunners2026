@@ -147,8 +147,9 @@ namespace Cyberpunk.Mars
             if (spaceSkyboxMaterial == null)
                 spaceSkyboxMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/PolygonSciFiSpace/Materials/Misc/PolygonScifiSpace_Skybox_04.mat");
 
-            if (warpBoomAudio == null)
-                warpBoomAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Weather/dragon-studio-dry-thunder-364468.mp3");
+            if (warpBoomAudio == null || (warpBoomAudio != null && warpBoomAudio.name.Contains("thunder")))
+                warpBoomAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Cutscenes/Astropulse_Celestial_Drone.mp3") ??
+                                AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Mechs/Mech_Chassis_Reactor_Loop.wav");
             if (engineRumbleAudio == null)
                 engineRumbleAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Mechs/Mech_Chassis_Reactor_Loop.wav");
             if (ominousThemeAudio == null)

@@ -288,7 +288,7 @@ namespace Synty.SidekickCharacters
     }
 
     /// <summary>
-    ///     Creates an instance of the Downloader Tool, to allow checks for new versions on editor startup.
+    ///     Checks for Tool Downloader window, without instantiating orphaned EditorWindow ScriptableObjects on editor startup.
     /// </summary>
     [InitializeOnLoad]
     public static class DownloaderBackgroundService
@@ -311,13 +311,9 @@ namespace Synty.SidekickCharacters
             if (foundWindow != null)
             {
                 _instance = (ToolDownloader) foundWindow;
+                _instance.titleContent.text = "Sidekick Tool Downloader";
+                _instance.minSize = new Vector2(600, 150);
             }
-            else
-            {
-                _instance = ScriptableObject.CreateInstance<ToolDownloader>();
-            }
-            _instance.titleContent.text = "Sidekick Tool Downloader";
-            _instance.minSize = new Vector2(600, 150);
         }
 
         /// <summary>
@@ -330,24 +326,19 @@ namespace Synty.SidekickCharacters
                 CreateToolInstance();
             }
 
-            _instance.Close();
-
-            if (_instance == null)
+            if (_instance != null)
             {
-                CreateToolInstance();
+                _instance.Close();
             }
 
-            _instance.Show();
+            ShowToolDownloaderWindow();
         }
 
         [MenuItem("Synty/Sidekick Tool Downloader")]
         public static void ShowToolDownloaderWindow()
         {
-            if (_instance == null)
-            {
-                CreateToolInstance();
-            }
-
+            _instance = EditorWindow.GetWindow<ToolDownloader>(false, "Sidekick Tool Downloader", true);
+            _instance.minSize = new Vector2(600, 150);
             _instance.Show();
         }
     }

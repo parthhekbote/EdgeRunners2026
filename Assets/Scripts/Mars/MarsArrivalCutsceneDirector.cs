@@ -393,8 +393,7 @@ namespace Cyberpunk.Mars
 
             if (postLandingAudio == null)
             {
-                postLandingAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/aaaaa.mp3")
-                                ?? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/aaaaa.mpeg");
+                postLandingAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/aaaaa.mp3");
             }
 #endif
             if (postLandingAudio == null)
@@ -568,7 +567,7 @@ namespace Cyberpunk.Mars
         }
 
         /// <summary>
-        /// Plays the post-landing Martian exploration music (aaaaa.mpeg) on the music source after touchdown.
+        /// Plays the post-landing Martian exploration music (aaaaa.mp3) on the music source after touchdown.
         /// Smoothly crossfades in over the desert wind.
         /// </summary>
         public void PlayPostLandingAudio()
@@ -576,8 +575,7 @@ namespace Cyberpunk.Mars
             if (postLandingAudio == null)
             {
 #if UNITY_EDITOR
-                postLandingAudio = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/aaaaa.mp3")
-                                ?? UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/aaaaa.mpeg");
+                postLandingAudio = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/aaaaa.mp3");
 #endif
                 if (postLandingAudio == null)
                 {

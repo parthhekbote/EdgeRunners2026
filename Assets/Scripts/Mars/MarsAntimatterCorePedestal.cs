@@ -82,8 +82,9 @@ namespace Cyberpunk.Mars
             if (coreFxFxPrefab == null)
                 coreFxFxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Synty/PolygonSciFiWorlds/Prefabs/FX/FX_Core_01.prefab");
 
-            if (coreAbsorbSurgeAudio == null)
-                coreAbsorbSurgeAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Weather/dragon-studio-dry-thunder-364468.mp3");
+            if (coreAbsorbSurgeAudio == null || (coreAbsorbSurgeAudio != null && coreAbsorbSurgeAudio.name.Contains("thunder")))
+                coreAbsorbSurgeAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Sword_Slash_Heavy_Finisher_01.wav") ??
+                                       AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Cutscenes/Astropulse_Celestial_Drone.mp3");
             if (coreHumLoopAudio == null)
                 coreHumLoopAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Cutscenes/Astropulse_Celestial_Drone.mp3");
 #endif

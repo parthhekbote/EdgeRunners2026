@@ -43,8 +43,27 @@ namespace Alita
         private float _nextStrikeTimer = 0f;
         private bool _isFlashing = false;
 
+        public bool IsValidStormScene()
+        {
+            string sceneName = gameObject.scene.name;
+            if (string.IsNullOrEmpty(sceneName))
+            {
+                sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            }
+            return !string.IsNullOrEmpty(sceneName) &&
+                   (sceneName.IndexOf("Scrapyard", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    sceneName.IndexOf("Discovery", System.StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
         private void Awake()
         {
+            if (!IsValidStormScene())
+            {
+                isStormActive = false;
+                enabled = false;
+                return;
+            }
+
             SetupLightningLight();
             SetupAudioSources();
             EnsureRainParticlesInstantiated();
@@ -52,6 +71,13 @@ namespace Alita
 
         private void Start()
         {
+            if (!IsValidStormScene())
+            {
+                isStormActive = false;
+                enabled = false;
+                return;
+            }
+
             if (targetCamera == null)
             {
                 targetCamera = Camera.main;
@@ -67,6 +93,24 @@ namespace Alita
             }
 
             _nextStrikeTimer = Random.Range(3.0f, 6.0f); // First lightning strike fairly soon
+        }
+
+        private void OnDisable()
+        {
+            StopAllCoroutines();
+            _isFlashing = false;
+            if (thunderAudioSource != null) thunderAudioSource.Stop();
+            if (rainAudioSource != null) rainAudioSource.Stop();
+            if (lightningLight != null) lightningLight.intensity = 0f;
+        }
+
+        private void OnDestroy()
+        {
+            StopAllCoroutines();
+            _isFlashing = false;
+            if (thunderAudioSource != null) thunderAudioSource.Stop();
+            if (rainAudioSource != null) rainAudioSource.Stop();
+            if (lightningLight != null) lightningLight.intensity = 0f;
         }
 
         public void EnsureRainParticlesInstantiated()
@@ -208,7 +252,12 @@ namespace Alita
 
         private void Update()
         {
-            if (!isStormActive) return;
+            if (!isStormActive || !IsValidStormScene())
+            {
+                if (thunderAudioSource != null && thunderAudioSource.isPlaying) thunderAudioSource.Stop();
+                if (rainAudioSource != null && rainAudioSource.isPlaying) rainAudioSource.Stop();
+                return;
+            }
 
             UpdateRainTracking();
 
@@ -247,7 +296,7 @@ namespace Alita
 
         public void TriggerLightningStrike()
         {
-            if (_isFlashing) return;
+            if (_isFlashing || !isStormActive || !IsValidStormScene()) return;
             StartCoroutine(LightningSequenceRoutine());
         }
 
@@ -301,6 +350,8 @@ namespace Alita
 
         private void PlayThunderSound()
         {
+            if (!isStormActive || !IsValidStormScene()) return;
+
             if (thunderAudioSource != null && customThunderClip != null)
             {
                 thunderAudioSource.pitch = Random.Range(0.92f, 1.05f);

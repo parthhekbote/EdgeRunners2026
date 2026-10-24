@@ -262,7 +262,8 @@ namespace Cyberpunk.Missions
 #if UNITY_EDITOR
             _musicClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/vulcan_battle/viramiller-ominous-284554.mp3");
             _thrustClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Sword_Slash_Piercing_Thrust_01.wav");
-            _thunderClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Weather/dragon-studio-dry-thunder-364468.mp3");
+            _thunderClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Cutscenes/Astropulse_Celestial_Drone.mp3") ??
+                           AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/switchblade_bridge_battle/impact_sound.mp3");
             _dashClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Combat/Dash_Cyber_01.wav");
 
             // Bridge-battle audio – copied from the user-added .mpeg files to proper .mp3 names
