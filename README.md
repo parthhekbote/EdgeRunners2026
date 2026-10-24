@@ -8,10 +8,13 @@
 [![Graphics API](https://img.shields.io/badge/Graphics%20API-DirectX%2011%20%7C%2012%20%7C%20Vulkan-orange)]()
 [![Netcode](https://img.shields.io/badge/Netcode-NGO%20Multiplayer-purple)](https://docs-multiplayer.unity3d.com/)
 [![Compile Status](https://img.shields.io/badge/Compile-Clean%20(0%20Errors)-success)]()
+[![Player Guide](https://img.shields.io/badge/Player%20Manual-How%20To%20Play-gold)](HOW_TO_PLAY.md)
 [![Development Guide](https://img.shields.io/badge/Dev%20Guide-How%20We%20Made%20The%20Game-brightgreen)](HOW_WE_MADE_THE_GAME.md)
 
 An encyclopedic, AAA-grade **Cyberpunk Action RPG, Combat Sandbox, Space Opera & Multiplayer Engine** developed in **Unity 6 (Universal Render Pipeline 17.6.0)**. 
 
+> 🎮 **How to Start & Play the Game:** Check out our player guide: [**HOW_TO_PLAY.md**](HOW_TO_PLAY.md) for step-by-step launch instructions, controls reference card, campaign walkthrough, and instant developer jump shortcuts.
+>
 > 📘 **Want to know how we engineered this game?** Read our comprehensive breakdown: [**HOW_WE_MADE_THE_GAME.md**](HOW_WE_MADE_THE_GAME.md) covering our entire technology stack, architecture, combat mechanics, and phased development journey.
 
 The project documents and executes the complete cybernetic journey of **Alita (Berserker Unit 99)** across an expansive multi-planetary continuum: from her discovery in the desolate, acid-soaked Iron City scrap heaps beneath the sky city of Zalem, through a 120-second TRON neural awakening and a lunar war flashback to *The Fall* (Year 2263), into an open-world neon metropolis with an escalating 4-mission underworld campaign, a 56m colosseum tournament ring, a 200m audio-reactive Blackwall cyberspace barrier, a lawless deep space asteroid black market outpost, and an epic hyperspace voyage to Mars to confront the colossal **Colossus-06 Hammer Titan War Mech** amidst the sandstorms of Cydonia Basin.
