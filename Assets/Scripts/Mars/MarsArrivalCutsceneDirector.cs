@@ -1334,6 +1334,10 @@ namespace Cyberpunk.Mars
 
         public void TriggerCockpitTransmission(string speaker, string role, string text, float duration)
         {
+            // Only Alita and Switchblade/Mechatron speak in the Mars cutscenes; sensors, pilots and other voices stay silent
+            string who = (speaker ?? "").ToUpperInvariant();
+            if (!who.Contains("ALITA") && !who.Contains("SWITCHBLADE") && !who.Contains("MECHATRON")) return;
+
             _commsSpeaker = speaker;
             _commsRole = role;
             _commsText = text;

@@ -751,6 +751,17 @@ namespace Alita.UI
                     }
                     break;
             }
+
+            // Fallback themes borrow Alita's or Ido's face; a ship pilot, radio or system voice gets a blank portrait instead
+            if (theme != DialogueTheme.Switchblade && customPortrait == null && portraitImage != null && !string.IsNullOrEmpty(speakerName))
+            {
+                string up = speakerName.ToUpper();
+                bool ownsFace = theme == DialogueTheme.Alita ? up.Contains("ALITA")
+                    : theme == DialogueTheme.DoctorIdo ? (up.Contains("IDO") || up.Contains("DYSON") || up.Contains("DOCTOR") || up.Contains("SURGEON"))
+                    : true;
+                if (!ownsFace) portraitImage.sprite = null;
+                if (!ownsFace) portraitImage.gameObject.SetActive(false);
+            }
         }
 
         private void ResetStandardLayout()

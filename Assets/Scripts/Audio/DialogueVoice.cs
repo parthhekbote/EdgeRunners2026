@@ -20,6 +20,8 @@ namespace Cyberpunk.Audio
 
         public static bool Enabled = true;
         public static float Volume = 1f;
+        /// <summary>Playback speed of the spoken line (pitch shifts with it); cutscenes raise it to keep long exchanges brisk.</summary>
+        public static float Speed = 1f;
 
         private static readonly Dictionary<string, AudioClip> Cache = new Dictionary<string, AudioClip>();
         private static readonly HashSet<string> Reported = new HashSet<string>();
@@ -100,6 +102,7 @@ namespace Cyberpunk.Audio
             EnsureSource();
             _source.clip = clip;
             _source.volume = Mathf.Clamp01(Volume);
+            _source.pitch = Speed;
             _source.Play();
             return clip;
         }

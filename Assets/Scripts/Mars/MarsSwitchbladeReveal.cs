@@ -55,8 +55,11 @@ namespace Cyberpunk.Mars
             }
         }
 
+        private const float RevealVoiceSpeed = 1.1f;
+
         private IEnumerator SwitchbladeRevealDialogue()
         {
+            Cyberpunk.Audio.DialogueVoice.Speed = RevealVoiceSpeed;
             if (_bossHealthBar != null)
             {
                 _bossHealthBar.bossName = "MECHATRON // SWITCHBLADE";
@@ -72,23 +75,32 @@ namespace Cyberpunk.Mars
 
             foreach (var line in RevealScript)
             {
+                string speaker0 = line.alita ? "ALITA" : "SWITCHBLADE";
+                var voice = Cyberpunk.Audio.DialogueVoice.Find(speaker0, line.text);
                 float typing = line.text.Length * CyberpunkDialogueHUD.GetOrCreate().typeSpeed;
-                float hold = 1.1f + line.text.Length * 0.015f; // a readable beat after the typing finishes, then straight on
-                float seconds = typing + hold;
+                // Wait for the spoken line itself (checked live below) so it is never cut off; this is only the no-clip fallback
+                float seconds = voice != null ? Mathf.Max(typing, voice.length / RevealVoiceSpeed) + 8f : typing + 0.8f + line.text.Length * 0.012f;
                 HoldStandingPoses();
                 string speaker = line.alita ? "ALITA" : "SWITCHBLADE";
                 string title = line.alita ? "MARTIAN CYBORG" : "CYBORG OVERLORD // VIA MECHATRON";
-                CyberpunkDialogueHUD.GetOrCreate().ShowDialogue(speaker, line.text, null, title, null, hold + 1.5f); // box outlives the wait, so the next line replaces it with no blank frame
+                CyberpunkDialogueHUD.GetOrCreate().ShowDialogue(speaker, line.text, null, title, null, 0.1f); // the HUD keeps the box up until the voice ends, and the next line replaces it
                 if (!line.alita && _voiceSource != null && commsChirpAudio != null) _voiceSource.PlayOneShot(commsChirpAudio, 0.25f);
 
                 // Music sits low under the conversation
                 float t = 0f;
                 float fromMusic = _musicSource != null ? _musicSource.volume : 0f;
+                bool voiceStarted = false;
+                float tail = 0f;
                 while (t < seconds + 0.1f)
                 {
+                    if (voice != null)
+                    {
+                        if (Cyberpunk.Audio.DialogueVoice.IsPlaying) voiceStarted = true;
+                        else if (voiceStarted || t > 1.5f) { tail += Time.deltaTime; if (tail > 0.2f) break; }
+                    }
                     t += Time.deltaTime;
                     HoldStandingPoses();
-                    float k = Mathf.Clamp01(t / (seconds + 0.1f));
+                    float k = Mathf.Clamp01(t / (voice != null ? voice.length / RevealVoiceSpeed + 0.3f : seconds + 0.1f));
                     if (_musicSource != null) _musicSource.volume = Mathf.Lerp(fromMusic, baseMusic * 0.4f, Mathf.Clamp01(t / 0.6f));
                     if (bossEyeVisorLight != null && !line.alita)
                         bossEyeVisorLight.intensity = 8.5f + Mathf.Sin(Time.time * 18f) * 2.5f; // the voice rides the visor
@@ -126,6 +138,8 @@ namespace Cyberpunk.Mars
                 yield return null;
             }
 
+            Cyberpunk.Audio.DialogueVoice.Speed = 1f;
+            CyberpunkDialogueHUD.GetOrCreate().CloseDialogue(0.15f);
             SetArrivalHudVisible(true);
             if (card != null) card.SetLetterboxOnly(false, 0.5f);
         }
