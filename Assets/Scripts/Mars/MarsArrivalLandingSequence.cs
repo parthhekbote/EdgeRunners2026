@@ -689,7 +689,7 @@ namespace Cyberpunk.Mars
             }
             if (dustStormSystem != null) dustStormSystem.SetStormIntensity(0.45f, 2f);
             if (_shipEngine != null) { StartCoroutine(MarsSfx.FadeOutAndStop(_shipEngine, 2.0f)); }
-            if (_musicSource != null) StartCoroutine(MarsSfx.FadeOutAndStop(_musicSource, 3.5f));
+            PlayPostLandingAudio();
         }
 
         private static void SetArrivalHudVisible(bool visible)

@@ -434,6 +434,8 @@ namespace Cyberpunk.Mars.Editor
             cutsceneDirector.starDestroyerFleet = fleet;
             cutsceneDirector.armyManager = armyManager;
             cutsceneDirector.superchargeAura = superchargeAura;
+            cutsceneDirector.postLandingAudio = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/aaaaa.mp3")
+                                             ?? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/aaaaa.mpeg");
 
             var coreMission = directorGO.AddComponent<MarsCoreRetrievalMission>();
             coreMission.alitaHero = playerInstance;
