@@ -37,9 +37,10 @@ It combines fast katana and gun combat (a 7-hit combo, dodge, bullet time), sing
 
 ### Combat
 - **Katana combo:** 7 directional light hits (forward swipe, backhand, uppercut, thrust, overhead cleave, 360° spin, and a finisher 2.2× in size).
-- **Heavy strikes:** charged finishers that crack the ground.
-- **Sidearm:** a gun-kata pistol (`F`).
-- **Dodge:** 4-way dodge roll with invulnerability frames.
+- **Heavy strikes:** right click, one heavy hit that chains up to 3 steps if timed in the combo window; the third is a finisher.
+- **Sidearm:** a 3-shot gun burst (`Q`), 28 damage per shot, 30 m range.
+- **Dodge:** a fast 6 m dash in 4 directions (`Left Alt`). It repositions Alita but does not make her invulnerable.
+- **Block and parry:** `F`. Pressing it within 0.22 s of a hit is a perfect parry (no damage and a time freeze); a later block cuts damage to 20%.
 - **Bullet time:** time scales to 0.25×, with audio pitch warp, an energy meter and holographic ghost trails.
 - **Reboot:** at zero health, `R` triggers a reboot sequence.
 - **Hit feel:** hit-stop on every connect, additive HDR ribbon trails on the blade, and ragdolls that inherit the blade's impact direction.
@@ -61,7 +62,7 @@ It combines fast katana and gun combat (a 7-hit combo, dodge, bullet time), sing
 - An interactive backpack and economy.
 
 ### UI
-- A Cyberpunk-2077-style HUD: health, stamina, dash pips, minimap, and a quest tracker that sits under the minimap.
+- A Cyberpunk-2077-style HUD: health, bullet-time energy, minimap, and a quest tracker that sits under the minimap.
 - A themed dialogue HUD with hexagonal portraits, colour-coded per speaker, and typewriter text.
 
 ---

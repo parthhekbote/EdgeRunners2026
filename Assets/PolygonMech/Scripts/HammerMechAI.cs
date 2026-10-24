@@ -84,6 +84,8 @@ namespace PolygonMech
         public AudioClip[] sfxTitanFootsteps;
         public AudioClip sfxChassisReactorLoop;
         public AudioClip[] sfxHydraulicActuators;
+        [Tooltip("Reactor hum + hydraulic whines while walking/turning. Off: only the footstep stomps are heard")]
+        public bool movementMechanicalSounds = false;
 
         [Header("Rock Eruption & Earth Stomp FX")]
         public GameObject rockExplosionPrefab;
@@ -124,6 +126,22 @@ namespace PolygonMech
         private bool isActionLocked = false;
         private bool isAirborneLeap = false;
         private bool isPhase2 = false;
+
+        // Adaptive brain: remembers what it just did and what the player is doing
+        [Header("Adaptive Brain")]
+        [Tooltip("Phase 2 cooldown multiplier (lower = more aggressive)")]
+        public float phase2CooldownScale = 0.7f;
+        [Tooltip("Max turn speed in degrees per second when the mech re-aims")]
+        public float aimTurnRate = 420f;
+        [Tooltip("If the mech has not connected with the player for this long it forces a gap-closing leap")]
+        public float pressureTimeout = 9f;
+        private enum Move { Melee, Seismic, Leap, DashLeft, DashRight, Sprint, Stalk }
+        private readonly List<Move> _recentMoves = new List<Move>();
+        private float _lastPlayerContactTime;
+        private float _stationaryTime;
+        private float _lastMeleeTime = -10f;
+        private Vector3 _faceDir;
+        private float _faceTimeLeft;
         private float currentActionDuration = 1.0f;
 
         // Tactical Ability Cooldowns
@@ -309,6 +327,7 @@ namespace PolygonMech
 
             UpdateSensors();
             UpdatePoise();
+            UpdateAimTurn();
             ApplyGravityAndMovement();
             UpdateMechanicalMovementAudio();
 
@@ -320,7 +339,7 @@ namespace PolygonMech
             {
                 if (Time.time >= nextDecisionTime)
                 {
-                    nextDecisionTime = Time.time + PacingDecisionInterval;
+                    nextDecisionTime = Time.time + (isPhase2 ? PacingDecisionInterval * 0.7f : PacingDecisionInterval);
                     EvaluateTacticalBehavior();
                 }
             }
@@ -341,7 +360,7 @@ namespace PolygonMech
             lastMechPosition = transform.position;
             lastMechRotationY = currentRotY;
 
-            bool isMoving = (linearSpeed > 0.15f || angularSpeed > 10f) && currentState != MechCombatState.Dead;
+            bool isMoving = movementMechanicalSounds && (linearSpeed > 0.15f || angularSpeed > 10f) && currentState != MechCombatState.Dead;
             float targetVol = 0f;
             float targetPitch = 1.0f;
 
@@ -385,7 +404,7 @@ namespace PolygonMech
             audioSource.PlayOneShot(stepClip, volume);
 
             // 2. Secondary hydraulic actuator piston displacement
-            PlayHydraulicActuator(volume * 0.40f);
+            if (movementMechanicalSounds) PlayHydraulicActuator(volume * 0.40f);
         }
 
         public void PlayHydraulicActuator(float volume = 0.45f)
@@ -464,34 +483,44 @@ namespace PolygonMech
         #region Tactical Brain & Move Selection
 
         /// <summary>
-        /// Core intelligent decision tree. Evaluates range, flank threat, player rolling/backpedaling,
-        /// and cooldowns to select the most appropriate realistic mech behavior.
+        /// Core decision tree. Reads range, flanking and what the player is doing (fleeing, camping, circling),
+        /// then picks a move by weight with a penalty for repeating itself, so fights stay varied and readable
+        /// instead of being pure dice rolls.
         /// </summary>
         private void EvaluateTacticalBehavior()
         {
             if (target == null) return;
 
-            // 1. FLANK & BACK-ATTACK DETECTION
-            // If player is maneuvering behind or flanking wide (>70 degrees off-center)
+            float cd = isPhase2 ? phase2CooldownScale : 1f;
+            bool canLeap = Time.time >= lastLeapSlamTime + leapSlamCooldown * cd;
+            bool canSeismic = Time.time >= lastSeismicTime + seismicCooldown * cd;
+            bool canDash = Time.time >= lastDashTime + dashCooldown * cd;
+
+            // Player reads
+            float radial = Vector3.Dot(targetVelocity, targetDir);                 // > 0: moving away from the mech
+            float lateral = Vector3.Dot(targetVelocity, Vector3.Cross(Vector3.up, targetDir)); // sign: which way they circle
+            bool fleeing = radial > 2.0f;
+            bool circling = Mathf.Abs(lateral) > 2.6f && distanceToTarget > meleeRange * 0.8f;
+            _stationaryTime = targetVelocity.magnitude < 0.9f ? _stationaryTime + PacingDecisionInterval : 0f;
+            bool camping = _stationaryTime > 1.4f;
+
+            // 1. Flanked or back-attacked: thruster burst to re-centre
             if (Mathf.Abs(angleToTarget) > 70f && distanceToTarget <= meleeRange * 1.5f)
             {
-                // Flanked! Thruster burst to the flank to immediately re-center and face the player
                 if (angleToTarget > 0) ExecuteThrusterDash("DashRight", transform.right * 9f);
                 else ExecuteThrusterDash("DashLeft", -transform.right * 9f);
                 return;
             }
 
-            // 2. COOLING / OVERHEAT VENTILATION WINDOW ("Not Difficult, But Intelligent")
-            // After 3 consecutive attack actions, the mech vents hydraulic steam and pauses to prevent unfair spam
-            if (attacksSinceCooling >= 3)
+            // 2. Cooling window after a run of attacks (the fair punish window)
+            if (attacksSinceCooling >= (isPhase2 ? 4 : 3))
             {
                 attacksSinceCooling = 0;
-                StartCoroutine(HydraulicVentingWindow(1.4f));
+                StartCoroutine(HydraulicVentingWindow(isPhase2 ? 1.0f : 1.4f));
                 return;
             }
 
-            // 3. DEFENSIVE BRACING / COUNTER-GUARD READ
-            // If player is close and aggressively moving in while mech is ready, 30% chance to brace hammer shaft
+            // 3. Read an aggressive close-in rush and brace
             if (distanceToTarget <= meleeRange && targetVelocity.magnitude > 2.5f && Vector3.Dot(targetVelocity.normalized, -targetDir) > 0.5f)
             {
                 if (UnityEngine.Random.value < 0.35f)
@@ -501,95 +530,88 @@ namespace PolygonMech
                 }
             }
 
-            // 4. RANGE-TIERED MOVE SELECTION WITH DIVERSE TACTICAL ABILITIES
-            bool canLeapSlam = Time.time >= lastLeapSlamTime + leapSlamCooldown;
-            bool canSeismic = Time.time >= lastSeismicTime + seismicCooldown;
-            bool canDash = Time.time >= lastDashTime + dashCooldown;
+            // 4. Pressure: the player keeps out of reach and the mech never lands a hit -> force the gap shut
+            if (canLeap && distanceToTarget > meleeRange * 1.4f && Time.time - _lastPlayerContactTime > pressureTimeout)
+            {
+                _lastPlayerContactTime = Time.time; // reset so it doesn't chain-leap
+                Remember(Move.Leap);
+                ExecuteLeapGroundSlam();
+                return;
+            }
 
+            // 5. Range-tiered weighted choice
+            var options = new List<KeyValuePair<Move, float>>();
             if (distanceToTarget <= meleeRange)
             {
-                // In close melee range: NEVER leap slam.
-                // 25% chance if off cooldown and not right in player face (> 2.8m) to unleash Earth Stomp!
-                if (canSeismic && distanceToTarget > 2.8f && UnityEngine.Random.value < 0.25f)
-                {
-                    ExecuteSeismicShockwave();
-                }
-                else
-                {
-                    ExecuteCloseMeleeCombo();
-                }
+                options.Add(Opt(Move.Melee, 100f));
+                if (canSeismic && distanceToTarget > 2.8f) options.Add(Opt(Move.Seismic, 26f));
+                if (canDash && circling) options.Add(Opt(Lateral(lateral), 24f));
             }
             else if (distanceToTarget <= midRange)
             {
-                // Mid Range (4.8m - 10.5m):
-                // Check if player is running away (kiting)
-                bool isPlayerFleeing = Vector3.Dot(targetVelocity.normalized, targetDir) > 0.4f;
-
-                if (isPlayerFleeing && canLeapSlam)
-                {
-                    // Player is actively fleeing: 50% chance to punish escape with ballistic rocket leap slam
-                    if (UnityEngine.Random.value < 0.50f)
-                    {
-                        ExecuteLeapGroundSlam();
-                        return;
-                    }
-                }
-
-                // Diverse Tactical Mix at mid-range:
-                float roll = UnityEngine.Random.value;
-                if (canSeismic && roll < 0.35f)
-                {
-                    // Seismic Earth Stomp: Pulverize ground with foot stomp and erupting rock fissures
-                    ExecuteSeismicShockwave();
-                }
-                else if (canDash && roll < 0.60f)
-                {
-                    // Tactical Thruster Dash: Reposition / flank Alita with lateral rocket burst
-                    if (UnityEngine.Random.value < 0.5f) ExecuteThrusterDash("DashLeft", -transform.right * 8f);
-                    else ExecuteThrusterDash("DashRight", transform.right * 8f);
-                }
-                else if (roll < 0.85f)
-                {
-                    // Close distance aggressively using heavy sprint to enter melee combo
-                    StartCoroutine(TacticalSprintApproach(1.3f));
-                }
-                else
-                {
-                    // Intimidating stalk approach with heavy stomping footsteps
-                    StartCoroutine(TacticalStalkApproach(1.2f));
-                }
+                if (canLeap) options.Add(Opt(Move.Leap, fleeing ? 62f : camping ? 50f : 14f));
+                if (canSeismic) options.Add(Opt(Move.Seismic, circling ? 42f : 32f));
+                if (canDash) options.Add(Opt(Lateral(circling ? lateral : (UnityEngine.Random.value < 0.5f ? -1f : 1f)), circling ? 40f : 22f));
+                options.Add(Opt(Move.Sprint, 46f));
+                if (!isPhase2) options.Add(Opt(Move.Stalk, 14f));
             }
             else if (distanceToTarget <= longRange)
             {
-                // Long Range (10.5m - 22m):
-                // Priority 1: Seismic Shockwave fissure if available
-                if (canSeismic && UnityEngine.Random.value < 0.55f)
-                {
-                    ExecuteSeismicShockwave();
-                }
-                // Priority 2: Ballistic Leap Ground Slam if off cooldown
-                else if (canLeapSlam && UnityEngine.Random.value < 0.45f)
-                {
-                    ExecuteLeapGroundSlam();
-                }
-                else
-                {
-                    // Aggressive tactical sprint forward to close distance
-                    StartCoroutine(TacticalSprintApproach(1.6f));
-                }
+                if (canSeismic) options.Add(Opt(Move.Seismic, 40f));
+                if (canLeap) options.Add(Opt(Move.Leap, camping || fleeing ? 55f : 34f));
+                options.Add(Opt(Move.Sprint, 60f));
             }
             else
             {
-                // Out of combat range (> 22m):
-                if (canLeapSlam && UnityEngine.Random.value < 0.40f)
-                {
-                    ExecuteLeapGroundSlam();
-                }
-                else
-                {
-                    StartCoroutine(TacticalSprintApproach(2.0f));
-                }
+                if (canLeap) options.Add(Opt(Move.Leap, 35f));
+                options.Add(Opt(Move.Sprint, 80f));
             }
+
+            Move choice = PickWeighted(options);
+            Remember(choice);
+
+            switch (choice)
+            {
+                case Move.Melee: ExecuteCloseMeleeCombo(); break;
+                case Move.Seismic: ExecuteSeismicShockwave(); break;
+                case Move.Leap: ExecuteLeapGroundSlam(); break;
+                case Move.DashLeft: ExecuteThrusterDash("DashLeft", -transform.right * 8.5f); break;
+                case Move.DashRight: ExecuteThrusterDash("DashRight", transform.right * 8.5f); break;
+                case Move.Sprint: StartCoroutine(TacticalSprintApproach(distanceToTarget > longRange ? 2.0f : 1.4f)); break;
+                default: StartCoroutine(TacticalStalkApproach(1.2f)); break;
+            }
+        }
+
+        private static KeyValuePair<Move, float> Opt(Move move, float weight) => new KeyValuePair<Move, float>(move, weight);
+
+        // Dash the way the player is circling (cuts them off); sign > 0 = towards the mech's right
+        private Move Lateral(float sign) => sign > 0f ? Move.DashRight : Move.DashLeft;
+
+        private void Remember(Move move)
+        {
+            _recentMoves.Add(move);
+            if (_recentMoves.Count > 3) _recentMoves.RemoveAt(0);
+        }
+
+        // Each time a move already appears in the last three, its weight is cut by more than half
+        private Move PickWeighted(List<KeyValuePair<Move, float>> options)
+        {
+            float total = 0f;
+            var weights = new float[options.Count];
+            for (int i = 0; i < options.Count; i++)
+            {
+                float w = options[i].Value;
+                foreach (var m in _recentMoves) if (m == options[i].Key) w *= 0.45f;
+                weights[i] = Mathf.Max(0.5f, w);
+                total += weights[i];
+            }
+            float roll = UnityEngine.Random.value * total;
+            for (int i = 0; i < options.Count; i++)
+            {
+                roll -= weights[i];
+                if (roll <= 0f) return options[i].Key;
+            }
+            return options[options.Count - 1].Key;
         }
 
         #endregion
@@ -599,6 +621,8 @@ namespace PolygonMech
         private void ExecuteCloseMeleeCombo()
         {
             attacksSinceCooling++;
+            if (Time.time - _lastMeleeTime > 2.6f) comboStep = 0;
+            _lastMeleeTime = Time.time;
 
             // If player is extremely close (< 2.4m), 35% chance to perform a fast independent sweep
             if (distanceToTarget < 2.5f && UnityEngine.Random.value < 0.35f)
@@ -674,6 +698,7 @@ namespace PolygonMech
             PlayAnim("Idle");
             yield return new WaitForSeconds(1.0f);
             isActionLocked = false;
+            _lastPlayerContactTime = Time.time;
             currentState = MechCombatState.TacticalStalking;
         }
 
@@ -695,6 +720,7 @@ namespace PolygonMech
 
             float timer = 0f;
             bool hitExecuted = false;
+            bool connected = false;
 
             while (timer < duration)
             {
@@ -711,7 +737,7 @@ namespace PolygonMech
                 if (!hitExecuted && norm >= hitNormTime)
                 {
                     hitExecuted = true;
-                    DealHammerDamage(damage, hitRadius, isSlam);
+                    connected = DealHammerDamage(damage, hitRadius, isSlam);
                     if (isSlam)
                     {
                         TriggerGroundSlamImpact();
@@ -726,6 +752,7 @@ namespace PolygonMech
             isActionLocked = false;
             currentState = MechCombatState.TacticalStalking;
             PlayAnim("Idle");
+            if (connected) nextDecisionTime = Time.time; // landed it: press the advantage, next move now
         }
 
         private IEnumerator KineticSlideRoutine()
@@ -1061,7 +1088,9 @@ namespace PolygonMech
                 if (target != null)
                 {
                     transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(targetDir), Time.deltaTime * 2.0f);
-                    controller.Move(transform.forward * (walkSpeed * 0.4f * Time.deltaTime));
+                    // Keep a body-length of space: venting must not walk the boss through the player
+                    if (distanceToTarget > meleeRange * 0.75f)
+                        controller.Move(transform.forward * (walkSpeed * 0.4f * Time.deltaTime));
                 }
                 yield return null;
             }
@@ -1151,8 +1180,9 @@ namespace PolygonMech
 
         #region Damage Dealing & Receiving (ISyntyDamageable)
 
-        private void DealHammerDamage(float damage, float radius, bool isHeavy)
+        private bool DealHammerDamage(float damage, float radius, bool isHeavy)
         {
+            bool hitSomething = false;
             HashSet<GameObject> hitRoots = new HashSet<GameObject>();
             Vector3 forwardCenter = transform.position + transform.forward * 2.8f + Vector3.up * 1.2f;
             Collider[] hitsForward = Physics.OverlapSphere(forwardCenter, Mathf.Max(radius, 3.2f));
@@ -1172,6 +1202,8 @@ namespace PolygonMech
                 if (dmg != null && !(dmg is HammerMechAI))
                 {
                     dmg.TakeDamage(damage, forwardCenter, transform.forward, isHeavy);
+                    hitSomething = true;
+                    _lastPlayerContactTime = Time.time;
                 }
 
                 var warrior = col.GetComponentInParent<WarriorAnims.WarriorController>();
@@ -1180,6 +1212,7 @@ namespace PolygonMech
                     warrior.GetHit();
                 }
             }
+            return hitSomething;
         }
 
         private void DealRadialDamage(float damage, float radius)
@@ -1244,6 +1277,7 @@ namespace PolygonMech
                 if (dmg != null && !(dmg is HammerMechAI))
                 {
                     dmg.TakeDamage(damage, landingPos, knockDir, true);
+                    _lastPlayerContactTime = Time.time;
                 }
 
                 var warrior = col.GetComponentInParent<WarriorAnims.WarriorController>();
@@ -1396,7 +1430,7 @@ namespace PolygonMech
                 SpawnBlockSparks(hitPoint);
 
                 // Immediate counter-attack!
-                StopAllCoroutines();
+                ResetActionState();
                 StartCoroutine(GuardCounterRoutine());
                 return;
             }
@@ -1417,9 +1451,12 @@ namespace PolygonMech
             }
 
             // Check Phase 2 Berserk Overdrive threshold (50% HP)
+            // Mid-leap the boss has super armour: it takes the damage but is never knocked out of the air
+            if (isAirborneLeap) return;
+
             if (!isPhase2 && currentHealth <= maxHealth * 0.5f)
             {
-                StopAllCoroutines();
+                ResetActionState();
                 StartCoroutine(Phase2TransitionRoutine());
                 return;
             }
@@ -1580,8 +1617,30 @@ namespace PolygonMech
 
         private void TriggerStagger()
         {
-            StopAllCoroutines();
+            ResetActionState();
             StartCoroutine(StaggerRoutine());
+        }
+
+        /// <summary>
+        /// Stops whatever the mech was doing and puts it back in a clean state. A plain StopAllCoroutines used to leave a
+        /// mid-leap boss frozen in the air with its CharacterController off and its action lock stuck on.
+        /// </summary>
+        private void ResetActionState()
+        {
+            StopAllCoroutines();
+            if (isAirborneLeap)
+            {
+                isAirborneLeap = false;
+                Vector3 p = transform.position;
+                p.y = Physics.Raycast(p + Vector3.up * 40f, Vector3.down, out RaycastHit hit, 80f) ? hit.point.y + 0.05f : 0.05f;
+                transform.position = p;
+            }
+            if (controller != null && currentState != MechCombatState.Dead) controller.enabled = true;
+            isAttacking = false;
+            isActionLocked = false;
+            _faceTimeLeft = 0f;
+            externalVelocity = Vector3.zero;
+            if (hammerBooster != null) hammerBooster.SetState(BoosterFlameState.Standby);
         }
 
         private IEnumerator StaggerRoutine()
@@ -1608,6 +1667,7 @@ namespace PolygonMech
         private void Die(Vector3 hitDirection = default, Vector3 hitPoint = default)
         {
             StopAllCoroutines();
+            isAirborneLeap = false;
             currentState = MechCombatState.Dead;
             isActionLocked = true;
             isAttacking = false;
@@ -1642,10 +1702,20 @@ namespace PolygonMech
             animator.CrossFadeInFixedTime(stateName, 0.15f, 0, 0f);
         }
 
+        // Re-aims over time at a limited turn rate (it used to snap instantly, a 180 degree pop on every attack)
         private void SmoothFaceTarget(Vector3 dir, float time)
         {
             if (dir.sqrMagnitude < 0.001f) return;
-            transform.rotation = Quaternion.LookRotation(dir);
+            _faceDir = dir;
+            _faceTimeLeft = Mathf.Max(time, 0.25f);
+        }
+
+        private void UpdateAimTurn()
+        {
+            if (_faceTimeLeft <= 0f || isAirborneLeap) return;
+            _faceTimeLeft -= Time.deltaTime;
+            float rate = aimTurnRate * (isPhase2 ? 1.25f : 1f);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(_faceDir), rate * Time.deltaTime);
         }
 
         private void PlaySFX(AudioClip clip, float volume = 1f)
