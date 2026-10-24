@@ -1087,10 +1087,7 @@ namespace Alita.UI
 
         private void PlayCommsOpenSFX()
         {
-            if (audioSource == null) return;
-            if (_commsOpenClip == null) _commsOpenClip = GenerateCommsOpenClip();
-            audioSource.pitch = 1.0f;
-            audioSource.PlayOneShot(_commsOpenClip, 0.65f);
+            // Intentionally silent: the synthesized comms-open tone sounded like a phone ringing every time a box popped up.
         }
 
         private void PlayTypeChirpSFX()
