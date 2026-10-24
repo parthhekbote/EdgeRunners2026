@@ -25,6 +25,7 @@ namespace InsaneGun.Combat
     public static class TronSlashArcGenerator
     {
         private static Material _tronArcMaterialPlayer;
+        private static Material _tronArcMaterialMartian;
         private static Material _tronArcMaterialEnemy;
         private static Material _tronArcMaterialFinisher;
         private static Material _needleSparkMaterial;
@@ -43,6 +44,16 @@ namespace InsaneGun.Combat
                 _tronArcMaterialPlayer.SetFloat("_GridFrequency", 18.0f);
                 _tronArcMaterialPlayer.SetFloat("_GridIntensity", 0.70f);
                 _tronArcMaterialPlayer.SetFloat("_LeadingEdgeBoost", 1.8f);
+
+                _tronArcMaterialMartian = new Material(arcShader) { name = "M_TronSlashArc_Martian" };
+                _tronArcMaterialMartian.SetColor("_MainColor", new Color(2.6f, 0.40f, 0.15f, 1.0f));
+                _tronArcMaterialMartian.SetColor("_CoreColor", new Color(1.8f, 1.5f, 1.2f, 1.0f));
+                _tronArcMaterialMartian.SetFloat("_TopRailWidth", 0.08f);
+                _tronArcMaterialMartian.SetFloat("_BottomRailWidth", 0.06f);
+                _tronArcMaterialMartian.SetFloat("_RailIntensity", 2.2f);
+                _tronArcMaterialMartian.SetFloat("_GridFrequency", 18.0f);
+                _tronArcMaterialMartian.SetFloat("_GridIntensity", 0.70f);
+                _tronArcMaterialMartian.SetFloat("_LeadingEdgeBoost", 2.2f);
 
                 _tronArcMaterialEnemy = new Material(arcShader) { name = "M_TronSlashArc_Enemy" };
                 _tronArcMaterialEnemy.SetColor("_MainColor", new Color(2.4f, 0.85f, 0.1f, 1.0f));
@@ -88,12 +99,15 @@ namespace InsaneGun.Combat
             EnsureMaterials();
 
             bool isPlayer = attacker.CompareTag("Player") || attacker.name.Contains("Hero") || attacker.name.Contains("Alita");
+            bool isMarsScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name.IndexOf("Mars", System.StringComparison.OrdinalIgnoreCase) >= 0;
 
             // Pick Material & Color
-            Material baseMat = isFinisher ? _tronArcMaterialFinisher : (isPlayer ? _tronArcMaterialPlayer : _tronArcMaterialEnemy);
+            Material playerMat = isMarsScene ? _tronArcMaterialMartian : _tronArcMaterialPlayer;
+            Material baseMat = isFinisher ? _tronArcMaterialFinisher : (isPlayer ? playerMat : _tronArcMaterialEnemy);
+            Color playerThemeColor = isMarsScene ? new Color(5.2f, 0.45f, 0.15f) : new Color(0.0f, 3.2f, 4.8f);
             Color themeColor = isFinisher 
                 ? new Color(4.8f, 0.5f, 3.8f) 
-                : (isPlayer ? new Color(0.0f, 3.2f, 4.8f) : new Color(4.5f, 1.3f, 0.15f));
+                : (isPlayer ? playerThemeColor : new Color(4.5f, 1.3f, 0.15f));
 
             // Radius, sweep angle, and orientation per combo choreography
             float innerRadius = 0.55f * scaleMultiplier;

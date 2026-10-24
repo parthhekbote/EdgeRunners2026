@@ -227,8 +227,7 @@ namespace Cyberpunk.Mars
             // Play distant atmospheric descent roar
             if (_audioSource != null)
             {
-                _audioSource.pitch = 0.95f;
-                _audioSource.PlayOneShot(MechAudioSynth.GetThrusterLoop(), 0.85f);
+                MarsSfx.Play(MechAudioSynth.GetThrusterIgnition(), 0.4f, 0.7f);
             }
 
             float timer = 0f;
@@ -269,7 +268,7 @@ namespace Cyberpunk.Mars
                     retroFired = true;
                     if (_audioSource != null)
                     {
-                        _audioSource.PlayOneShot(MechAudioSynth.GetThrusterIgnition(), 1.0f);
+                        MarsSfx.Play(MechAudioSynth.GetThrusterIgnition(), 0.7f);
                     }
                     if (MarsArrivalCutsceneDirector.Instance != null)
                     {
@@ -305,9 +304,7 @@ namespace Cyberpunk.Mars
             // Colossal kinetic slamdown sound
             if (_audioSource != null)
             {
-                _audioSource.pitch = 0.90f;
-                _audioSource.PlayOneShot(MechAudioSynth.GetSeismicSlam(), 1.0f);
-                _audioSource.PlayOneShot(MechAudioSynth.GetPneumaticRelease(), 0.95f);
+                MarsSfx.Play(MechAudioSynth.GetSeismicSlam(), 0.9f, 0.9f);
             }
 
             if (MarsArrivalCutsceneDirector.Instance != null)
@@ -717,12 +714,6 @@ namespace Cyberpunk.Mars
         {
             if (pilot.muzzleLight != null) pilot.muzzleLight.intensity = UnityEngine.Random.Range(3.5f, 6.0f);
 
-            if (_audioSource != null && UnityEngine.Random.value < 0.25f)
-            {
-                _audioSource.pitch = UnityEngine.Random.Range(0.92f, 1.15f);
-                _audioSource.PlayOneShot(MechAudioSynth.GetServoWhine(), 0.35f);
-            }
-
             yield return new WaitForSeconds(0.05f);
 
             if (pilot.muzzleLight != null) pilot.muzzleLight.intensity = 0f;
@@ -743,12 +734,8 @@ namespace Cyberpunk.Mars
             // 1. Play seismic implosion and heavy cleave audio
             if (_audioSource != null)
             {
-                _audioSource.pitch = 0.85f;
-                _audioSource.PlayOneShot(MechAudioSynth.GetSeismicSlam(), 1.0f);
-                if (shockwaveObliterationAudio != null)
-                {
-                    _audioSource.PlayOneShot(shockwaveObliterationAudio, 0.95f);
-                }
+                MarsSfx.Play(MechAudioSynth.GetSeismicSlam(), 0.8f, 0.85f);
+                MarsSfx.Play(shockwaveObliterationAudio, 0.8f);
             }
 
             // 2. Spawn Expanding Cataclysm Shockwave Dome & Flash
@@ -803,8 +790,7 @@ namespace Cyberpunk.Mars
             // Play Merc scream / grunt
             if (_audioSource != null && mercGruntAudio != null)
             {
-                _audioSource.pitch = UnityEngine.Random.Range(0.85f, 1.05f);
-                _audioSource.PlayOneShot(mercGruntAudio, 1.0f);
+                MarsSfx.Play(mercGruntAudio, 0.7f, UnityEngine.Random.Range(0.85f, 1.05f));
             }
 
             Debug.Log($"[MarsInvasionArmyManager] ANTIMATTER CATACLYSM! {pilotsLaunched} pilots one-shot obliterated and sent flying across Mars!");
@@ -845,7 +831,7 @@ namespace Cyberpunk.Mars
 
             var shockwaveLight = waveGO.AddComponent<Light>();
             shockwaveLight.type = LightType.Point;
-            shockwaveLight.color = new Color(0.2f, 0.95f, 1.0f);
+            shockwaveLight.color = new Color(1.0f, 0.22f, 0.12f);
             shockwaveLight.range = 45f;
             shockwaveLight.intensity = 9.0f;
 
@@ -863,11 +849,11 @@ namespace Cyberpunk.Mars
             mf.sharedMesh = CreateRingMesh(32, 0.88f);
 
             var mat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-            mat.color = new Color(0.2f, 0.9f, 1.0f, 0.9f);
+            mat.color = new Color(1.0f, 0.20f, 0.12f, 0.90f);
             if (mat.HasProperty("_EmissionColor"))
             {
                 mat.EnableKeyword("_EMISSION");
-                mat.SetColor("_EmissionColor", new Color(0.8f, 3.5f, 5.0f));
+                mat.SetColor("_EmissionColor", new Color(5.5f, 0.70f, 0.20f));
             }
             mr.sharedMaterial = mat;
 
@@ -887,7 +873,7 @@ namespace Cyberpunk.Mars
                 }
 
                 // Fade alpha
-                mat.color = new Color(0.2f, 0.9f, 1.0f, Mathf.Lerp(0.95f, 0f, norm));
+                mat.color = new Color(1.0f, 0.20f, 0.12f, Mathf.Lerp(0.95f, 0f, norm));
 
                 yield return null;
             }
@@ -942,7 +928,7 @@ namespace Cyberpunk.Mars
             main.startLifetime = 0.35f;
             main.startSpeed = 16f;
             main.startSize = 0.22f;
-            main.startColor = new Color(0.3f, 0.95f, 1.0f);
+            main.startColor = new Color(1.0f, 0.28f, 0.14f);
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.loop = false;
 
@@ -953,8 +939,15 @@ namespace Cyberpunk.Mars
             shape.shapeType = ParticleSystemShapeType.Sphere;
             shape.radius = 0.4f;
 
-            psr.material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-            psr.material.color = new Color(0.2f, 0.9f, 1.0f);
+            var pMat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Universal Render Pipeline/Unlit"));
+            pMat.mainTexture = AlitaSuperchargeAura.GetOrCreateSoftCircleTexture();
+            pMat.color = new Color(1.0f, 0.22f, 0.12f);
+            if (pMat.HasProperty("_EmissionColor"))
+            {
+                pMat.EnableKeyword("_EMISSION");
+                pMat.SetColor("_EmissionColor", new Color(5.0f, 0.6f, 0.2f));
+            }
+            psr.material = pMat;
 
             ps.Play();
             Destroy(sparkGO, 0.6f);

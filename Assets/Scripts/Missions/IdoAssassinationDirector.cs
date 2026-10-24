@@ -938,7 +938,6 @@ namespace Cyberpunk.Missions
             PlayImpactOnce(_impactSoundClip != null ? _impactSoundClip : _thunderClip);
             Sfx(_stabSoundClip != null ? _stabSoundClip : _thrustClip, 1f, 0.8f);
             Sfx(_boomClip, 0.9f, 1.2f);
-            Sfx(_ringClip, 0.25f);
             StartCoroutine(FadeMusic(0.15f, 0.12f)); // music punches out on the hit
             yield return new WaitForSecondsRealtime(0.7f);
 

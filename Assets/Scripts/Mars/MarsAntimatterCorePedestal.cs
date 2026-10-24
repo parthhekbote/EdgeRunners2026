@@ -143,11 +143,11 @@ namespace Cyberpunk.Mars
                     Destroy(sphere.GetComponent<Collider>()); // Visual only
 
                     _coreMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-                    _coreMaterial.color = new Color(0.1f, 0.85f, 1.0f);
+                    _coreMaterial.color = new Color(1.0f, 0.20f, 0.12f);
                     if (_coreMaterial.HasProperty("_EmissionColor"))
                     {
                         _coreMaterial.EnableKeyword("_EMISSION");
-                        _coreMaterial.SetColor("_EmissionColor", new Color(0.8f, 3.8f, 5.5f));
+                        _coreMaterial.SetColor("_EmissionColor", new Color(5.5f, 0.70f, 0.25f));
                     }
                     sphere.GetComponent<Renderer>().sharedMaterial = _coreMaterial;
 
@@ -190,7 +190,7 @@ namespace Cyberpunk.Mars
                     lGO.transform.localPosition = Vector3.zero;
                     corePointLight = lGO.AddComponent<Light>();
                     corePointLight.type = LightType.Point;
-                    corePointLight.color = new Color(0.18f, 0.88f, 1.0f);
+                    corePointLight.color = new Color(1.0f, 0.24f, 0.12f);
                     corePointLight.range = 14f;
                     corePointLight.intensity = 4.5f;
                 }
@@ -214,8 +214,8 @@ namespace Cyberpunk.Mars
                     var main = coreEmbersFX.main;
                     main.startLifetime = 1.2f;
                     main.startSpeed = 0.6f;
-                    main.startSize = 0.12f;
-                    main.startColor = new Color(0.15f, 0.95f, 1.0f);
+                    main.startSize = 0.14f;
+                    main.startColor = new Color(1.0f, 0.26f, 0.12f, 0.95f);
                     main.simulationSpace = ParticleSystemSimulationSpace.World;
 
                     var shape = coreEmbersFX.shape;
@@ -226,8 +226,15 @@ namespace Cyberpunk.Mars
                     emission.rateOverTime = 16f;
 
                     var rend = fxGO.GetComponent<ParticleSystemRenderer>();
-                    rend.material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-                    rend.material.color = new Color(0.2f, 0.9f, 1.0f);
+                    var pMat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Universal Render Pipeline/Unlit"));
+                    pMat.mainTexture = AlitaSuperchargeAura.GetOrCreateSoftCircleTexture();
+                    pMat.color = new Color(1.0f, 0.22f, 0.12f);
+                    if (pMat.HasProperty("_EmissionColor"))
+                    {
+                        pMat.EnableKeyword("_EMISSION");
+                        pMat.SetColor("_EmissionColor", new Color(5.0f, 0.6f, 0.2f));
+                    }
+                    rend.sharedMaterial = pMat;
                 }
             }
         }
@@ -330,7 +337,7 @@ namespace Cyberpunk.Mars
             flashGO.transform.position = alitaTransform.position + Vector3.up * 1.25f;
             var flashLight = flashGO.AddComponent<Light>();
             flashLight.type = LightType.Point;
-            flashLight.color = new Color(0.2f, 0.95f, 1.0f);
+            flashLight.color = new Color(1.0f, 0.22f, 0.12f);
             flashLight.range = 30f;
             flashLight.intensity = 15f;
             Destroy(flashGO, 0.35f);

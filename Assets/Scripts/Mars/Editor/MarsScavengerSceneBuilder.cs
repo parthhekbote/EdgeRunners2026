@@ -441,7 +441,7 @@ namespace Cyberpunk.Mars.Editor
                 lightGO.transform.localPosition = new Vector3(0f, 0.4f, -7.5f);
                 var tLight = lightGO.AddComponent<Light>();
                 tLight.type = LightType.Point;
-                tLight.color = new Color(0.1f, 0.85f, 1.0f);
+                tLight.color = new Color(1.0f, 0.40f, 0.12f);
                 tLight.range = 25f;
                 tLight.intensity = 3.5f;
             }

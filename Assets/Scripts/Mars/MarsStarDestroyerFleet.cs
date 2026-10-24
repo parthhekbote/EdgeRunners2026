@@ -229,6 +229,7 @@ namespace Cyberpunk.Mars
             if (_rumbleSource != null && engineRumbleAudio != null)
             {
                 _rumbleSource.clip = engineRumbleAudio;
+                _rumbleSource.volume = 0f; // swells in with the engines (see FleetDescentRoutine)
                 _rumbleSource.Play();
             }
 
@@ -246,6 +247,7 @@ namespace Cyberpunk.Mars
                 float norm = Mathf.Clamp01(timer / duration);
                 float smooth = Mathf.SmoothStep(0f, 1f, norm);
                 SetEnginePower(Mathf.Clamp01(norm * 2.5f)); // engines spool up as the ships breach the clouds
+                if (_rumbleSource != null) _rumbleSource.volume = 0.55f * smooth;
 
                 if (dreadnoughtAlpha != null)
                 {
@@ -276,6 +278,13 @@ namespace Cyberpunk.Mars
             SetEnginePower(1f);
             if (dreadnoughtAlpha != null) dreadnoughtAlpha.transform.position = EndPosAlpha;
             if (dreadnoughtBeta != null) dreadnoughtBeta.transform.position = EndPosBeta;
+        }
+
+        /// <summary>Fades the horn and engine rumble out so they end without a click.</summary>
+        public void FadeOutAudio(float duration)
+        {
+            if (_rumbleSource != null) StartCoroutine(MarsSfx.FadeOutAndStop(_rumbleSource, duration));
+            if (_hornSource != null) StartCoroutine(MarsSfx.FadeOutAndStop(_hornSource, duration));
         }
 
         public void FastForwardFleet()

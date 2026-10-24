@@ -84,8 +84,10 @@ namespace InsaneGun.Combat
             widthCurve.AddKey(1f, 0.01f);
             trail.widthCurve = widthCurve;
 
-            // Tron Electric Cyan (Player) vs Tron Laser Amber/Orange (Enemy)
-            Color neonColor = isPlayer ? new Color(0f, 0.95f, 1.0f) : new Color(1.0f, 0.45f, 0.05f);
+            // Tron Electric Cyan (Player in CyberCity) vs Tron Martian Crimson (Player on Mars) vs Tron Laser Amber/Orange (Enemy)
+            bool isMarsScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name.IndexOf("Mars", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            Color playerNeon = isMarsScene ? new Color(1.0f, 0.22f, 0.12f) : new Color(0f, 0.95f, 1.0f);
+            Color neonColor = isPlayer ? playerNeon : new Color(1.0f, 0.45f, 0.05f);
             Color coreColor = Color.white;
 
             // Translucent glowing laser ribbon with soft falloff

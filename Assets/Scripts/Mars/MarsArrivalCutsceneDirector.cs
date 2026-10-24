@@ -41,7 +41,7 @@ namespace Cyberpunk.Mars
     /// - Seamless transition into gameplay third-person camera (SmoothOrbitCamera), unlocking combat controls.
     /// - Skip functionality on [Space] or [Escape].
     /// </summary>
-    public class MarsArrivalCutsceneDirector : MonoBehaviour
+    public partial class MarsArrivalCutsceneDirector : MonoBehaviour
     {
         public static MarsArrivalCutsceneDirector Instance { get; private set; }
 
@@ -315,7 +315,7 @@ namespace Cyberpunk.Mars
             if (starship == null)
             {
 #if UNITY_EDITOR
-                var shipPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/PolygonSciFiSpace/Prefabs/Vehicles/SM_Ship_Stealth_01.prefab");
+                var shipPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Synty/PolygonSciFiWorlds/Prefabs/Props/Vehicles/SM_Veh_HoverCraft_01.prefab");
                 if (shipPrefab != null)
                 {
                     starship = (GameObject)PrefabUtility.InstantiatePrefab(shipPrefab);
@@ -331,10 +331,10 @@ namespace Cyberpunk.Mars
                 {
                     GameObject lightGO = new GameObject("Thruster_Point_Light");
                     lightGO.transform.SetParent(starship.transform, false);
-                    lightGO.transform.localPosition = new Vector3(0f, 0.4f, -7.5f);
+                    lightGO.transform.localPosition = new Vector3(0f, 1.65f, -3.4f);
                     starshipThrusterLight = lightGO.AddComponent<Light>();
                     starshipThrusterLight.type = LightType.Point;
-                    starshipThrusterLight.color = new Color(0.1f, 0.85f, 1.0f);
+                    starshipThrusterLight.color = new Color(1.0f, 0.40f, 0.12f);
                     starshipThrusterLight.range = 25f;
                     starshipThrusterLight.intensity = 3.5f;
                 }
@@ -468,219 +468,8 @@ namespace Cyberpunk.Mars
 
         private IEnumerator ArrivalCutsceneSequence()
         {
-            // ════════════════════════════════════════════════════════════════════════
-            // SHOT 1: ORBITAL HYPERSPACE BREACH & ATMOSPHERIC RE-ENTRY (5.0s)
-            // ════════════════════════════════════════════════════════════════════════
-            if (_sfxSource != null)
-            {
-                _sfxSource.PlayOneShot(MechAudioSynth.GetThrusterIgnition(), 0.95f);
-            }
-
-            var titleCard = GotGTitleCardUI.GetOrCreate();
-            if (titleCard != null)
-            {
-                titleCard.titleColor = new Color(1.0f, 0.45f, 0.15f);
-                titleCard.titleShadowColor = new Color(0.85f, 0.12f, 0.25f, 0.85f);
-                titleCard.subtitleColor = new Color(0.1f, 0.92f, 1.0f);
-                titleCard.ShowTitleCard("MARS", "CYDONIA BASIN // SECTOR 00", "ANCIENT URM EXCAVATION SITE • HIGH THREAT PROTOCOL • COORD: 40.75°N, 9.46°W", 2.2f);
-            }
-
-            Vector3 shipStart1 = new Vector3(130f, 150f, -160f);
-            Vector3 shipEnd1 = new Vector3(25f, 45f, -25f);
-            Quaternion shipRot1 = Quaternion.Euler(28f, -28f, 14f);
-
-            Vector3 camStart1 = new Vector3(-65f, 58f, -70f);
-            Vector3 camEnd1 = new Vector3(-42f, 48f, -40f);
-
-            float t1 = 0f;
-            float dur1 = 2.4f; // Snappy re-entry
-            bool atmosphericEntryTriggered = false;
-
-            if (starship != null)
-            {
-                starship.transform.position = shipStart1;
-                starship.transform.rotation = shipRot1;
-                if (starshipThrusterLight != null) starshipThrusterLight.intensity = 5.0f;
-            }
-
-            while (t1 < dur1)
-            {
-                t1 += Time.deltaTime;
-                float norm = Mathf.Clamp01(t1 / dur1);
-                float smooth = Mathf.SmoothStep(0f, 1f, norm);
-
-                if (!atmosphericEntryTriggered && t1 >= 1.0f)
-                {
-                    atmosphericEntryTriggered = true;
-                    if (dustStormSystem != null) dustStormSystem.SetStormIntensity(1.0f, 0.45f);
-                    if (_sfxSource != null) _sfxSource.PlayOneShot(MechAudioSynth.GetThrusterIgnition(), 0.90f);
-                    AddCameraTrauma(0.70f);
-                }
-
-                if (starship != null)
-                {
-                    starship.transform.position = Vector3.Lerp(shipStart1, shipEnd1, Mathf.Pow(norm, 1.25f));
-                    starship.transform.rotation = Quaternion.Slerp(shipRot1, Quaternion.Euler(22f, -18f, 8f), norm);
-                }
-
-                if (mainCamera != null)
-                {
-                    Vector3 camPos = Vector3.Lerp(camStart1, camEnd1, smooth);
-                    mainCamera.transform.position = ApplyCameraShake(camPos);
-                    if (starship != null)
-                    {
-                        Vector3 lookTarget = Vector3.Lerp(starship.transform.position, new Vector3(20f, 25f, 30f), norm * 0.4f);
-                        mainCamera.transform.rotation = Quaternion.LookRotation(lookTarget - camPos);
-                    }
-                    mainCamera.fieldOfView = Mathf.Lerp(66f, 56f, norm);
-                }
-
-                yield return null;
-            }
-
-            // ════════════════════════════════════════════════════════════════════════
-            // SHOT 2: LOW-ALTITUDE CANYON FLYBY & COMMS (4.5s)
-            // ════════════════════════════════════════════════════════════════════════
-            Vector3 shipStart2 = new Vector3(-35f, 32f, -40f);
-            Vector3 shipEnd2 = new Vector3(0f, 14f, 42f);
-            Vector3 camPos2 = new Vector3(22f, 6.2f, 12f);
-
-            if (mainCamera != null)
-            {
-                mainCamera.transform.position = camPos2;
-                mainCamera.fieldOfView = 58f;
-            }
-
-            TriggerCockpitTransmission(
-                "ALITA",
-                "CYDONIA SATELLITE COMMS",
-                "URM distress beacon verified... Breaching heavy atmospheric dust storm over Cydonia Basin! Detecting massive ancient energy signature!",
-                4.2f
-            );
-
-            float t2 = 0f;
-            float dur2 = 2.0f; // Rapid canyon pass
-            bool flybyAudioPlayed = false;
-
-            while (t2 < dur2)
-            {
-                t2 += Time.deltaTime;
-                float norm = Mathf.Clamp01(t2 / dur2);
-
-                if (starship != null)
-                {
-                    Vector3 curvePos = Vector3.Lerp(shipStart2, shipEnd2, norm);
-                    curvePos.x += Mathf.Sin(norm * Mathf.PI) * 12f;
-                    starship.transform.position = curvePos;
-
-                    float roll = Mathf.Sin(norm * Mathf.PI) * 38f;
-                    starship.transform.rotation = Quaternion.Euler(14f - norm * 20f, 15f - norm * 15f, roll);
-
-                    if (mainCamera != null)
-                    {
-                        mainCamera.transform.position = ApplyCameraShake(camPos2);
-                        mainCamera.transform.rotation = Quaternion.LookRotation(starship.transform.position - mainCamera.transform.position);
-                    }
-
-                    if (!flybyAudioPlayed && norm > 0.35f)
-                    {
-                        flybyAudioPlayed = true;
-                        if (_sfxSource != null && starshipFlybyAudio != null)
-                        {
-                            _sfxSource.PlayOneShot(starshipFlybyAudio, 1.0f);
-                        }
-                        AddCameraTrauma(0.95f);
-                    }
-                }
-
-                yield return null;
-            }
-
-            // ════════════════════════════════════════════════════════════════════════
-            // SHOT 3: STARSHIP TOUCHDOWN & CORE DISCOVERY (5.0s)
-            // ════════════════════════════════════════════════════════════════════════
-            Vector3 shipStart3 = ShipTouchdownPos + new Vector3(0f, 12f, 0f);
-            Vector3 shipEnd3 = ShipTouchdownPos;
-
-            Vector3 camStart3 = ShipTouchdownPos + new Vector3(-5.5f, 0.5f, 6f);
-            Vector3 camEnd3 = ShipTouchdownPos + new Vector3(-1.8f, 0.65f, 12.5f);
-
-            if (_sfxSource != null)
-            {
-                _sfxSource.PlayOneShot(MechAudioSynth.GetThrusterLoop(), 0.65f);
-            }
-
-            float t3 = 0f;
-            float dur3 = 2.4f; // Quick landing & ramp deploy
-            bool touchedDown = false;
-            bool swordDrawn = false;
-
-            // Make Alita visible at starship ramp walking forward towards core
-            Vector3 alitaWalkStart = ShipTouchdownPos + new Vector3(0f, 0.1f, 3f);
-            Vector3 alitaWalkTarget = (corePedestal != null) ? (corePedestal.transform.position - Vector3.forward * 2f) : (ShipTouchdownPos + Vector3.forward * 6f);
-
-            if (alitaHero != null)
-            {
-                alitaHero.transform.position = alitaWalkStart;
-                alitaHero.transform.rotation = AlitaCombatStartRot;
-                SetActorRenderersActive(alitaHero, true);
-                if (_alitaAnimator != null) _alitaAnimator.Play("Locomotion", 0, 0f);
-            }
-
-            while (t3 < dur3)
-            {
-                t3 += Time.deltaTime;
-                float norm = Mathf.Clamp01(t3 / dur3);
-
-                if (!touchedDown && starship != null)
-                {
-                    float descentNorm = Mathf.Clamp01(t3 / 2.2f);
-                    float smoothDescent = Mathf.SmoothStep(0f, 1f, descentNorm);
-                    starship.transform.position = Vector3.Lerp(shipStart3, shipEnd3, smoothDescent);
-                    starship.transform.rotation = Quaternion.Euler(Mathf.Lerp(-12f, 0f, smoothDescent), 0f, 0f);
-
-                    if (descentNorm >= 1.0f)
-                    {
-                        touchedDown = true;
-                        starship.transform.position = shipEnd3;
-                        starship.transform.rotation = ShipTouchdownRot;
-                        if (starshipThrusterLight != null) starshipThrusterLight.intensity = 0.5f;
-                        if (_sfxSource != null) _sfxSource.PlayOneShot(MechAudioSynth.GetPneumaticRelease(), 0.85f);
-                        AddCameraTrauma(0.45f);
-                    }
-                }
-
-                // Alita walks towards the glowing Antimatter Core pedestal
-                if (alitaHero != null && t3 > 1.5f)
-                {
-                    float walkNorm = Mathf.Clamp01((t3 - 1.5f) / 2.2f);
-                    alitaHero.transform.position = Vector3.Lerp(alitaWalkStart, alitaWalkTarget, walkNorm);
-
-                    if (walkNorm >= 1.0f && !swordDrawn)
-                    {
-                        swordDrawn = true;
-                        if (_alitaAnimator != null) _alitaAnimator.CrossFadeInFixedTime("Draw_Sword", 0.15f);
-                        if (_sfxSource != null && bladeUnsheathAudio != null) _sfxSource.PlayOneShot(bladeUnsheathAudio, 0.9f);
-                    }
-                }
-
-                if (mainCamera != null)
-                {
-                    Vector3 camPos = Vector3.Lerp(camStart3, camEnd3, norm);
-                    mainCamera.transform.position = ApplyCameraShake(camPos);
-                    if (corePedestal != null)
-                    {
-                        mainCamera.transform.rotation = Quaternion.LookRotation((corePedestal.transform.position + Vector3.up * 1.2f) - camPos);
-                    }
-                    mainCamera.fieldOfView = 50f;
-                }
-
-                yield return null;
-            }
-
-            // ════════════════════════════════════════════════════════════════════════
-            // TRANSITION: SEAMLESS HAND-OFF TO PLAYABLE CRASHED WARSHIP MISSION
-            // ════════════════════════════════════════════════════════════════════════
+            // Orbit -> atmosphere -> flyby -> braking -> touchdown -> Alita steps out (MarsArrivalLandingSequence.cs)
+            yield return StartCoroutine(PlayOrbitalLandingSequence());
             yield return StartCoroutine(TransitionToCoreMissionRoutine());
         }
 
@@ -721,6 +510,7 @@ namespace Cyberpunk.Mars
 
         private void EndArrivalAndStartCoreMission()
         {
+            FinishArrivalStage(true);
             isPlaying = false;
             _isShowingInteriorCabin = false;
             currentPhase = CutscenePhase.PlayingMission;
@@ -1044,8 +834,7 @@ namespace Cyberpunk.Mars
 
             if (_sfxSource != null)
             {
-                _sfxSource.PlayOneShot(MechAudioSynth.GetThrusterIgnition(), 1.0f);
-                _sfxSource.PlayOneShot(MechAudioSynth.GetThrusterLoop(), 0.95f);
+                _sfxSource.PlayOneShot(MechAudioSynth.GetThrusterIgnition(), 0.8f);
             }
 
             Vector3 camSkyPos      = AlitaCombatStartPos + new Vector3(2.5f, 1.2f, -1.5f);
@@ -1117,8 +906,7 @@ namespace Cyberpunk.Mars
 
                         if (_sfxSource != null)
                         {
-                            _sfxSource.PlayOneShot(MechAudioSynth.GetPneumaticRelease(), 1.0f);
-                            _sfxSource.PlayOneShot(MechAudioSynth.GetOverdriveAlarm(), 0.9f);
+                            _sfxSource.PlayOneShot(MechAudioSynth.GetPneumaticRelease(), 0.8f);
                         }
                     }
 
@@ -1160,7 +948,7 @@ namespace Cyberpunk.Mars
                         if (_sfxSource != null)
                         {
                             _sfxSource.PlayOneShot(MechAudioSynth.GetSeismicSlam(), 1.0f);
-                            _sfxSource.PlayOneShot(MechAudioSynth.GetImpactHeavy(), 1.0f);
+                            _sfxSource.PlayOneShot(MechAudioSynth.GetImpactHeavy(), 0.5f);
                         }
 
                         // Seismic camera trauma (1.25f)
@@ -1209,8 +997,8 @@ namespace Cyberpunk.Mars
 
                         if (_sfxSource != null)
                         {
-                            _sfxSource.PlayOneShot(MechAudioSynth.GetPneumaticRelease(), 1.0f);
-                            _sfxSource.PlayOneShot(MechAudioSynth.GetServoWhine(), 1.0f);
+                            _sfxSource.PlayOneShot(MechAudioSynth.GetPneumaticRelease(), 0.7f);
+                            _sfxSource.PlayOneShot(MechAudioSynth.GetServoWhine(), 0.6f);
                         }
                     }
 
@@ -1241,7 +1029,7 @@ namespace Cyberpunk.Mars
 
                         if (_sfxSource != null)
                         {
-                            _sfxSource.PlayOneShot(MechAudioSynth.GetOverdriveAlarm(), 1.0f);
+                            _sfxSource.PlayOneShot(MechAudioSynth.GetOverdriveAlarm(), 0.6f);
                         }
 
                         if (_bossAI != null && _bossAI.hammerBooster != null)
@@ -1280,6 +1068,7 @@ namespace Cyberpunk.Mars
             // ════════════════════════════════════════════════════════════════════════
             // TRANSITION: SEAMLESS HAND-OFF TO GAMEPLAY COMBAT
             // ════════════════════════════════════════════════════════════════════════
+            yield return StartCoroutine(SwitchbladeRevealDialogue());
             yield return StartCoroutine(TransitionToGameplayRoutine());
         }
 
@@ -1448,7 +1237,9 @@ namespace Cyberpunk.Mars
             }
 
             // 3. Stop drone audio and trigger Combat Music
-            if (_ambientSource != null) _ambientSource.Stop();
+            // Fade the beds out instead of cutting them, so the hand-off has no click
+            if (_ambientSource != null) StartCoroutine(MarsSfx.FadeOutAndStop(_ambientSource, 1.5f));
+            if (starDestroyerFleet != null) starDestroyerFleet.FadeOutAudio(2.0f);
 
             if (_musicSource != null && combatMusic != null)
             {
@@ -1497,6 +1288,8 @@ namespace Cyberpunk.Mars
             return basePos + new Vector3(offsetX, offsetY, 0f);
         }
 
+        private float _lastChirpTime = -10f;
+
         public void AddCameraTrauma(float amount)
         {
             _shakeTrauma = Mathf.Clamp01(_shakeTrauma + amount);
@@ -1510,9 +1303,11 @@ namespace Cyberpunk.Mars
             _commsTimer = duration;
             _isShowingComms = true;
 
-            if (_voiceSource != null && commsChirpAudio != null)
+            // One soft chirp per transmission, and never two inside the same second
+            if (_voiceSource != null && commsChirpAudio != null && Time.unscaledTime - _lastChirpTime > 1.0f)
             {
-                _voiceSource.PlayOneShot(commsChirpAudio, 0.75f);
+                _lastChirpTime = Time.unscaledTime;
+                _voiceSource.PlayOneShot(commsChirpAudio, 0.3f);
             }
 
             CyberpunkDialogueHUD.GetOrCreate().ShowDialogue(
@@ -1529,10 +1324,6 @@ namespace Cyberpunk.Mars
         {
             _tacticalAlertText = text;
             _tacticalAlertTimer = duration;
-            if (_sfxSource != null)
-            {
-                _sfxSource.PlayOneShot(MechAudioSynth.GetOverdriveAlarm(), 0.7f);
-            }
         }
 
         private void SetActorRenderersActive(GameObject actor, bool active)
@@ -1587,6 +1378,7 @@ namespace Cyberpunk.Mars
 
         private void OnGUI()
         {
+            DrawArrivalOverlay();
             if (!isPlaying && string.IsNullOrEmpty(_tacticalAlertText)) return;
 
             InitGUIStyles();
