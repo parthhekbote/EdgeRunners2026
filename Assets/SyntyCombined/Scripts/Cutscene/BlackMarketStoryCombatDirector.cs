@@ -483,10 +483,28 @@ namespace SyntyCombined.BlackMarket
                     break;
 
                 case BlackMarketStoryState.BetrayalAmbush:
+                    if (starshipTransform != null)
+                    {
+                        var flightCtrl = starshipTransform.GetComponent<SpaceshipFlightController>();
+                        if (flightCtrl != null)
+                        {
+                            flightCtrl.warpUnlocked = true;
+                            flightCtrl.targetTransitScene = "Scene_Mars_FinalBattle";
+                        }
+                    }
                     StartCoroutine(ExecuteBetrayalSequence());
                     break;
 
                 case BlackMarketStoryState.FleeAcrossCatwalk:
+                    if (starshipTransform != null)
+                    {
+                        var flightCtrl = starshipTransform.GetComponent<SpaceshipFlightController>();
+                        if (flightCtrl != null)
+                        {
+                            flightCtrl.warpUnlocked = true;
+                            flightCtrl.targetTransitScene = "Scene_Mars_FinalBattle";
+                        }
+                    }
                     hud.ShowMissionBanner("🚨 SECTOR COMPROMISED! FLEE ACROSS THE UPPER GANTRY CATWALK!");
                     if (CyberpunkHUDController.Instance != null)
                     {
@@ -512,12 +530,21 @@ namespace SyntyCombined.BlackMarket
 
                 case BlackMarketStoryState.EscapeToStarship:
                     _isStrobeActive = true;
-                    hud.ShowMissionBanner("🚨 PURSUIT NEUTRALIZED! SPRINT UP TO PAD B-04 & PRESS [R] TO WARP TO MARS!");
+                    if (starshipTransform != null)
+                    {
+                        var flightCtrl = starshipTransform.GetComponent<SpaceshipFlightController>();
+                        if (flightCtrl != null)
+                        {
+                            flightCtrl.warpUnlocked = true;
+                            flightCtrl.targetTransitScene = "Scene_Mars_FinalBattle";
+                        }
+                    }
+                    hud.ShowMissionBanner("🚨 PURSUIT NEUTRALIZED! SPRINT UP TO PAD B-04 & PRESS [ENTER] OR [R] TO WARP TO MARS!");
                     if (CyberpunkHUDController.Instance != null)
                     {
                         CyberpunkHUDController.Instance.SetQuestObjective(
                             "EMERGENCY EVAC",
-                            "► Sprint to Landing Pad B-04 and board starship [R]"
+                            "► Sprint to Landing Pad B-04 and board starship [ENTER / R]"
                         );
                         CyberpunkHUDController.Instance.ShowToast("LANDING PAD CLEAR // HYPERSPACE WARP READY", 4.0f);
                     }
@@ -769,7 +796,7 @@ namespace SyntyCombined.BlackMarket
 
         private void MonitorStarshipEscape()
         {
-            if (IsPlayerOnEscapePad() && Input.GetKeyDown(KeyCode.R))
+            if (IsPlayerOnEscapePad() && (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
             {
                 SetStoryState(BlackMarketStoryState.HyperspaceWarp);
             }
@@ -864,7 +891,7 @@ namespace SyntyCombined.BlackMarket
                             fontStyle = FontStyle.Bold
                         };
                         style.normal.textColor = Color.white;
-                        GUI.Label(rect, "<b>[R] INITIATE EMERGENCY WARP TO MARS</b>", style);
+                        GUI.Label(rect, "<b>[ENTER] / [R] INITIATE EMERGENCY WARP TO MARS</b>", style);
                         GUI.color = prev;
                     }
                 }

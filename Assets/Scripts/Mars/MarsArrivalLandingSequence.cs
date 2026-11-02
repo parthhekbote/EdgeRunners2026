@@ -488,22 +488,45 @@ namespace Cyberpunk.Mars
             _spaceGlobe.transform.rotation = Quaternion.FromToRotation(Vector3.up, _globeAxis);
             var mf = _spaceGlobe.AddComponent<MeshFilter>();
             var mr = _spaceGlobe.AddComponent<MeshRenderer>();
+
+            Mesh sphere = null;
 #if UNITY_EDITOR
-            var sphere = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Models/Environments/Mesh_HighDef_Planet_Sphere.asset");
+            sphere = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Models/Environments/Mesh_HighDef_Planet_Sphere.asset");
+#endif
+            if (sphere == null)
+            {
+                var tempSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                sphere = tempSphere.GetComponent<MeshFilter>().sharedMesh;
+                Destroy(tempSphere);
+            }
             if (sphere != null) mf.sharedMesh = sphere;
-            // Unlit so the scene's grade and grazing sun cannot wash the surface map out
-            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Texture");
+
+            // Universal Render Pipeline Unlit so grading and grazing sun do not wash out or blacken the planet surface
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ??
+                         Shader.Find("Universal Render Pipeline/Lit") ??
+                         Shader.Find("Unlit/Texture") ??
+                         Shader.Find("Standard");
             var mat = new Material(shader) { name = "Mat_Arrival_Mars" };
-            var albedo = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/Planets/Mars_Realistic_Albedo_2K.jpg");
+
+            Texture2D albedo = null;
+#if UNITY_EDITOR
+            albedo = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/Planets/Mars_Realistic_Albedo_2K.jpg");
+#endif
+            if (albedo == null)
+            {
+                albedo = Resources.Load<Texture2D>("Planets/Mars_Realistic_Albedo_2K");
+            }
+
             if (albedo != null)
             {
-                var tex = BuildEnhancedAlbedo(albedo);
-                mat.SetTexture("_BaseMap", tex);
-                mat.mainTexture = tex;
+                mat.SetTexture("_BaseMap", albedo);
+                mat.SetTexture("_MainTex", albedo);
+                mat.mainTexture = albedo;
             }
-            mat.SetColor("_BaseColor", new Color(1.05f, 0.98f, 0.92f));
+            mat.SetColor("_BaseColor", Color.white);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", Color.white);
             mr.sharedMaterial = mat;
-#endif
+
             AimGlobeAtU(0.43f);
         }
 
@@ -539,32 +562,11 @@ namespace Cyberpunk.Mars
         }
 
         /// <summary>
-        /// Copies the planet map through a render target and pushes its contrast and saturation, so the dark basalt
-        /// plains, canyons and craters read clearly instead of averaging out into one orange.
+        /// Returns the pristine high-resolution Mars texture directly, ensuring no render-texture blit readback failures on Metal.
         /// </summary>
         private static Texture2D BuildEnhancedAlbedo(Texture2D src)
         {
-            var rt = RenderTexture.GetTemporary(src.width, src.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
-            Graphics.Blit(src, rt);
-            var prev = RenderTexture.active;
-            RenderTexture.active = rt;
-            var tex = new Texture2D(src.width, src.height, TextureFormat.RGBA32, false) { name = "Mars_Albedo_Enhanced", wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
-            tex.ReadPixels(new Rect(0, 0, src.width, src.height), 0, 0);
-            RenderTexture.active = prev;
-            RenderTexture.ReleaseTemporary(rt);
-            var px = tex.GetPixels32();
-            for (int i = 0; i < px.Length; i++)
-            {
-                float rr = px[i].r / 255f, gg = px[i].g / 255f, bb = px[i].b / 255f;
-                float lum = rr * 0.3f + gg * 0.59f + bb * 0.11f;
-                // saturation up, then contrast about a darker mid so shadows deepen
-                rr = lum + (rr - lum) * 1.05f; gg = lum + (gg - lum) * 1.05f; bb = lum + (bb - lum) * 1.05f;
-                rr = (rr - 0.40f) * 1.45f + 0.40f; gg = (gg - 0.40f) * 1.45f + 0.40f; bb = (bb - 0.40f) * 1.45f + 0.40f;
-                px[i] = new Color32((byte)Mathf.Clamp(rr * 255f, 0, 255), (byte)Mathf.Clamp(gg * 255f, 0, 255), (byte)Mathf.Clamp(bb * 255f, 0, 255), 255);
-            }
-            tex.SetPixels32(px);
-            tex.Apply(false);
-            return tex;
+            return src;
         }
 
         private static Material _marsSky;

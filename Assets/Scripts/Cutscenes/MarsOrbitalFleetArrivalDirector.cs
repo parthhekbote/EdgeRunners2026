@@ -308,11 +308,18 @@ namespace Cyberpunk.Mars
                 }
             }
 
+            UnityEngine.Mesh sphereMesh = null;
 #if UNITY_EDITOR
-            var sphereMesh = AssetDatabase.LoadAssetAtPath<UnityEngine.Mesh>("Assets/Models/Environments/Mesh_HighDef_Planet_Sphere.asset");
+            sphereMesh = AssetDatabase.LoadAssetAtPath<UnityEngine.Mesh>("Assets/Models/Environments/Mesh_HighDef_Planet_Sphere.asset");
+#endif
+            if (sphereMesh == null)
+            {
+                var tempSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                sphereMesh = tempSphere.GetComponent<MeshFilter>().sharedMesh;
+                Destroy(tempSphere);
+            }
             var mf = marsGlobe.GetComponent<MeshFilter>() ?? marsGlobe.AddComponent<MeshFilter>();
             if (sphereMesh != null) mf.sharedMesh = sphereMesh;
-#endif
 
             // Position Mars to fill 75% of upper & right background curvature
             marsGlobe.transform.position = flagshipColossal.transform.position + flagshipColossal.transform.TransformDirection(new Vector3(2600f, 320f, 3000f));
@@ -322,19 +329,29 @@ namespace Cyberpunk.Mars
             var marsRen = marsGlobe.GetComponent<MeshRenderer>() ?? marsGlobe.AddComponent<MeshRenderer>();
             if (marsRen != null)
             {
-                var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Standard");
                 var mat = new Material(shader) { name = "Mat_Mars_Realistic_Surface_2K" };
+                Texture2D albedoTex = null;
+                Texture2D normalTex = null;
 #if UNITY_EDITOR
-                var albedoTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/Planets/Mars_Realistic_Albedo_2K.jpg");
-                var normalTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/Planets/Mars_Realistic_Normal_2K.png");
-                if (albedoTex != null) mat.SetTexture("_BaseMap", albedoTex);
+                albedoTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/Planets/Mars_Realistic_Albedo_2K.jpg");
+                normalTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/Planets/Mars_Realistic_Normal_2K.png");
+#endif
+                if (albedoTex == null) albedoTex = Resources.Load<Texture2D>("Planets/Mars_Realistic_Albedo_2K");
+                if (normalTex == null) normalTex = Resources.Load<Texture2D>("Planets/Mars_Realistic_Normal_2K");
+
+                if (albedoTex != null)
+                {
+                    mat.SetTexture("_BaseMap", albedoTex);
+                    mat.SetTexture("_MainTex", albedoTex);
+                    mat.mainTexture = albedoTex;
+                }
                 if (normalTex != null)
                 {
                     mat.EnableKeyword("_NORMALMAP");
                     mat.SetTexture("_BumpMap", normalTex);
                     mat.SetFloat("_BumpScale", 3.0f);
                 }
-#endif
                 mat.SetColor("_BaseColor", new Color(0.92f, 0.88f, 0.85f));
                 mat.SetFloat("_Smoothness", 0.18f);
                 mat.SetFloat("_Metallic", 0.0f);

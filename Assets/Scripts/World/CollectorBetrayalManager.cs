@@ -296,10 +296,29 @@ namespace SyntyCombined.World
                     _distanceToStarship = Vector3.Distance(_playerTransform.position, shipPos);
                     _isPlayerNearStarship = _distanceToStarship <= 8.5f;
 
-                    // When Alita reaches the starship, press [E] or [F] or [R] to launch and jump to Mars!
+                    if (starshipFlightController != null && !_isTransitioningToMars)
+                    {
+                        starshipFlightController.warpUnlocked = true;
+                        starshipFlightController.targetTransitScene = marsSceneName;
+                    }
+
+                    // When Alita reaches the starship, press [E]/[F] to board & drive, or [Enter]/[R] to warp!
                     if (_isPlayerNearStarship && !_isTransitioningToMars)
                     {
-                        if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.F) || Input.GetKeyDown(KeyCode.R))
+                        if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.F))
+                        {
+                            if (starshipFlightController != null && !starshipFlightController.IsPiloted)
+                            {
+                                starshipFlightController.warpUnlocked = true;
+                                starshipFlightController.targetTransitScene = marsSceneName;
+                                starshipFlightController.BoardShip();
+                            }
+                            else
+                            {
+                                TriggerEscapeToMars();
+                            }
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.R))
                         {
                             TriggerEscapeToMars();
                         }
@@ -378,6 +397,13 @@ namespace SyntyCombined.World
             BlackMarketNPC.MarsCoordinatesUnlocked = true;
             PlayerPrefs.SetInt("Mars_Coordinates_Decrypted", 1);
             PlayerPrefs.Save();
+
+            FindSceneReferences();
+            if (starshipFlightController != null)
+            {
+                starshipFlightController.warpUnlocked = true;
+                starshipFlightController.targetTransitScene = marsSceneName;
+            }
 
             if (coordinatesDatapadProp != null)
             {
@@ -689,7 +715,7 @@ namespace SyntyCombined.World
                         alignment = TextAnchor.MiddleCenter
                     };
                     pStyle.normal.textColor = Color.white;
-                    GUI.Label(new Rect(px, py, pw, ph), "PRESS [E] OR [F] TO LAUNCH STARSHIP // WARP TO MARS", pStyle);
+                    GUI.Label(new Rect(px, py, pw, ph), "PRESS [E]/[F] TO EMBARK & DRIVE  |  [ENTER]/[R] TO WARP TO MARS", pStyle);
                 }
             }
 

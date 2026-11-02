@@ -211,7 +211,10 @@ namespace SyntyCombined
                 var flightCtrl = _parkedShip.GetComponent<SpaceshipFlightController>();
                 if (flightCtrl == null) flightCtrl = _parkedShip.AddComponent<SpaceshipFlightController>();
                 flightCtrl.boardKey = KeyCode.F;
-                flightCtrl.targetTransitScene = "Scene_Blackwall_Cyberspace";
+                // targetTransitScene is intentionally NOT set here.
+                // BlackMarketCoreRetrievalMission.Start() sets it to "Scene_Mars_FinalBattle"
+                // and locks warpUnlocked=false until all 4 cores are collected.
+                // Overriding it here was routing Alita to the Blackwall AI scene instead of Mars.
             }
         }
 

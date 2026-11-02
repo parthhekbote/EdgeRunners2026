@@ -33,7 +33,21 @@ namespace SyntyCombined.BlackMarket
         private Color _txColor = Color.white;
         private float _txTimer = 0f;
 
-        // A transmission requested while dialogue is open plays once the card closes
+        // Queue of transmissions requested while another one is playing.
+        // Previously only one slot existed, so rapid mission events would silently drop earlier lines.
+        private readonly System.Collections.Generic.Queue<PendingTransmission> _transmissionQueue =
+            new System.Collections.Generic.Queue<PendingTransmission>();
+
+        private struct PendingTransmission
+        {
+            public string speaker;
+            public string role;
+            public string text;
+            public Color color;
+            public float duration;
+        }
+
+        // Legacy single-slot fields – kept for binary compatibility but no longer used for queuing.
         private bool _hasPendingTransmission = false;
         private string _pendingSpeaker = "";
         private string _pendingRole = "";
@@ -110,11 +124,11 @@ namespace SyntyCombined.BlackMarket
                 }
             }
 
-            // Release a queued transmission once dialogue has closed
-            if (!_isShowingDialogue && !_isShowingTransmission && _hasPendingTransmission)
+            // Drain the transmission queue once the current slot is empty and no dialogue is open
+            if (!_isShowingDialogue && !_isShowingTransmission && _transmissionQueue.Count > 0)
             {
-                BeginTransmission(_pendingSpeaker, _pendingRole, _pendingText, _pendingColor, _pendingDuration);
-                _hasPendingTransmission = false;
+                var next = _transmissionQueue.Dequeue();
+                BeginTransmission(next.speaker, next.role, next.text, next.color, next.duration);
             }
 
             // Close dialogue on ESC
@@ -219,18 +233,23 @@ namespace SyntyCombined.BlackMarket
 
         /// <summary>
         /// Shows a cinematic comms / internal-log card. Auto-dismisses after the duration.
-        /// If a dialogue card is open the transmission is queued until it closes.
+        /// If a dialogue card is open, or another transmission is already playing, the new
+        /// transmission is enqueued and plays as soon as the slot becomes free.
         /// </summary>
         public void ShowTransmission(string speaker, string role, string text, Color color, float duration = 6f)
         {
-            if (_isShowingDialogue)
+            // If dialogue is open, or a transmission is already active, queue it up.
+            // The queue is drained in Update() so no line is ever silently dropped.
+            if (_isShowingDialogue || _isShowingTransmission)
             {
-                _hasPendingTransmission = true;
-                _pendingSpeaker = speaker;
-                _pendingRole = role;
-                _pendingText = text;
-                _pendingColor = color;
-                _pendingDuration = duration;
+                _transmissionQueue.Enqueue(new PendingTransmission
+                {
+                    speaker  = speaker,
+                    role     = role,
+                    text     = text,
+                    color    = color,
+                    duration = duration
+                });
                 return;
             }
 

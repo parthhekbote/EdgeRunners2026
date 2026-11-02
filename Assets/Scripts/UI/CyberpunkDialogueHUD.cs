@@ -121,7 +121,7 @@ namespace Alita.UI
             public float autoAdvanceTime;
             public Action onFinished;
 
-            public DialogueLineData(string speaker, string text, Sprite portrait = null, string title = "", float autoAdvance = 0f, Action onFinish = null)
+            public DialogueLineData(string speaker, string text, Sprite portrait = null, string title = "", float autoAdvance = 0f, Action onFinish = null, AudioClip voice = null)
             {
                 speakerName = speaker;
                 dialogueText = text;
@@ -129,6 +129,7 @@ namespace Alita.UI
                 speakerTitle = title;
                 autoAdvanceTime = autoAdvance;
                 onFinished = onFinish;
+                voiceClip = voice;
             }
         }
 
@@ -262,7 +263,7 @@ namespace Alita.UI
                 if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
                 audioSource.playOnAwake = false;
                 audioSource.spatialBlend = 0f;
-                audioSource.volume = 0.75f;
+                audioSource.volume = 1.0f;  // Dialogue UI SFX (chirps, confirm clicks) at full volume
             }
 
             // Clear any previous/stale children to guarantee a 100% clean hierarchy
@@ -460,7 +461,8 @@ namespace Alita.UI
             Sprite customPortrait = null,
             string speakerTitle = "",
             Action onComplete = null,
-            float autoAdvanceDuration = 0f)
+            float autoAdvanceDuration = 0f,
+            AudioClip voiceClip = null)
         {
             EnsureInitialized();
 
@@ -492,7 +494,7 @@ namespace Alita.UI
             }
 
             _conversationQueue.Clear();
-            _conversationQueue.Add(new DialogueLineData(speaker, text, customPortrait, speakerTitle, autoAdvanceDuration, onComplete));
+            _conversationQueue.Add(new DialogueLineData(speaker, text, customPortrait, speakerTitle, autoAdvanceDuration, onComplete, voiceClip));
             _currentQueueIndex = 0;
             _onLineCompleteCallback = onComplete;
             // Keep a pending conversation-complete callback (e.g. a mission briefing popup) so that an
@@ -1106,7 +1108,7 @@ namespace Alita.UI
             if (audioSource == null) return;
             if (_typeChirpClip == null) _typeChirpClip = GenerateTypeChirpClip();
             audioSource.pitch = UnityEngine.Random.Range(0.96f, 1.04f);
-            audioSource.PlayOneShot(_typeChirpClip, 0.40f);
+            audioSource.PlayOneShot(_typeChirpClip, 0.55f);
         }
 
         private void PlayConfirmClickSFX()
@@ -1114,7 +1116,7 @@ namespace Alita.UI
             if (audioSource == null) return;
             if (_confirmClickClip == null) _confirmClickClip = GenerateConfirmClickClip();
             audioSource.pitch = 1.05f;
-            audioSource.PlayOneShot(_confirmClickClip, 0.70f);
+            audioSource.PlayOneShot(_confirmClickClip, 0.90f);
         }
 
         // Futuristic 70ms comms squelch / radio open beep

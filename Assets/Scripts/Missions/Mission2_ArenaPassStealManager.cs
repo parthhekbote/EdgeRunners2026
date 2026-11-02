@@ -299,8 +299,17 @@ namespace Cyberpunk.Missions
         private void EnqueueBriefingLines()
         {
             ClearSubtitles();
-            EnqueueSub("DR. DYSON IDO [POST-MORTEM CACHE]", "EMERGENCY CONTINGENCY LOG", "Alita... the hit squads will scour the bridge. You need to get into the Pit.", 4.0f);
-            EnqueueSub("DR. DYSON IDO [POST-MORTEM CACHE]", "EMERGENCY CONTINGENCY LOG", "There's a Razor scalper with a pass at the far end of the bridge. Track him down!", 4.0f);
+            // Ido explains WHY Alita needs the arena pass: money and fame are the only paths forward in Iron City.
+            EnqueueSub("DR. DYSON IDO [POST-MORTEM CACHE]", "EMERGENCY CONTINGENCY LOG",
+                "Alita. Listen carefully. To survive in this city you need two things: money and fame.", 5.0f);
+            EnqueueSub("DR. DYSON IDO [POST-MORTEM CACHE]", "EMERGENCY CONTINGENCY LOG",
+                "The Pit Arena is where fighters earn both. But entry requires a registered Arena Pass.", 4.5f);
+            EnqueueSub("DR. DYSON IDO [POST-MORTEM CACHE]", "EMERGENCY CONTINGENCY LOG",
+                "There's a Razor scalper at the far end of this bridge. Gold jacket, cybernetic arm.", 4.0f);
+            EnqueueSub("DR. DYSON IDO [POST-MORTEM CACHE]", "EMERGENCY CONTINGENCY LOG",
+                "He's holding two passes — one for himself and a spare he planned to flip for triple the price.", 4.5f);
+            EnqueueSub("DR. DYSON IDO [POST-MORTEM CACHE]", "EMERGENCY CONTINGENCY LOG",
+                "He won't miss what he shouldn't have had in the first place. Get close and take it.", 4.0f);
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -575,7 +584,7 @@ namespace Cyberpunk.Missions
                 CyberpunkHUDController.Instance.ShowToast("HE MADE YOU! RUN HIM DOWN", 3.0f);
 
             EnqueueSub("GOLD SCALPER", "RAZOR PASS SCALPER", "That's the bridge psycho! RUN!", 2.5f);
-            EnqueueSub("DR. DYSON IDO", "CYBER-SURGEON & REPAIR SPECIALIST", "He made you! RUN HIM DOWN, don't let him reach his van!", 3.0f);
+            EnqueueSub("DR. DYSON IDO", "CYBER-SURGEON & REPAIR SPECIALIST", "He spotted you — don't let him reach his van! He'll vanish into the city!", 3.0f);
 
             SetChaseQuest(_timeLeft, dist);
         }
@@ -793,8 +802,8 @@ namespace Cyberpunk.Missions
 
             Debug.Log("[Mission2] Scalper cornered! Preparing 1-on-1 sword fight.");
             ClearSubtitles();
-            EnqueueSub("GOLD SCALPER", "RAZOR PASS SCALPER", "Dead end... fine! You want this Arena Pass?! Come take it!", 2.8f);
-            EnqueueSub("DR. DYSON IDO", "CYBER-SURGEON & REPAIR SPECIALIST", "He's cornered! Draw your blade, disarm him!", 2.8f);
+            EnqueueSub("GOLD SCALPER", "RAZOR PASS SCALPER", "Dead end... fine! You want the spare pass?! You'll have to BLEED for it!", 2.8f);
+            EnqueueSub("DR. DYSON IDO", "CYBER-SURGEON & REPAIR SPECIALIST", "He's cornered! Draw your blade — the pass is yours, take it!", 2.8f);
 
             StartCoroutine(ActivateFightAfterDialogue());
         }
@@ -856,7 +865,7 @@ namespace Cyberpunk.Missions
 
                 Debug.Log("[Mission2] Scalper on knees at 30% HP! RIP PASS prompt active.");
                 ClearSubtitles();
-                EnqueueSub("GOLD SCALPER", "RAZOR PASS SCALPER", "Gah! Stop... take the pass! Don't scrap me!", 3.0f);
+                EnqueueSub("GOLD SCALPER", "RAZOR PASS SCALPER", "Gah! Fine — take the spare! I've still got mine, just don't scrap me!", 3.0f);
                 if (CyberpunkHUDController.Instance != null)
                     CyberpunkHUDController.Instance.ShowToast("PRESS [E] // RIP PASS", 3.5f);
             }
@@ -1245,7 +1254,7 @@ namespace Cyberpunk.Missions
             {
                 CyberpunkHUDController.Instance.SetQuestObjective(
                     "// STEAL THE ARENA PASS",
-                    "> Find the gold-chip scalper on the bridge\n> Follow the cyan navigation tracer");
+                    "> Find the Razor scalper on the bridge — he's holding a spare pass\n> Follow the cyan navigation tracer");
             }
         }
 

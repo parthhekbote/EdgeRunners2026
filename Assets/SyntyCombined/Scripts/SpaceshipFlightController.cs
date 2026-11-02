@@ -592,11 +592,25 @@ namespace SyntyCombined
                 HandleWeaponsInput();
                 UpdateEngineFX();
 
-                // Hyperspace Warp Jump trigger
+                // Hyperspace Warp Jump trigger: [Enter], [KeypadEnter], [R], or high altitude
+                bool enterPressed = Input.GetKeyDown(warpKey) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
                 bool altWarp = enableAltitudeWarp && transform.position.y > 65f;
-                if (warpUnlocked && !isWarping && (Input.GetKeyDown(warpKey) || Input.GetKeyDown(KeyCode.Return) || altWarp))
+
+                bool canWarpToMars = warpUnlocked ||
+                                     BlackMarket.BlackMarketNPC.MarsCoordinatesUnlocked ||
+                                     (SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance != null &&
+                                      SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance.currentState >= SyntyCombined.BlackMarket.BlackMarketStoryState.BetrayalAmbush) ||
+                                     (SyntyCombined.World.CollectorBetrayalManager.Instance != null &&
+                                      SyntyCombined.World.CollectorBetrayalManager.Instance.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured);
+
+                if (!isWarping && (enterPressed || altWarp))
                 {
-                    EngageHyperSpaceWarp();
+                    if (canWarpToMars)
+                    {
+                        warpUnlocked = true;
+                        targetTransitScene = "Scene_Mars_FinalBattle";
+                        EngageHyperSpaceWarp();
+                    }
                 }
 
                 // Exit ship on [F]
@@ -733,6 +747,19 @@ namespace SyntyCombined
             _isPiloted = true;
             ActiveShip = this;
             _exitCooldown = 0.6f;
+
+            bool isMarsReady = warpUnlocked ||
+                               BlackMarket.BlackMarketNPC.MarsCoordinatesUnlocked ||
+                               (SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance != null &&
+                                SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance.currentState >= SyntyCombined.BlackMarket.BlackMarketStoryState.BetrayalAmbush) ||
+                               (SyntyCombined.World.CollectorBetrayalManager.Instance != null &&
+                                SyntyCombined.World.CollectorBetrayalManager.Instance.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured);
+
+            if (isMarsReady)
+            {
+                warpUnlocked = true;
+                targetTransitScene = "Scene_Mars_FinalBattle";
+            }
 
             // Activate Rigidbody physics
             _rb.isKinematic = false;
@@ -1696,9 +1723,16 @@ namespace SyntyCombined
                 fontSize = 12,
                 fontStyle = FontStyle.Bold
             };
-            destStyle.normal.textColor = warpUnlocked ? new Color(0f, 0.95f, 1f) : new Color(1f, 0.8f, 0.2f);
-            string bannerMsg = warpUnlocked 
-                ? (string.IsNullOrEmpty(warpDestinationTitle) ? "PRESS [R] TO ENGAGE HYPERSPACE WARP" : warpDestinationTitle)
+
+            bool isReadyForMarsWarp = warpUnlocked || BlackMarket.BlackMarketNPC.MarsCoordinatesUnlocked ||
+                (SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance != null &&
+                 SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance.currentState >= SyntyCombined.BlackMarket.BlackMarketStoryState.BetrayalAmbush) ||
+                (SyntyCombined.World.CollectorBetrayalManager.Instance != null &&
+                 SyntyCombined.World.CollectorBetrayalManager.Instance.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured);
+
+            destStyle.normal.textColor = isReadyForMarsWarp ? new Color(0f, 0.95f, 1f) : new Color(1f, 0.8f, 0.2f);
+            string bannerMsg = isReadyForMarsWarp 
+                ? "DESTINATION: MARS CYDONIA VAULT  |  PRESS [ENTER] OR [R] TO ENGAGE WARP"
                 : "MISSION ACTIVE: RETRIEVE ASTEROID CORE MATRICES  |  TRACTOR CLAMP ENGAGED";
             GUI.Label(new Rect(destX, destY, destW, destH), bannerMsg, destStyle);
 
@@ -1738,7 +1772,7 @@ namespace SyntyCombined
             GUI.Label(new Rect(panelX + 14, panelY + 10, panelW, 20), $"SPEED: {speedKmh:F0} KM/H {(_isBoosting ? "[BOOST]" : "")}", hudText);
             GUI.Label(new Rect(panelX + 14, panelY + 30, panelW, 20), $"ALTITUDE: {_groundDistance:F1} M", hudText);
             GUI.Label(new Rect(panelX + 14, panelY + 50, panelW, 20), $"VIEW: {(_isCockpitView ? "COCKPIT 1ST-PERSON" : "CHASE 3RD-PERSON")}", hudText);
-            GUI.Label(new Rect(panelX + 14, panelY + 70, panelW, 20), $"WARP DRIVE: READY [R / ENTER]", hudText);
+            GUI.Label(new Rect(panelX + 14, panelY + 70, panelW, 20), $"WARP DRIVE: {(isReadyForMarsWarp ? "READY [ENTER / R]" : "STANDBY")}", hudText);
 
             // 3. Flight Controls Guide (Bottom-Center)
             float guideW = 680f;
@@ -1829,10 +1863,11 @@ namespace SyntyCombined
 
             _warpFlashAlpha = 1.0f;
 
-            if (!string.IsNullOrEmpty(targetTransitScene))
+            if (string.IsNullOrEmpty(targetTransitScene) || targetTransitScene.Contains("Blackwall"))
             {
-                UnityEngine.SceneManagement.SceneManager.LoadScene(targetTransitScene);
+                targetTransitScene = "Scene_Mars_FinalBattle";
             }
+            UnityEngine.SceneManagement.SceneManager.LoadScene(targetTransitScene);
         }
         #endregion
     }

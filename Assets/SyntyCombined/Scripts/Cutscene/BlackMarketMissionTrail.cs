@@ -269,24 +269,65 @@ namespace SyntyCombined.BlackMarket
                     case BlackMarketStoryState.ReturnToVoss:
                         return TryVoss(story, out target, out label);
 
+                    case BlackMarketStoryState.BetrayalAmbush:
                     case BlackMarketStoryState.FleeAcrossCatwalk:
-                        var catwalk = BlackMarketCatwalkFallTrigger.Instance;
-                        if (catwalk == null) return false;
-                        target = catwalk.transform.position;
-                        label = "UPPER GANTRY";
-                        return true;
-
+                    case BlackMarketStoryState.CatwalkCollapse_Fall:
+                    case BlackMarketStoryState.LowerTrenchCombat:
                     case BlackMarketStoryState.EscapeToStarship:
-                        target = story.GetEscapePadPosition();
-                        label = "NIGHTSHADE STRIKER";
-                        return true;
+                        return TryGetSpaceshipTarget(out target, out label);
 
                     default:
-                        return false; // combat and cutscene-driven states
+                        return false;
                 }
             }
 
             return TryResolveLegacyTarget(out target, out label);
+        }
+
+        private bool TryGetSpaceshipTarget(out Vector3 target, out string label)
+        {
+            target = Vector3.zero;
+            label = "STARSHIP (ESCAPE TO MARS)";
+
+            var story = BlackMarketStoryCombatDirector.Instance;
+            if (story != null && story.starshipTransform != null)
+            {
+                target = story.GetEscapePadPosition();
+                return true;
+            }
+
+            var mission = BlackMarketCoreRetrievalMission.Instance;
+            if (mission != null && mission.nightshadeShip != null)
+            {
+                target = mission.nightshadeShip.transform.position;
+                return true;
+            }
+
+            var ships = FindObjectsByType<SpaceshipFlightController>(FindObjectsSortMode.None);
+            foreach (var s in ships)
+            {
+                if (s != null)
+                {
+                    target = s.transform.position;
+                    return true;
+                }
+            }
+
+            if (story != null)
+            {
+                target = story.GetEscapePadPosition();
+                return true;
+            }
+
+            var pad = GameObject.Find("SM_Bld_Corp_LandingPad_02") ?? GameObject.Find("LandingPad_B04") ?? GameObject.Find("Pad_B04");
+            if (pad != null)
+            {
+                target = pad.transform.position;
+                return true;
+            }
+
+            target = new Vector3(27.48f, 1.86f, 34.00f);
+            return true;
         }
 
         private bool TryVoss(BlackMarketStoryCombatDirector story, out Vector3 target, out string label)
@@ -296,7 +337,7 @@ namespace SyntyCombined.BlackMarket
             var voss = story.fixerVossNPC;
             if (voss == null)
             {
-                foreach (var n in FindObjectsByType<BlackMarketNPC>())
+                foreach (var n in FindObjectsByType<BlackMarketNPC>(FindObjectsSortMode.None))
                     if (n != null && n.isStoryObjectiveNPC) { voss = n; break; }
             }
             if (voss == null) return false;
@@ -308,7 +349,7 @@ namespace SyntyCombined.BlackMarket
         {
             BlackMarketNPC best = null;
             float bestDist = float.MaxValue;
-            foreach (var n in FindObjectsByType<BlackMarketNPC>())
+            foreach (var n in FindObjectsByType<BlackMarketNPC>(FindObjectsSortMode.None))
             {
                 if (n == null || string.IsNullOrEmpty(n.leadId) || story.IsLeadFound(n.leadId)) continue;
                 float d = (n.transform.position - _player.position).sqrMagnitude;
@@ -317,19 +358,49 @@ namespace SyntyCombined.BlackMarket
             return best;
         }
 
-        // The older core-retrieval mission (only runs when the story director is absent)
+        // The older core-retrieval mission / betrayal manager
         private bool TryResolveLegacyTarget(out Vector3 target, out string label)
         {
             target = Vector3.zero;
             label = "";
+
+            var betrayal = SyntyCombined.World.CollectorBetrayalManager.Instance;
+            if (betrayal != null && betrayal.isActiveAndEnabled)
+            {
+                if (betrayal.currentPhase == SyntyCombined.World.BetrayalPhase.CoordinatesSpawned &&
+                    betrayal.coordinatesDatapadProp != null && betrayal.coordinatesDatapadProp.activeSelf)
+                {
+                    target = betrayal.datapadDeskPos;
+                    label = "MARS COORDINATES";
+                    return true;
+                }
+                else if (betrayal.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured)
+                {
+                    return TryGetSpaceshipTarget(out target, out label);
+                }
+            }
+
+            if (BlackMarketNPC.MarsCoordinatesUnlocked)
+            {
+                return TryGetSpaceshipTarget(out target, out label);
+            }
+
             var mission = BlackMarketCoreRetrievalMission.Instance;
-            if (mission == null || !mission.isActiveAndEnabled) return false;
+            if (mission == null || !mission.isActiveAndEnabled)
+            {
+                if (betrayal != null && betrayal.isActiveAndEnabled && betrayal.currentPhase == SyntyCombined.World.BetrayalPhase.WaitingForCoreReturn)
+                {
+                    foreach (var n in FindObjectsByType<BlackMarketNPC>(FindObjectsSortMode.None))
+                        if (n != null && n.isStoryObjectiveNPC) { target = n.transform.position; label = "KAELEN VOSS"; return true; }
+                }
+                return false;
+            }
 
             switch (mission.currentStage)
             {
                 case CoreRetrievalStage.Briefing:
                 case CoreRetrievalStage.LandedReturnToCollector:
-                    foreach (var n in FindObjectsByType<BlackMarketNPC>())
+                    foreach (var n in FindObjectsByType<BlackMarketNPC>(FindObjectsSortMode.None))
                         if (n != null && n.isStoryObjectiveNPC) { target = n.transform.position; label = "KAELEN VOSS"; return true; }
                     return false;
 

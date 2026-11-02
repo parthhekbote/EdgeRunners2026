@@ -374,6 +374,11 @@ namespace SyntyCombined.World
             {
                 // All 4 cores secured!
                 currentStage = CoreRetrievalStage.ReturnToLandingPad;
+                if (nightshadeShip != null)
+                {
+                    nightshadeShip.warpUnlocked = true;
+                    nightshadeShip.targetTransitScene = "Scene_Mars_FinalBattle";
+                }
                 if (CollectorBetrayalManager.Instance != null)
                 {
                     CollectorBetrayalManager.Instance.currentPhase = BetrayalPhase.WaitingForCoreReturn;
@@ -659,6 +664,11 @@ namespace SyntyCombined.World
             if (currentStage == CoreRetrievalStage.LandedReturnToCollector) return;
 
             currentStage = CoreRetrievalStage.LandedReturnToCollector;
+            if (nightshadeShip != null)
+            {
+                nightshadeShip.warpUnlocked = true;
+                nightshadeShip.targetTransitScene = "Scene_Mars_FinalBattle";
+            }
 
             if (CollectorBetrayalManager.Instance != null)
             {
@@ -757,6 +767,11 @@ namespace SyntyCombined.World
 
             // 4. Reactor Ignited -> Return to The Collector's Sanctuary Pod to claim coordinates
             currentStage = CoreRetrievalStage.ReactorIgnited;
+            if (nightshadeShip != null)
+            {
+                nightshadeShip.warpUnlocked = true;
+                nightshadeShip.targetTransitScene = "Scene_Mars_FinalBattle";
+            }
             if (CollectorBetrayalManager.Instance != null)
             {
                 CollectorBetrayalManager.Instance.currentPhase = BetrayalPhase.WaitingForCoreReturn;

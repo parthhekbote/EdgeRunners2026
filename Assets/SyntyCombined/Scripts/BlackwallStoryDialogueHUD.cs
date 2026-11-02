@@ -944,7 +944,7 @@ namespace SyntyCombined
 
             if (audioSource != null && dialogueProceedClip != null)
             {
-                audioSource.PlayOneShot(dialogueProceedClip, 0.7f);
+                audioSource.PlayOneShot(dialogueProceedClip, 1.0f);
             }
 
             ShowBeat(5);

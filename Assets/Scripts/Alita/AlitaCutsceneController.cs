@@ -524,7 +524,9 @@ namespace Alita
 
         private IEnumerator DiagnosticExaminationRoutine()
         {
-            yield return new WaitForSeconds(3.8f);
+            // Wait for line 3 ("A Martian Berserker chassis... discarded centuries ago.", duration 5.0s, clip ~4.2s)
+            // to finish completely before speaking line 4. Previously 3.8s caused speech overlap!
+            yield return new WaitForSeconds(5.2f);
             SetSubtitleAndVoice("Dr. Dyson Ido: \"Her brain is intact... and her antimatter core is still warm.\"", 5.5f, voiceIdoCoreWarm);
 
             if (diagnosticProbeLight != null)
@@ -546,6 +548,9 @@ namespace Alita
             }
 
             if (diagnosticProbeLight != null) diagnosticProbeLight.enabled = false;
+
+            // Brief natural pause after probe so line 4 is fully concluded before line 5 begins
+            yield return new WaitForSeconds(1.0f);
 
             // Doctor recognizes she cannot wake up here in the storm:
             SetSubtitleAndVoice("Dr. Dyson Ido: \"She's in deep stasis. I need to take her back to the clinic.\"", 5.0f, voiceIdoStasis);
@@ -649,6 +654,9 @@ namespace Alita
             SetDoctorAnimation(0f, false, false, true);
             _currentSubtitle = "";
             _fadeAlpha = 1.0f;
+            if (doctorVoiceSource != null) doctorVoiceSource.Stop();
+            Cyberpunk.Audio.DialogueVoice.Stop();
+            Alita.UI.CyberpunkDialogueHUD.Instance?.CloseDialogue();
             StartCoroutine(TransitionToNextSceneRoutine());
         }
 
@@ -657,6 +665,10 @@ namespace Alita
             if (_isLoadingNextScene) yield break;
             _isLoadingNextScene = true;
             _fadeAlpha = 1.0f;
+
+            if (doctorVoiceSource != null) doctorVoiceSource.Stop();
+            Cyberpunk.Audio.DialogueVoice.Stop();
+            Alita.UI.CyberpunkDialogueHUD.Instance?.CloseDialogue();
 
             if (musicSource != null) musicSource.volume = 0f;
             if (stormSystem != null)
@@ -883,11 +895,23 @@ namespace Alita
             _currentSubtitle = text;
             _subtitleTimer = duration;
 
-            if (voiceClip != null && doctorVoiceSource != null)
+            if (doctorVoiceSource != null)
             {
                 doctorVoiceSource.Stop();
+            }
+
+            if (voiceClip != null && doctorVoiceSource != null)
+            {
                 doctorVoiceSource.clip = voiceClip;
                 doctorVoiceSource.Play();
+                // CRITICAL: Suppress DialogueVoice TTS so the synthesized TTS doesn't play
+                // simultaneously on top of doctorVoiceSource's hand-crafted voice clip!
+                float suppressDur = (voiceClip.length > 0f) ? voiceClip.length + 0.6f : duration;
+                Cyberpunk.Audio.DialogueVoice.SuppressFor(suppressDur);
+            }
+            else
+            {
+                Cyberpunk.Audio.DialogueVoice.Stop();
             }
 
             if (!string.IsNullOrEmpty(text))

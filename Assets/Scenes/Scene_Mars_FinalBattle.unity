@@ -13162,6 +13162,73 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4051083912740068, guid: 7c33c7fc228490a42b66a987cd85ec40, type: 3}
   m_PrefabInstance: {fileID: 477112421}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &477967479
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1132506518435830, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_Name
+      value: Alita_Martian_Starship
+      objectReference: {fileID: 0}
+    - target: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 58
+      objectReference: {fileID: 0}
+    - target: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.00000004371139
+      objectReference: {fileID: 0}
+    - target: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+--- !u!1 &477967480 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1132506518435830, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+  m_PrefabInstance: {fileID: 477967479}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &477967481 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4764153474945758, guid: acac03912306d8a4889ae21318e9466d, type: 3}
+  m_PrefabInstance: {fileID: 477967479}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &478385911
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22888,7 +22955,7 @@ MonoBehaviour:
   currentPhase: 0
   alitaHero: {fileID: 1153664058}
   bossMech: {fileID: 1799804802}
-  starship: {fileID: 0}
+  starship: {fileID: 477967480}
   corePedestal: {fileID: 2138591880}
   starDestroyerFleet: {fileID: 2116591731}
   armyManager: {fileID: 859509259}
@@ -22913,6 +22980,15 @@ MonoBehaviour:
   AlitaCombatStartRot: {x: 0, y: 0, z: 0, w: 1}
   BossCombatStartPos: {x: 0, y: 1, z: 96}
   BossCombatStartRot: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  sfxArrivalMusic: {fileID: 0}
+  sfxEngineLoop: {fileID: 0}
+  sfxBoostIgnite: {fileID: 0}
+  sfxRocket: {fileID: 0}
+  sfxAtmosphereEntry: {fileID: 0}
+  sfxFlyby: {fileID: 0}
+  sfxRetroBrake: {fileID: 0}
+  sfxTouchdown: {fileID: 0}
+  sfxCanopyOpen: {fileID: 0}
 --- !u!114 &800447631
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -22962,6 +23038,14 @@ MonoBehaviour:
   sfxAlarmWarning: {fileID: 0}
   redDustStormFX: {fileID: 0}
   martianSunLight: {fileID: 961010001}
+  starshipTransform: {fileID: 477967481}
+  victoryFlourishClip: {fileID: 5119973695547190099, guid: 8e4420a97da5910449d9ab3bfde41051, type: 3}
+  victoryMusic: {fileID: 8300000, guid: 90dc8a5a68e87094292b4b8558b260c9, type: 3}
+  warpSFX: {fileID: 8300000, guid: 7a12dc13570c8b44d993acabfb8d7760, type: 3}
+  bladeSheatheSFX: {fileID: 8300000, guid: 5b25a417a527a634ab6e910103d456df, type: 3}
+  idoMemoryVoiceClip: {fileID: 8300000, guid: 0938b5b87f37cff41b9cae52f19aac5e, type: 3}
+  idoPortrait: {fileID: 21300000, guid: 0c26d0048dc6240d9b7844cdc6d9cf58, type: 3}
+  alitaPortrait: {fileID: 21300000, guid: 1268deb47356a457ab718b132a8cae7e, type: 3}
 --- !u!4 &800447633
 Transform:
   m_ObjectHideFlags: 0
@@ -60959,3 +61043,4 @@ SceneRoots:
   - {fileID: 800447633}
   - {fileID: 1153664056}
   - {fileID: 1799804801}
+  - {fileID: 477967479}

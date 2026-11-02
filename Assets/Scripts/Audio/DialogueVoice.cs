@@ -19,7 +19,7 @@ namespace Cyberpunk.Audio
         public const string ResourceFolder = "VoiceLines/";
 
         public static bool Enabled = true;
-        public static float Volume = 1f;
+        public static float Volume = 1f;   // Applied directly to the AudioSource; 1 = full Unity volume.
         /// <summary>Playback speed of the spoken line (pitch shifts with it); cutscenes raise it to keep long exchanges brisk.</summary>
         public static float Speed = 1f;
 
@@ -101,7 +101,7 @@ namespace Cyberpunk.Audio
 
             EnsureSource();
             _source.clip = clip;
-            _source.volume = Mathf.Clamp01(Volume);
+            _source.volume = Mathf.Clamp(Volume, 0f, 1f);
             _source.pitch = Speed;
             _source.Play();
             return clip;
@@ -129,9 +129,13 @@ namespace Cyberpunk.Audio
             _source = go.AddComponent<AudioSource>();
             _source.playOnAwake = false;
             _source.loop = false;
-            _source.spatialBlend = 0f;
-            _source.priority = 0;
-            _source.bypassReverbZones = true;
+            _source.spatialBlend = 0f;          // Always 2D – no distance attenuation
+            _source.priority = 0;               // Highest Unity priority (never evicted)
+            _source.bypassReverbZones = true;   // No reverb wash over dialogue
+            _source.bypassEffects = true;       // Skip DSP chain – raw, clear voice
+            _source.bypassListenerEffects = true;
+            _source.volume = 1f;                // Full volume baseline; callers may raise Volume > this
+            _source.dopplerLevel = 0f;          // No Doppler on a 2D voice line
         }
 
         // ── Missing-line report (editor only) ───────────────────────────────────
