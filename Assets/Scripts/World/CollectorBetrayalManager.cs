@@ -63,7 +63,7 @@ namespace SyntyCombined.World
 
         [Header("Landing Pad & Mars Warp Escape")]
         public Vector3 landingPadPos = new Vector3(27.48f, 1.86f, 34.00f);
-        public string marsSceneName = "Scene_Mars_FinalBattle";
+        public string marsSceneName = "Cutscene_Mars_OrbitalFleetArrival";
         public SpaceshipFlightController starshipFlightController;
 
         [Header("Alarm & FX")]

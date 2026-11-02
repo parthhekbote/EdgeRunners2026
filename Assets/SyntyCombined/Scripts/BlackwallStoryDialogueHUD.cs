@@ -1303,6 +1303,9 @@ namespace SyntyCombined
                 if (flightCtrl != null)
                 {
                     flightCtrl.enabled = true;
+                    flightCtrl.targetTransitScene = "Demo_BlackMarket_01";
+                    flightCtrl.warpUnlocked = true;
+                    flightCtrl.warpDestinationTitle = "DESTINATION: SECTOR 4 BLACK MARKET (DRIFT)  |  PRESS [R] OR [ENTER] TO WARP";
                     flightCtrl.SetThrusterGlideState(-1f); // Return to idle standby pulse
                     flightCtrl.EnsureInitialized();
                 }

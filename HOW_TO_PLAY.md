@@ -55,8 +55,9 @@ graph TD
     D --> E["Act 4: Underground Arena Boss<br/>(Cyberpunk_Indoor_Combat_Arena)"]
     E --> F["Act 5: Skybridge Confrontation<br/>(Demo_City)"]
     F --> G["Act 6: Cyberspace Blackwall<br/>(Scene_Blackwall_Cyberspace)"]
-    G --> H["Act 7: Mars Orbital Fleet Arrival<br/>(Cutscene_Mars_OrbitalFleetArrival)"]
-    H --> I["Finale: Cydonia Basin Battle<br/>(Scene_Mars_FinalBattle)"]
+    G --> H["Act 7: Sector 4 Black Market & Escape<br/>(Demo_BlackMarket_01)"]
+    H --> I["Act 8: Mars Orbital Fleet Arrival<br/>(Cutscene_Mars_OrbitalFleetArrival)"]
+    I --> J["Finale: Cydonia Basin Titan Battle<br/>(Scene_Mars_FinalBattle)"]
 ```
 
 ### 1. Act 0: The Scrapyard Discovery (`Assets/Scenes/Alita_Discovery_Cutscene.unity`)
@@ -91,12 +92,27 @@ graph TD
 
 ### 7. Act 6: Beyond the Blackwall (`Assets/Scenes/Scene_Blackwall_Cyberspace.unity`)
 - Subterranean server room breach leading into the infinite audio-reactive Blackwall cyberspace realm.
-- Water reflections, pulse lidar wall, and dialogue encounter with rogue AI entity Cynosure.
+- Water reflections, pulse lidar wall, and combat trial against Rogue AI incursions.
+- Commune with the colossal Blackwall AI Overmind **Cynosure**, who reveals Alita's past and materializes her lost Martian starship.
+- Board the starship and engage hyperspace warp to Sector 4 Black Market.
 
-### 8. Finale: Mars Orbital Fleet & Final Battle (`Assets/Scenes/Scene_Mars_FinalBattle.unity`)
-- Hyperspace jump to Mars orbit.
-- Touchdown amidst the crimson sandstorms of Cydonia Basin.
-- Retrieve the ancient URM core and face off against the colossal **Hammer Titan Mech**!
+### 8. Act 7: Sector 4 Black Market & Escape (`Assets/Synty/PolygonSciFiWorlds/Scenes/Demo_BlackMarket_01.unity`)
+- Guardians of the Galaxy-style cinematic arrival cutscene with Sweet Child O' Mine playing as Alita touches down on the flight deck.
+- Interrogate the underworld merchants and recover the 4 Core Matrices for Data Fixer Kaelen Voss.
+- Voss betrays Alita for Omni-Corp's 10M credit bounty!
+- Fight through syndicate bounty hunters, follow the ground navigation trail back to your starship, and escape into hyperspace.
+
+### 9. Act 8: Mars Orbital Fleet Arrival (`Assets/Scenes/Cutscene_Mars_OrbitalFleetArrival.unity`)
+- High-velocity warp breach into Mars orbit alongside the colossal Star Destroyer fleet.
+- Dynamic camera flyby, sonic boom rumble, and dramatic orbital descent into the crimson atmosphere of Cydonia Basin.
+
+### 10. Finale: Cydonia Basin Titan Battle (`Assets/Scenes/Scene_Mars_FinalBattle.unity`)
+- Crimson Martian dust storms and ancient URM excavation ruins.
+- Epic duel against the colossal **Hammer Titan Mech** (Colossus-06).
+- Defeating the boss triggers:
+  - Slow-motion impact and Alita's triumphant blade flourish & sheathe animation.
+  - Emotional 3-shot cinematic cutscene avenging Dr. Ido with memory portrait and voice acting.
+  - Interactive choice modal: **[TRAVEL BACK TO CYBER CITY]** (`[ENTER] / [SPACE] / [E]`) or explore the Martian surface.
 
 ---
 

@@ -105,7 +105,7 @@ namespace SyntyCombined.Cutscene
         {
             // If in Black Market scene and either playOnStart or ForcePlayCutsceneOnSceneLoad is true
             string currentScene = SceneManager.GetActiveScene().name;
-            bool isBlackMarket = currentScene.Equals("Demo_BlackMarket_01", System.StringComparison.OrdinalIgnoreCase);
+            bool isBlackMarket = currentScene.IndexOf("BlackMarket", System.StringComparison.OrdinalIgnoreCase) >= 0;
 
             if (isBlackMarket && (playOnStart || ForcePlayCutsceneOnSceneLoad))
             {

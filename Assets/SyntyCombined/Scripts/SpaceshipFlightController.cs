@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 using InsaneGun.Combat;
 
 #if UNITY_EDITOR
@@ -596,19 +598,37 @@ namespace SyntyCombined
                 bool enterPressed = Input.GetKeyDown(warpKey) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
                 bool altWarp = enableAltitudeWarp && transform.position.y > 65f;
 
-                bool canWarpToMars = warpUnlocked ||
-                                     BlackMarket.BlackMarketNPC.MarsCoordinatesUnlocked ||
-                                     (SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance != null &&
-                                      SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance.currentState >= SyntyCombined.BlackMarket.BlackMarketStoryState.BetrayalAmbush) ||
-                                     (SyntyCombined.World.CollectorBetrayalManager.Instance != null &&
-                                      SyntyCombined.World.CollectorBetrayalManager.Instance.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured);
+                string currentActiveScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+                bool isCyberspaceScene = currentActiveScene.IndexOf("Blackwall", StringComparison.OrdinalIgnoreCase) >= 0;
+                bool isBlackMarketScene = currentActiveScene.IndexOf("BlackMarket", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                bool canWarp = false;
+                if (isCyberspaceScene)
+                {
+                    canWarp = warpUnlocked;
+                    targetTransitScene = "Demo_BlackMarket_01";
+                }
+                else if (isBlackMarketScene)
+                {
+                    canWarp = warpUnlocked ||
+                              BlackMarket.BlackMarketNPC.MarsCoordinatesUnlocked ||
+                              (SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance != null &&
+                               SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance.currentState >= SyntyCombined.BlackMarket.BlackMarketStoryState.BetrayalAmbush) ||
+                              (SyntyCombined.World.CollectorBetrayalManager.Instance != null &&
+                               SyntyCombined.World.CollectorBetrayalManager.Instance.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured);
+
+                    targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+                }
+                else
+                {
+                    canWarp = warpUnlocked;
+                }
 
                 if (!isWarping && (enterPressed || altWarp))
                 {
-                    if (canWarpToMars)
+                    if (canWarp)
                     {
                         warpUnlocked = true;
-                        targetTransitScene = "Scene_Mars_FinalBattle";
                         EngageHyperSpaceWarp();
                     }
                 }
@@ -748,17 +768,28 @@ namespace SyntyCombined
             ActiveShip = this;
             _exitCooldown = 0.6f;
 
-            bool isMarsReady = warpUnlocked ||
-                               BlackMarket.BlackMarketNPC.MarsCoordinatesUnlocked ||
-                               (SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance != null &&
-                                SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance.currentState >= SyntyCombined.BlackMarket.BlackMarketStoryState.BetrayalAmbush) ||
-                               (SyntyCombined.World.CollectorBetrayalManager.Instance != null &&
-                                SyntyCombined.World.CollectorBetrayalManager.Instance.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured);
-
-            if (isMarsReady)
+            string curSceneOnBoard = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            if (curSceneOnBoard.IndexOf("Blackwall", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 warpUnlocked = true;
-                targetTransitScene = "Scene_Mars_FinalBattle";
+                targetTransitScene = "Demo_BlackMarket_01";
+                warpDestinationTitle = "DESTINATION: SECTOR 4 BLACK MARKET (DRIFT)  |  PRESS [R] OR [ENTER] TO WARP";
+            }
+            else if (curSceneOnBoard.IndexOf("BlackMarket", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+                bool isMarsReady = warpUnlocked ||
+                                   BlackMarket.BlackMarketNPC.MarsCoordinatesUnlocked ||
+                                   (SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance != null &&
+                                    SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance.currentState >= SyntyCombined.BlackMarket.BlackMarketStoryState.BetrayalAmbush) ||
+                                   (SyntyCombined.World.CollectorBetrayalManager.Instance != null &&
+                                    SyntyCombined.World.CollectorBetrayalManager.Instance.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured);
+
+                if (isMarsReady)
+                {
+                    warpUnlocked = true;
+                    warpDestinationTitle = "DESTINATION: MARS CYDONIA BASIN  |  PRESS [R] OR [ENTER] TO ESCAPE TO MARS";
+                }
             }
 
             // Activate Rigidbody physics
@@ -1724,16 +1755,37 @@ namespace SyntyCombined
                 fontStyle = FontStyle.Bold
             };
 
-            bool isReadyForMarsWarp = warpUnlocked || BlackMarket.BlackMarketNPC.MarsCoordinatesUnlocked ||
-                (SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance != null &&
-                 SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance.currentState >= SyntyCombined.BlackMarket.BlackMarketStoryState.BetrayalAmbush) ||
-                (SyntyCombined.World.CollectorBetrayalManager.Instance != null &&
-                 SyntyCombined.World.CollectorBetrayalManager.Instance.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured);
+            string curSceneGui = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            bool isCyberGui = curSceneGui.IndexOf("Blackwall", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool isBMGui = curSceneGui.IndexOf("BlackMarket", StringComparison.OrdinalIgnoreCase) >= 0;
 
-            destStyle.normal.textColor = isReadyForMarsWarp ? new Color(0f, 0.95f, 1f) : new Color(1f, 0.8f, 0.2f);
-            string bannerMsg = isReadyForMarsWarp 
-                ? "DESTINATION: MARS CYDONIA VAULT  |  PRESS [ENTER] OR [R] TO ENGAGE WARP"
-                : "MISSION ACTIVE: RETRIEVE ASTEROID CORE MATRICES  |  TRACTOR CLAMP ENGAGED";
+            bool isWarpDriveReady = false;
+            string bannerMsg = "";
+            if (isCyberGui)
+            {
+                isWarpDriveReady = warpUnlocked;
+                destStyle.normal.textColor = new Color(0f, 0.95f, 1f);
+                bannerMsg = "DESTINATION: SECTOR 4 BLACK MARKET (DRIFT)  |  PRESS [ENTER] OR [R] TO ENGAGE WARP";
+            }
+            else if (isBMGui)
+            {
+                isWarpDriveReady = warpUnlocked || BlackMarket.BlackMarketNPC.MarsCoordinatesUnlocked ||
+                    (SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance != null &&
+                     SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance.currentState >= SyntyCombined.BlackMarket.BlackMarketStoryState.BetrayalAmbush) ||
+                    (SyntyCombined.World.CollectorBetrayalManager.Instance != null &&
+                     SyntyCombined.World.CollectorBetrayalManager.Instance.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured);
+
+                destStyle.normal.textColor = isWarpDriveReady ? new Color(0f, 0.95f, 1f) : new Color(1f, 0.8f, 0.2f);
+                bannerMsg = isWarpDriveReady 
+                    ? "DESTINATION: MARS CYDONIA BASIN  |  PRESS [ENTER] OR [R] TO ESCAPE TO MARS"
+                    : "MISSION ACTIVE: RETRIEVE ASTEROID CORE MATRICES  |  TRACTOR CLAMP ENGAGED";
+            }
+            else
+            {
+                isWarpDriveReady = warpUnlocked;
+                destStyle.normal.textColor = warpUnlocked ? new Color(0f, 0.95f, 1f) : new Color(1f, 0.8f, 0.2f);
+                bannerMsg = !string.IsNullOrEmpty(warpDestinationTitle) ? warpDestinationTitle : "PRESS [ENTER] OR [R] TO ENGAGE WARP";
+            }
             GUI.Label(new Rect(destX, destY, destW, destH), bannerMsg, destStyle);
 
             // 1. Center Flight Crosshair
@@ -1772,7 +1824,7 @@ namespace SyntyCombined
             GUI.Label(new Rect(panelX + 14, panelY + 10, panelW, 20), $"SPEED: {speedKmh:F0} KM/H {(_isBoosting ? "[BOOST]" : "")}", hudText);
             GUI.Label(new Rect(panelX + 14, panelY + 30, panelW, 20), $"ALTITUDE: {_groundDistance:F1} M", hudText);
             GUI.Label(new Rect(panelX + 14, panelY + 50, panelW, 20), $"VIEW: {(_isCockpitView ? "COCKPIT 1ST-PERSON" : "CHASE 3RD-PERSON")}", hudText);
-            GUI.Label(new Rect(panelX + 14, panelY + 70, panelW, 20), $"WARP DRIVE: {(isReadyForMarsWarp ? "READY [ENTER / R]" : "STANDBY")}", hudText);
+            GUI.Label(new Rect(panelX + 14, panelY + 70, panelW, 20), $"WARP DRIVE: {(isWarpDriveReady ? "READY [ENTER / R]" : "STANDBY")}", hudText);
 
             // 3. Flight Controls Guide (Bottom-Center)
             float guideW = 680f;
@@ -1863,10 +1915,21 @@ namespace SyntyCombined
 
             _warpFlashAlpha = 1.0f;
 
-            if (string.IsNullOrEmpty(targetTransitScene) || targetTransitScene.Contains("Blackwall"))
+            string finalCurScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            if (finalCurScene.IndexOf("Blackwall", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                targetTransitScene = "Scene_Mars_FinalBattle";
+                targetTransitScene = "Demo_BlackMarket_01";
+                SyntyCombined.Cutscene.BlackMarketArrivalCutsceneDirector.ForcePlayCutsceneOnSceneLoad = true;
             }
+            else if (finalCurScene.IndexOf("BlackMarket", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+            }
+            else if (string.IsNullOrEmpty(targetTransitScene))
+            {
+                targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+            }
+
             UnityEngine.SceneManagement.SceneManager.LoadScene(targetTransitScene);
         }
         #endregion

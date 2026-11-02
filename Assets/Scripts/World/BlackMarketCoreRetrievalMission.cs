@@ -111,7 +111,7 @@ namespace SyntyCombined.World
                 // Lock warp until cores are collected and engine is restored
                 nightshadeShip.warpUnlocked = false;
                 nightshadeShip.enableAltitudeWarp = false;
-                nightshadeShip.targetTransitScene = "Scene_Mars_FinalBattle";
+                nightshadeShip.targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
             }
 
             if (currentStage == CoreRetrievalStage.Briefing)
@@ -377,7 +377,7 @@ namespace SyntyCombined.World
                 if (nightshadeShip != null)
                 {
                     nightshadeShip.warpUnlocked = true;
-                    nightshadeShip.targetTransitScene = "Scene_Mars_FinalBattle";
+                    nightshadeShip.targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
                 }
                 if (CollectorBetrayalManager.Instance != null)
                 {
@@ -667,7 +667,7 @@ namespace SyntyCombined.World
             if (nightshadeShip != null)
             {
                 nightshadeShip.warpUnlocked = true;
-                nightshadeShip.targetTransitScene = "Scene_Mars_FinalBattle";
+                nightshadeShip.targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
             }
 
             if (CollectorBetrayalManager.Instance != null)
@@ -770,7 +770,7 @@ namespace SyntyCombined.World
             if (nightshadeShip != null)
             {
                 nightshadeShip.warpUnlocked = true;
-                nightshadeShip.targetTransitScene = "Scene_Mars_FinalBattle";
+                nightshadeShip.targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
             }
             if (CollectorBetrayalManager.Instance != null)
             {
