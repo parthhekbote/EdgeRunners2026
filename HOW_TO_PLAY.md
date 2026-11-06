@@ -56,8 +56,7 @@ graph TD
     E --> F["Act 5: Skybridge Confrontation<br/>(Demo_City)"]
     F --> G["Act 6: Cyberspace Blackwall<br/>(Scene_Blackwall_Cyberspace)"]
     G --> H["Act 7: Sector 4 Black Market & Escape<br/>(Demo_BlackMarket_01)"]
-    H --> I["Act 8: Mars Orbital Fleet Arrival<br/>(Cutscene_Mars_OrbitalFleetArrival)"]
-    I --> J["Finale: Cydonia Basin Titan Battle<br/>(Scene_Mars_FinalBattle)"]
+    H --> J["Finale: The Siege of Mars & Titan Battle<br/>(Scene_Mars_FinalBattle)"]
 ```
 
 ### 1. Act 0: The Scrapyard Discovery (`Assets/Scenes/Alita_Discovery_Cutscene.unity`)
@@ -100,14 +99,10 @@ graph TD
 - Guardians of the Galaxy-style cinematic arrival cutscene with Sweet Child O' Mine playing as Alita touches down on the flight deck.
 - Interrogate the underworld merchants and recover the 4 Core Matrices for Data Fixer Kaelen Voss.
 - Voss betrays Alita for Omni-Corp's 10M credit bounty!
-- Fight through syndicate bounty hunters, follow the ground navigation trail back to your starship, and escape into hyperspace.
+- Fight through syndicate bounty hunters, follow the ground navigation trail back to your starship, and engage hyperspace warp to Mars (`Scene_Mars_FinalBattle`).
 
-### 9. Act 8: Mars Orbital Fleet Arrival (`Assets/Scenes/Cutscene_Mars_OrbitalFleetArrival.unity`)
-- High-velocity warp breach into Mars orbit alongside the colossal Star Destroyer fleet.
-- Dynamic camera flyby, sonic boom rumble, and dramatic orbital descent into the crimson atmosphere of Cydonia Basin.
-
-### 10. Finale: Cydonia Basin Titan Battle (`Assets/Scenes/Scene_Mars_FinalBattle.unity`)
-- Crimson Martian dust storms and ancient URM excavation ruins.
+### 9. Finale: The Siege of Mars & Titan Battle (`Assets/Scenes/Scene_Mars_FinalBattle.unity`)
+- Emerge over Cydonia Basin beneath celestial Phobos with full blockbuster Mars arrival cinematic (atmospheric entry, ancient URM Antimatter Core retrieval, Imperial Star Destroyer arrival, and one-shot shockwave obliteration).
 - Epic duel against the colossal **Hammer Titan Mech** (Colossus-06).
 - Defeating the boss triggers:
   - Slow-motion impact and Alita's triumphant blade flourish & sheathe animation.

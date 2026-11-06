@@ -489,7 +489,7 @@ namespace SyntyCombined.BlackMarket
                         if (flightCtrl != null)
                         {
                             flightCtrl.warpUnlocked = true;
-                            flightCtrl.targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+                            flightCtrl.targetTransitScene = "Scene_Mars_FinalBattle";
                         }
                     }
                     StartCoroutine(ExecuteBetrayalSequence());
@@ -502,7 +502,7 @@ namespace SyntyCombined.BlackMarket
                         if (flightCtrl != null)
                         {
                             flightCtrl.warpUnlocked = true;
-                            flightCtrl.targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+                            flightCtrl.targetTransitScene = "Scene_Mars_FinalBattle";
                         }
                     }
                     hud.ShowMissionBanner("🚨 SECTOR COMPROMISED! FLEE ACROSS THE UPPER GANTRY CATWALK!");
@@ -536,7 +536,7 @@ namespace SyntyCombined.BlackMarket
                         if (flightCtrl != null)
                         {
                             flightCtrl.warpUnlocked = true;
-                            flightCtrl.targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+                            flightCtrl.targetTransitScene = "Scene_Mars_FinalBattle";
                         }
                     }
                     hud.ShowMissionBanner("🚨 PURSUIT NEUTRALIZED! SPRINT UP TO PAD B-04 & PRESS [ENTER] OR [R] TO WARP TO MARS!");
@@ -852,8 +852,8 @@ namespace SyntyCombined.BlackMarket
 
             yield return new WaitForSeconds(2.5f);
 
-            // Transition to Mars Cutscene if available
-            string marsScene = "Cutscene_Mars_OrbitalFleetArrival";
+            // Transition to Mars Cutscene / Final Battle if available
+            string marsScene = "Scene_Mars_FinalBattle";
             if (Application.CanStreamedLevelBeLoaded(marsScene))
             {
                 SceneManager.LoadScene(marsScene);

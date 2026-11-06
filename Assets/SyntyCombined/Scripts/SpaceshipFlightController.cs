@@ -617,7 +617,7 @@ namespace SyntyCombined
                               (SyntyCombined.World.CollectorBetrayalManager.Instance != null &&
                                SyntyCombined.World.CollectorBetrayalManager.Instance.currentPhase >= SyntyCombined.World.BetrayalPhase.CoordinatesSecured);
 
-                    targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+                    targetTransitScene = "Scene_Mars_FinalBattle";
                 }
                 else
                 {
@@ -777,7 +777,7 @@ namespace SyntyCombined
             }
             else if (curSceneOnBoard.IndexOf("BlackMarket", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+                targetTransitScene = "Scene_Mars_FinalBattle";
                 bool isMarsReady = warpUnlocked ||
                                    BlackMarket.BlackMarketNPC.MarsCoordinatesUnlocked ||
                                    (SyntyCombined.BlackMarket.BlackMarketStoryCombatDirector.Instance != null &&
@@ -1923,11 +1923,11 @@ namespace SyntyCombined
             }
             else if (finalCurScene.IndexOf("BlackMarket", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+                targetTransitScene = "Scene_Mars_FinalBattle";
             }
             else if (string.IsNullOrEmpty(targetTransitScene))
             {
-                targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+                targetTransitScene = "Scene_Mars_FinalBattle";
             }
 
             UnityEngine.SceneManagement.SceneManager.LoadScene(targetTransitScene);

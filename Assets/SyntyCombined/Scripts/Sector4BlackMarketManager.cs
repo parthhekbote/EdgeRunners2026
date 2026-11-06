@@ -211,7 +211,7 @@ namespace SyntyCombined
                 var flightCtrl = _parkedShip.GetComponent<SpaceshipFlightController>();
                 if (flightCtrl == null) flightCtrl = _parkedShip.AddComponent<SpaceshipFlightController>();
                 flightCtrl.boardKey = KeyCode.F;
-                flightCtrl.targetTransitScene = "Cutscene_Mars_OrbitalFleetArrival";
+                flightCtrl.targetTransitScene = "Scene_Mars_FinalBattle";
             }
         }
 
